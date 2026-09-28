@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Portage à plat du backend Komga en TypeScript",
+  "description": "Portage \u00e0 plat du backend Komga en TypeScript",
   "license": "MIT",
   "engines": {
     "node": ">=22"
@@ -14,7 +14,8 @@
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "port:status": "node tools/port-status.mjs",
-    "port:diff": "node tools/upstream-diff.mjs"
+    "port:diff": "node tools/upstream-diff.mjs",
+    "build:native": "mkdir -p build && gcc -O2 -shared -fPIC -o build/komgacollations.so native/komga_collations.c -I node_modules/better-sqlite3/deps/sqlite3 -licui18n -licuuc"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
