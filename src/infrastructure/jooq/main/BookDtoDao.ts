@@ -409,7 +409,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
         this.mediaToDto(mr),
         this.metadataToDto(dr, authors.get(br.id) ?? [], new Set(tags.get(br.id) ?? []), links.get(br.id) ?? []),
         rr.userId !== null ? this.readProgressToDto(rr) : null,
-        seriesTitle,
+        nn(seriesTitle),
       )
     })
   }
@@ -437,54 +437,54 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
     })
   }
 
-  // PORT: fonction d'extension MediaRecord.toDto()
+  // PORT: fonction d'extension MediaRecord.toDto() ; nn() : valeur Java (plateforme) passée à un paramètre Kotlin non nul (NPE)
   private mediaToDto(self: MediaRecord): MediaDto {
     return new MediaDto({
-      status: self.status,
+      status: nn(self.status),
       mediaType: self.mediaType ?? '',
-      pagesCount: self.pageCount,
+      pagesCount: nn(self.pageCount),
       comment: self.comment ?? '',
-      epubDivinaCompatible: self.epubDivinaCompatible,
-      epubIsKepub: self.epubIsKepub,
+      epubDivinaCompatible: nn(self.epubDivinaCompatible),
+      epubIsKepub: nn(self.epubIsKepub),
     })
   }
 
   // PORT: fonction d'extension BookMetadataRecord.toDto()
   private metadataToDto(self: BookMetadataRecord, authors: AuthorDto[], tags: ReadonlySet<string>, links: WebLinkDto[]): BookMetadataDto {
     return new BookMetadataDto({
-      title: self.title,
-      titleLock: self.titleLock,
-      summary: self.summary,
-      summaryLock: self.summaryLock,
-      number: self.number,
-      numberLock: self.numberLock,
-      numberSort: self.numberSort,
-      numberSortLock: self.numberSortLock,
+      title: nn(self.title),
+      titleLock: nn(self.titleLock),
+      summary: nn(self.summary),
+      summaryLock: nn(self.summaryLock),
+      number: nn(self.number),
+      numberLock: nn(self.numberLock),
+      numberSort: nn(self.numberSort),
+      numberSortLock: nn(self.numberSortLock),
       releaseDate: self.releaseDate,
-      releaseDateLock: self.releaseDateLock,
+      releaseDateLock: nn(self.releaseDateLock),
       authors: authors,
-      authorsLock: self.authorsLock,
+      authorsLock: nn(self.authorsLock),
       tags: tags,
-      tagsLock: self.tagsLock,
-      isbn: self.isbn,
-      isbnLock: self.isbnLock,
+      tagsLock: nn(self.tagsLock),
+      isbn: nn(self.isbn),
+      isbnLock: nn(self.isbnLock),
       links: links,
-      linksLock: self.linksLock,
-      created: self.createdDate,
-      lastModified: self.lastModifiedDate,
+      linksLock: nn(self.linksLock),
+      created: nn(self.createdDate),
+      lastModified: nn(self.lastModifiedDate),
     })
   }
 
   // PORT: fonction d'extension ReadProgressRecord.toDto()
   private readProgressToDto(self: ReadProgressRecord): ReadProgressDto {
     return new ReadProgressDto({
-      page: self.page,
-      completed: self.completed,
-      readDate: self.readDate,
-      created: self.createdDate,
-      lastModified: self.lastModifiedDate,
-      deviceId: self.deviceId,
-      deviceName: self.deviceName,
+      page: nn(self.page),
+      completed: nn(self.completed),
+      readDate: nn(self.readDate),
+      created: nn(self.createdDate),
+      lastModified: nn(self.lastModifiedDate),
+      deviceId: nn(self.deviceId),
+      deviceName: nn(self.deviceName),
     })
   }
 }

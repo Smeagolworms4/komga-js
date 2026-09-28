@@ -4,25 +4,15 @@
 import { accessSync, constants, copyFileSync, existsSync, lstatSync, openSync, closeSync, readdirSync, renameSync, rmdirSync, statSync, unlinkSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { IOException } from './java-io.js'
+import { FileInputStream, FileNotFoundException, IOException } from './java-io.js'
 
-/** `java.io.FileNotFoundException` */
-export class FileNotFoundException extends IOException {}
+/** `java.io.FileNotFoundException` : une seule classe, celle de java-io.ts (sinon `instanceof` échoue d'un module à l'autre) */
+export { FileNotFoundException }
 
-/** `java.nio.file.FileSystemException` */
-export class FileSystemException extends IOException {}
-
-/** `java.nio.file.FileAlreadyExistsException` */
-export class FileAlreadyExistsException extends FileSystemException {}
-
-/** `java.nio.file.NoSuchFileException` */
-export class NoSuchFileException extends FileSystemException {}
-
-/** `java.nio.file.AccessDeniedException` */
-export class AccessDeniedException extends FileSystemException {}
-
-/** `java.nio.file.DirectoryNotEmptyException` */
-export class DirectoryNotEmptyException extends FileSystemException {}
+// PORT: une seule classe par exception java.nio.file, celles de java-nio-file.ts (sinon `instanceof` échoue d'un module
+// à l'autre : une NoSuchFileException levée par Files.newInputStream n'était pas reconnue par BookAnalyzer.analyze)
+export { AccessDeniedException, DirectoryNotEmptyException, FileAlreadyExistsException, FileSystemException, NoSuchFileException } from './java-nio-file.js'
+import { AccessDeniedException, DirectoryNotEmptyException, FileAlreadyExistsException, NoSuchFileException } from './java-nio-file.js'
 
 /**
  * Conversion d'une erreur système Node (code errno) en exception java.nio.file, comme le fait le
@@ -43,6 +33,17 @@ export function translateNodeError(e: unknown, file: string): unknown {
     default:
       return e
   }
+}
+
+/** `Path.inputStream()` (Files.newInputStream) : NoSuchFileException, AccessDeniedException... et non FileNotFoundException */
+export function inputStream(path: string): FileInputStream {
+  let fd: number
+  try {
+    fd = openSync(path, 'r')
+  } catch (e) {
+    throw translateNodeError(e, path)
+  }
+  return new FileInputStream({ fd })
 }
 
 function fileName(path: string): string {
@@ -79,7 +80,8 @@ export function notExists(path: string): boolean {
     statSync(path)
     return false
   } catch (e) {
-    return (e as NodeJS.ErrnoException).code === 'ENOENT' || (e as NodeJS.ErrnoException).code === 'ENOTDIR'
+    // Files.notExists : seule NoSuchFileException (ENOENT) confirme l'absence ; ENOTDIR -> FileSystemException -> faux
+    return (e as NodeJS.ErrnoException).code === 'ENOENT'
   }
 }
 

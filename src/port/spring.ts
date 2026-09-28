@@ -145,7 +145,9 @@ export class Environment {
   keysUnder(prefix: string): string[] {
     const p = `${canonicalKey(prefix)}.`
     const keys = new Set<string>()
-    for (const s of this.sources) for (const k of s.keys()) if (k.startsWith(p)) keys.add(k)
+    // éléments indexés d'une liste (`prefix[0]`) inclus, comme le Binder de Spring Boot
+    const indexed = `${canonicalKey(prefix)}[`
+    for (const s of this.sources) for (const k of s.keys()) if (k.startsWith(p) || k.startsWith(indexed)) keys.add(k)
     const envPrefix = prefix.toUpperCase().replaceAll('-', '').replaceAll('.', '_') + '_'
     for (const k of this.env.keys()) if (k.startsWith(envPrefix)) keys.add(canonicalKey(k.replaceAll('_', '.')))
     return [...keys]

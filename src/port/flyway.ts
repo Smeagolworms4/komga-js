@@ -41,6 +41,8 @@ export type FlywayConfig = {
   /** Paquet Java des migrations code, pour la colonne `script` (ex. `db.migration.sqlite`) */
   codePackage?: string
   placeholders?: Record<string, string>
+  /** `target(version)` : migrations appliquées jusqu'à cette version incluse (toutes par défaut) */
+  target?: string
 }
 
 const TABLE = 'flyway_schema_history'
@@ -161,7 +163,10 @@ export class Flyway {
     }
     const appliedVersions = applied.filter((a) => a.version !== null).map((a) => a.version as string)
     const current = appliedVersions.reduce<string | null>((m, v) => (m === null || compareVersions(v, m) > 0 ? v : m), null)
-    const pending = resolved.filter((r) => !appliedVersions.some((v) => compareVersions(v, r.version) === 0))
+    const target = this.config.target
+    const pending = resolved.filter(
+      (r) => !appliedVersions.some((v) => compareVersions(v, r.version) === 0) && (target === undefined || compareVersions(r.version, target) <= 0),
+    )
     const outOfOrder = pending.find((r) => current !== null && compareVersions(r.version, current) < 0)
     if (outOfOrder)
       throw new FlywayException(`Validate failed: Detected resolved migration not applied to database: ${outOfOrder.version}`)

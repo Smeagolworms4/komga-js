@@ -483,19 +483,20 @@ export class DefaultOAuth2UserService extends OAuth2UserService<OAuth2UserReques
         body: form ? new URLSearchParams({ access_token: userRequest.accessToken.tokenValue }) : undefined,
       })
       if (!res.ok) {
+        // DefaultResponseErrorHandler : RestClientResponseException "<code> <texte>: \"<corps>\"" (ou "[no body]"),
+        // enveloppée par DefaultOAuth2UserService (message = OAuth2Error.toString())
         const text = await res.text()
-        throw new OAuth2AuthenticationException(
-          new OAuth2Error('invalid_user_info_response', `An error occurred while attempting to retrieve the UserInfo Resource: Error details: [UserInfo Uri: ${endpoint.uri}, Http Status: ${res.status}, Error Code: , Error Description: ${text}]`),
+        const error = new OAuth2Error(
+          'invalid_user_info_response',
+          `An error occurred while attempting to retrieve the UserInfo Resource: ${res.status} ${res.statusText}: ${text.length === 0 ? '[no body]' : `"${text}"`}`,
         )
+        throw new OAuth2AuthenticationException(error, error.toString())
       }
       attributes = (await res.json()) as Record<string, unknown>
     } catch (e) {
       if (e instanceof OAuth2AuthenticationException) throw e
-      throw new OAuth2AuthenticationException(
-        new OAuth2Error('invalid_user_info_response', `An error occurred while attempting to retrieve the UserInfo Resource: ${(e as Error).message}`),
-        null,
-        e,
-      )
+      const error = new OAuth2Error('invalid_user_info_response', `An error occurred while attempting to retrieve the UserInfo Resource: ${(e as Error).message}`)
+      throw new OAuth2AuthenticationException(error, error.toString(), e)
     }
     const authorities: GrantedAuthority[] = [new OAuth2UserAuthority(attributes, userNameAttributeName)]
     for (const authority of userRequest.accessToken.scopes) authorities.push(new SimpleGrantedAuthority(`SCOPE_${authority}`))
@@ -522,8 +523,15 @@ export class OidcUserService extends OAuth2UserService<OidcUserRequest, OidcUser
     if (this.shouldRetrieveUserInfo(userRequest)) {
       const oauth2User = await this.oauth2UserService.loadUser(userRequest)
       userInfo = new OidcUserInfo(oauth2User.getAttributes())
-      if (userInfo.subject === null) throw new OAuth2AuthenticationException(new OAuth2Error('invalid_user_info_response'))
-      if (userInfo.subject !== userRequest.idToken.subject) throw new OAuth2AuthenticationException(new OAuth2Error('invalid_user_info_response'))
+      // OidcUserService : OAuth2AuthenticationException(oauth2Error, oauth2Error.toString())
+      if (userInfo.subject === null) {
+        const error = new OAuth2Error('invalid_user_info_response')
+        throw new OAuth2AuthenticationException(error, error.toString())
+      }
+      if (userInfo.subject !== userRequest.idToken.subject) {
+        const error = new OAuth2Error('invalid_user_info_response')
+        throw new OAuth2AuthenticationException(error, error.toString())
+      }
     }
     const authorities: GrantedAuthority[] = [new OidcUserAuthority(userRequest.idToken, userInfo)]
     for (const s of userRequest.accessToken.scopes) authorities.push(new SimpleGrantedAuthority(`SCOPE_${s}`))

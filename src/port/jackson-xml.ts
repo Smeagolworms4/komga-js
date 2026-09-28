@@ -1203,8 +1203,7 @@ function escapeAttr(value: string): string {
 
 /**
  * `com.ctc.wstx.sw.RepairingNsStreamWriter` : les déclarations d'espaces de noms sont ajoutées à la volée.
- * Préfixe d'un élément : liaison en vigueur (défaut compris), sinon préfixe suggéré (setPrefix / setDefaultNamespace),
- * sinon espace de noms par défaut s'il est libre, sinon préfixe généré `wstxnsN`. Attribut : préfixe non vide
+ * Élément : toujours sans préfixe (Jackson passe le préfixe ""), `xmlns="..."` si l'espace de noms par défaut diffère. Attribut : préfixe non vide
  * (liaison en vigueur, suggéré ou généré), déclaration écrite juste avant l'attribut.
  */
 export class XmlStreamWriter implements XMLStreamWriter {
@@ -1266,29 +1265,12 @@ export class XmlStreamWriter implements XMLStreamWriter {
     const parentDefault = this.currentDefaultNs()
     const el: OutElement = { prefix: '', local: localName, defaultNs: parentDefault, bindings: new Map() }
     let decl = ''
-    if (nsURI === '') {
-      if (parentDefault !== '') {
-        el.defaultNs = ''
-        decl = ' xmlns=""'
-      }
-    } else if (parentDefault === nsURI) {
-      el.prefix = ''
-    } else {
-      const bound = this.prefixOfUri(nsURI)
-      if (bound !== null) el.prefix = bound
-      else {
-        let prefix: string
-        if (this.suggestedDefaultNs === nsURI) prefix = ''
-        else prefix = this.suggestedPrefixes.get(nsURI) ?? (parentDefault === '' ? '' : this.generatePrefix())
-        if (prefix === '') {
-          el.defaultNs = nsURI
-          decl = ` xmlns="${escapeAttr(nsURI)}"`
-        } else {
-          el.prefix = prefix
-          el.bindings.set(prefix, nsURI)
-          decl = ` xmlns:${prefix}="${escapeAttr(nsURI)}"`
-        }
-      }
+    // ToXmlGenerator écrit les éléments avec le préfixe "" (writeStartElement("", localName, nsURI)) :
+    // RepairingNsStreamWriter.validateElemPrefix("") ne garde que l'espace de noms par défaut en vigueur, sinon il le
+    // redéclare (xmlns="..."), sans tenir compte des préfixes suggérés (setPrefix / setDefaultNamespace)
+    if (parentDefault !== nsURI) {
+      el.defaultNs = nsURI
+      decl = ` xmlns="${escapeAttr(nsURI)}"`
     }
     this.out += `<${el.prefix === '' ? '' : `${el.prefix}:`}${localName}${decl}`
     this.stack.push(el)

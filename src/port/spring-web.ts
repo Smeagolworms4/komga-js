@@ -211,7 +211,45 @@ export class AccessDeniedException extends RuntimeException {}
 /** `org.springframework.web.client.RestClientResponseException` (RestTemplate / RestClient : statut 4xx / 5xx) */
 export class RestClientResponseException extends RuntimeException {}
 /** `org.springframework.web.reactive.function.client.WebClientResponseException` (WebClient.retrieve() : statut 4xx / 5xx) */
-export class WebClientResponseException extends RuntimeException {}
+export class WebClientResponseException extends RuntimeException {
+  /**
+   * `WebClientResponseException.create(...)` : sous-classe selon le statut (NotFound, InternalServerError...),
+   * message `"<code> <raison> from <méthode> <uri>"` (raison standard du statut, comme Reactor Netty)
+   */
+  static create(status: number, method: string, uri: string): WebClientResponseException {
+    const s = WEB_CLIENT_STATUSES[status]
+    const reason = s?.[1] ?? HttpStatus.entries<HttpStatus>().find((it) => it.value === status)?.reasonPhrase ?? ''
+    // Spring 6.1+ (WebClientResponseException.formatUri) : la requête est retirée de l'URI du message
+    const q = uri.indexOf('?')
+    const message = `${status} ${reason} from ${method} ${q >= 0 ? uri.slice(0, q) : uri}`
+    if (s === undefined) return new WebClientResponseException(message)
+    const named = { [s[0]]: class extends WebClientResponseException {} }[s[0]] as typeof WebClientResponseException
+    return new named(message)
+  }
+}
+
+/** Sous-classes de WebClientResponseException par statut (Spring 6) : nom, raison */
+const WEB_CLIENT_STATUSES: Record<number, [string, string]> = {
+  400: ['BadRequest', 'Bad Request'],
+  401: ['Unauthorized', 'Unauthorized'],
+  403: ['Forbidden', 'Forbidden'],
+  404: ['NotFound', 'Not Found'],
+  405: ['MethodNotAllowed', 'Method Not Allowed'],
+  406: ['NotAcceptable', 'Not Acceptable'],
+  409: ['Conflict', 'Conflict'],
+  410: ['Gone', 'Gone'],
+  415: ['UnsupportedMediaType', 'Unsupported Media Type'],
+  422: ['UnprocessableEntity', 'Unprocessable Entity'],
+  429: ['TooManyRequests', 'Too Many Requests'],
+  500: ['InternalServerError', 'Internal Server Error'],
+  501: ['NotImplemented', 'Not Implemented'],
+  502: ['BadGateway', 'Bad Gateway'],
+  503: ['ServiceUnavailable', 'Service Unavailable'],
+  504: ['GatewayTimeout', 'Gateway Timeout'],
+}
+
+/** `org.springframework.core.codec.DecodingException` : corps de réponse illisible (`"JSON decoding error: ..."`) */
+export class DecodingException extends RuntimeException {}
 
 // ---------------------------------------------------------------------------
 // Valeurs de retour
@@ -235,6 +273,29 @@ export class HttpHeaders {
   /** `contentDisposition = ContentDisposition.builder("attachment").filename(name, UTF_8).build()` */
   setContentDisposition(disposition: string): this {
     return this.set('Content-Disposition', disposition)
+  }
+}
+
+/**
+ * `HttpHeaders` construit sur une `LinkedMultiValueMap` (`ResponseEntity(body, LinkedMultiValueMap(...), status)`) :
+ * la lecture par nom (`headers[name]`, `getFirst`) est sensible à la casse.
+ */
+export class CaseSensitiveHttpHeaders extends HttpHeaders {
+  private readonly exact = new Map<string, string[]>()
+  override set(name: string, value: string): this {
+    super.set(name, value)
+    this.exact.set(name, [value])
+    return this
+  }
+  override add(name: string, value: string): this {
+    super.add(name, value)
+    const l = this.exact.get(name)
+    if (l) l.push(value)
+    else this.exact.set(name, [value])
+    return this
+  }
+  override getFirst(name: string): string | null {
+    return this.exact.get(name)?.[0] ?? null
   }
 }
 

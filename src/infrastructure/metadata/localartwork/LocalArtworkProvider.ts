@@ -1,5 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/localartwork/LocalArtworkProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { opendirSync, statSync } from 'node:fs'
+import { statSync } from 'node:fs'
+import { newDirectoryStream } from '../../../port/java-nio-file.js'
 import { basename, dirname, join } from 'node:path'
 import type { Book } from '../../../domain/model/Book.js'
 import { Dimension } from '../../../domain/model/Dimension.js'
@@ -8,7 +9,8 @@ import { Sidecar } from '../../../domain/model/Sidecar.js'
 import { ThumbnailBook } from '../../../domain/model/ThumbnailBook.js'
 import { ThumbnailSeries } from '../../../domain/model/ThumbnailSeries.js'
 import { FilenameUtils } from '../../../port/commons-io.js'
-import { FileInputStream, use } from '../../../port/java-io.js'
+import { use } from '../../../port/java-io.js'
+import { inputStream } from '../../../port/kotlin-io-path.js'
 import { pathToUrl } from '../../../port/java-net.js'
 import { str } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
@@ -45,15 +47,9 @@ function extension(path: string): string {
 }
 
 /** `Files.list(dir)` : ordre de readdir, comme le DirectoryStream de la JVM */
+// PORT: NoSuchFileException / NotDirectoryException... comme Files.list (newDirectoryStream de java-nio-file.ts)
 function listDirectory(dir: string): string[] {
-  const d = opendirSync(dir)
-  const out: string[] = []
-  try {
-    for (let e = d.readSync(); e !== null; e = d.readSync()) out.push(join(dir, e.name))
-  } finally {
-    d.closeSync()
-  }
-  return out
+  return newDirectoryStream(dir)
 }
 
 /** `Files.isRegularFile(path)` (suit les liens) */
@@ -96,7 +92,7 @@ export class LocalArtworkProvider implements SidecarSeriesConsumer, SidecarBookC
           fileSize: statSync(path).size,
           mediaType: this.contentDetector.detectMediaType(path),
           // PORT: path.inputStream() n'est pas fermé en Kotlin (fermé par le GC) ; fermé ici
-          dimension: use(new FileInputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
+          dimension: use(inputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
         })
       })
   }
@@ -124,7 +120,7 @@ export class LocalArtworkProvider implements SidecarSeriesConsumer, SidecarBookC
           fileSize: statSync(path).size,
           mediaType: this.contentDetector.detectMediaType(path),
           // PORT: path.inputStream() n'est pas fermé en Kotlin (fermé par le GC) ; fermé ici
-          dimension: use(new FileInputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
+          dimension: use(inputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
         })
       })
   }

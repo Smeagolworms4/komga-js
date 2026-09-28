@@ -48,7 +48,8 @@ export function sortByValues(self: Field<string>, values: string[], { asc = true
   let c = DSL.choose<number>(self).when('dummy dsl', INT_MAX_VALUE)
   const multiplier = asc ? 1 : -1
   values.forEach((value, index) => {
-    c = c.when(value, index * multiplier)
+    // PORT: produit Int (pas de -0 en JS pour 0 * -1)
+    c = c.when(value, (index * multiplier) | 0)
   })
   return c.otherwise(INT_MAX_VALUE)
 }

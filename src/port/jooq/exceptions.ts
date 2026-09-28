@@ -10,5 +10,8 @@ export class NoDataFoundException extends DataAccessException {}
 /** `org.jooq.exception.TooManyRowsException` (fetchOne avec plusieurs lignes) */
 export class TooManyRowsException extends DataAccessException {}
 
-/** `org.springframework.dao.DataIntegrityViolationException` (contrainte SQLite violée) */
-export class DataIntegrityViolationException extends DataAccessException {}
+/**
+ * `org.jooq.exception.IntegrityConstraintViolationException` (contrainte SQLite violée) : les DAO de Komga sont des
+ * `@Component` (pas de traduction Spring `@Repository`), l'exception jOOQ remonte telle quelle
+ */
+export class IntegrityConstraintViolationException extends DataAccessException {}

@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/BookLifecycle.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { LocalDateTime, ZoneId } from '@js-joda/core'
-import { readFileSync } from 'node:fs'
+import { fileReadBytes } from '../../port/java-io.js'
 import { dirname } from 'node:path'
 import type { Book } from '../model/Book.js'
 import { BookAction } from '../model/BookAction.js'
@@ -34,7 +34,7 @@ import { Hasher } from '../../infrastructure/hash/Hasher.js'
 import { KoreaderHasher } from '../../infrastructure/hash/KoreaderHasher.js'
 import { ImageConverter } from '../../infrastructure/image/ImageConverter.js'
 import { ImageType } from '../../infrastructure/image/ImageType.js'
-import { urlToPath } from '../../port/java.js'
+import { uriToFilePath, urlToPath } from '../../port/java.js'
 import { IllegalArgumentException, IndexOutOfBoundsException, check, eq, isBlank, kFloat, mapNotNull, maxByOrNull, minByOrNull, nn, require } from '../../port/kotlin.js'
 import { deleteIfExists, exists, isWritable, listDirectoryEntries, notExists } from '../../port/kotlin-io-path.js'
 import { KotlinLogging } from '../../port/logging.js'
@@ -223,7 +223,7 @@ export class BookLifecycle {
     if (it !== null) {
       let thumbnailBytes: Uint8Array
       if (it.thumbnail !== null) thumbnailBytes = it.thumbnail
-      else if (it.url !== null) thumbnailBytes = new Uint8Array(readFileSync(urlToPath(it.url)))
+      else if (it.url !== null) thumbnailBytes = fileReadBytes(uriToFilePath(it.url)) // PORT: File(uri).readBytes() : FileNotFoundException comme la JVM
       else return null
 
       if (resizeTo !== null) {
@@ -265,7 +265,7 @@ export class BookLifecycle {
 
   private getBytesFromThumbnailBook(thumbnail: ThumbnailBook): Uint8Array | null {
     if (thumbnail.thumbnail !== null) return thumbnail.thumbnail
-    else if (thumbnail.url !== null) return new Uint8Array(readFileSync(urlToPath(thumbnail.url)))
+    else if (thumbnail.url !== null) return fileReadBytes(uriToFilePath(thumbnail.url)) // PORT: File(uri).readBytes() : FileNotFoundException comme la JVM
     else return null
   }
 

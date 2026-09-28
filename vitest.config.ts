@@ -19,6 +19,8 @@ for (const f of readdirSync(tmp)) {
 export default defineConfig({
   test: {
     include: ['test/**/*.test.ts'],
+    // tests unitaires à oracle : npm run test:unit (vitest.unit.config.ts, fuseau fixé)
+    exclude: ['test/unit/**', '**/node_modules/**'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],

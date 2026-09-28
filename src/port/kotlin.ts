@@ -217,6 +217,45 @@ export class UnsupportedOperationException extends RuntimeException {}
 export class IndexOutOfBoundsException extends RuntimeException {}
 export class NumberFormatException extends IllegalArgumentException {}
 
+/** Noms de classe Java des exceptions (`getClass().getName()`), par nom simple ; enrichi par `registerJavaExceptionNames` */
+const javaExceptionNames = new Map<string, string>()
+/** Déclare le nom Java qualifié de classes d'exception (`paquet`.`nom simple`) */
+export function registerJavaExceptionNames(pkg: string, ...simpleNames: string[]): void {
+  for (const n of simpleNames) javaExceptionNames.set(n, `${pkg}.${n}`)
+}
+registerJavaExceptionNames(
+  'java.lang',
+  'Exception',
+  'RuntimeException',
+  'IllegalArgumentException',
+  'IllegalStateException',
+  'UnsupportedOperationException',
+  'IndexOutOfBoundsException',
+  'NumberFormatException',
+  'NullPointerException',
+  'ClassNotFoundException',
+)
+registerJavaExceptionNames('java.util', 'NoSuchElementException')
+registerJavaExceptionNames('kotlin', 'NoWhenBranchMatchedException')
+registerJavaExceptionNames('java.io', 'IOException', 'EOFException', 'FileNotFoundException')
+registerJavaExceptionNames(
+  'java.nio.file',
+  'FileSystemException',
+  'NoSuchFileException',
+  'FileAlreadyExistsException',
+  'DirectoryNotEmptyException',
+  'AccessDeniedException',
+  'NotDirectoryException',
+  'FileSystemLoopException',
+  'FileSystemNotFoundException',
+)
+
+/** `Throwable.toString()` : nom de classe Java qualifié, puis `: message` si le message n'est pas vide */
+export function throwableToString(e: Error): string {
+  const name = javaExceptionNames.get(e.constructor.name) ?? e.constructor.name
+  return e.message === '' ? name : `${name}: ${e.message}`
+}
+
 /** `require(cond) { msg }` */
 export function require(cond: boolean, msg: () => string = () => 'Failed requirement.'): asserts cond {
   if (!cond) throw new IllegalArgumentException(msg())
@@ -275,11 +314,51 @@ export function buildList<T>(block: (list: T[]) => void): T[] {
 export function isNullOrEmpty<T>(c: readonly T[] | ReadonlySet<T> | null | undefined): c is null | undefined {
   return c === null || c === undefined || (Array.isArray(c) ? c.length === 0 : (c as ReadonlySet<T>).size === 0)
 }
-/** `equals(other, ignoreCase = true)` */
+/**
+ * `Character.toUpperCase(codePoint)` : correspondance simple (un point de code pour un), alors que
+ * `String.prototype.toUpperCase` applique la correspondance complète (ß -> SS).
+ */
+export function charToUpperCase(cp: number): number {
+  const u = String.fromCodePoint(cp).toUpperCase()
+  const c = u.codePointAt(0) as number
+  if (u.length === (c > 0xffff ? 2 : 1)) return c
+  // grec avec iota souscrit : la correspondance simple donne la lettre de titre (ᾀ -> ᾈ)
+  if ((cp >= 0x1f80 && cp <= 0x1faf && (cp & 0xf) < 8) || cp === 0x1fb3 || cp === 0x1fc3 || cp === 0x1ff3) return cp + (cp >= 0x1fb0 ? 9 : 8)
+  return cp
+}
+
+/** `Character.toLowerCase(codePoint)` : correspondance simple (İ -> i, et non i + point suscrit) */
+export function charToLowerCase(cp: number): number {
+  const l = String.fromCodePoint(cp).toLowerCase()
+  const c = l.codePointAt(0) as number
+  if (l.length === (c > 0xffff ? 2 : 1)) return c
+  return cp === 0x130 ? 0x69 : cp
+}
+
+/**
+ * `equals(other, ignoreCase = true)` = `String.equalsIgnoreCase` de Java : même longueur (en unités UTF-16),
+ * puis point de code par point de code, égaux, ou égaux après `Character.toUpperCase`, ou après
+ * `Character.toLowerCase(Character.toUpperCase(c))`.
+ */
 export function equalsIgnoreCase(a: string | null | undefined, b: string | null | undefined): boolean {
   if (a === b) return true
   if (a == null || b == null) return false
-  return a.length === b.length && (a.toUpperCase() === b.toUpperCase() || a.toLowerCase() === b.toLowerCase())
+  if (a.length !== b.length) return false
+  let i = 0
+  while (i < a.length) {
+    const c1 = a.codePointAt(i) as number
+    const c2 = b.codePointAt(i) as number
+    i += c1 > 0xffff ? 2 : 1
+    if (c1 === c2) continue
+    // PORT: Java compare les deux caractères d'une paire de substitution séparément si l'autre chaîne n'en a pas
+    if ((c1 > 0xffff) !== (c2 > 0xffff)) return false
+    const u1 = charToUpperCase(c1)
+    const u2 = charToUpperCase(c2)
+    if (u1 === u2) continue
+    if (charToLowerCase(u1) === charToLowerCase(u2)) continue
+    return false
+  }
+  return true
 }
 
 // ---------------------------------------------------------------------------
@@ -388,6 +467,8 @@ export function partition<T>(a: Iterable<T>, p: (t: T) => boolean): [T[], T[]] {
 }
 /** `chunked(n)` */
 export function chunked<T>(a: readonly T[], n: number): T[][] {
+  // checkWindowSizeStep de Kotlin (sinon boucle infinie pour n <= 0)
+  if (n <= 0) throw new IllegalArgumentException(`size ${n} must be greater than zero.`)
   const out: T[][] = []
   for (let i = 0; i < a.length; i += n) out.push(a.slice(i, i + n))
   return out
@@ -403,7 +484,14 @@ export function compareValues(a: unknown, b: unknown): number {
   if (a === null || a === undefined) return -1
   if (b === null || b === undefined) return 1
   if (typeof a === 'string' && typeof b === 'string') return a < b ? -1 : a > b ? 1 : 0
-  if (typeof a === 'number' && typeof b === 'number') return a - b
+  if (typeof a === 'number' && typeof b === 'number') {
+    // PORT: Double.compareTo / Float.compareTo : NaN est plus grand que tout (et égal à lui-même), -0.0 < 0.0
+    if (a < b) return -1
+    if (a > b) return 1
+    if (Number.isNaN(a)) return Number.isNaN(b) ? 0 : 1
+    if (Number.isNaN(b)) return -1
+    return Object.is(a, b) ? 0 : Object.is(a, -0) ? -1 : 1
+  }
   if (typeof a === 'boolean' && typeof b === 'boolean') return (a ? 1 : 0) - (b ? 1 : 0)
   if (typeof (a as { compareTo?: unknown }).compareTo === 'function')
     return (a as { compareTo(o: unknown): number }).compareTo(b)
@@ -448,8 +536,10 @@ export function minByOrNull<T>(a: Iterable<T>, sel: (t: T) => unknown): T | null
   return best
 }
 /** `first()` */
-export function first<T>(a: Iterable<T>, p: (t: T) => boolean = () => true): T {
-  for (const x of a) if (p(x)) return x
+export function first<T>(a: Iterable<T>, p?: (t: T) => boolean): T {
+  for (const x of a) if (p === undefined || p(x)) return x
+  // Kotlin : first() -> "List is empty." (List) / "Collection is empty." ; first { } -> message du prédicat
+  if (p === undefined) throw new NoSuchElementException(Array.isArray(a) ? 'List is empty.' : 'Collection is empty.')
   throw new NoSuchElementException('Collection contains no element matching the predicate.')
 }
 /** `firstOrNull()` */

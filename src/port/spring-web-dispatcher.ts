@@ -252,7 +252,14 @@ export class ModelAndView {
 /** `org.springframework.http.ProblemDetail` */
 export class ProblemDetail {
   type = 'about:blank'
-  title: string | null = null
+  private _title: string | null = null
+  /** `getTitle()` : raison du statut quand aucun titre n'est défini */
+  get title(): string | null {
+    return this._title ?? reasonPhrase(this.status)
+  }
+  set title(value: string | null) {
+    this._title = value
+  }
   detail: string | null = null
   instance: string | null = null
   properties: Map<string, unknown> | null = null
@@ -278,7 +285,7 @@ export class ProblemDetail {
   toJsonMap(): Map<string, unknown> {
     const m = new Map<string, unknown>()
     m.set('type', this.type)
-    const title = this.title ?? reasonPhrase(this.status)
+    const title = this.title
     if (title !== null) m.set('title', title)
     m.set('status', this.status)
     if (this.detail !== null) m.set('detail', this.detail)

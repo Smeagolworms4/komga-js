@@ -26,7 +26,7 @@ import { epub } from '../../infrastructure/mediacontainer/epub/Epub.js'
 import { PdfExtractor } from '../../infrastructure/mediacontainer/pdf/PdfExtractor.js'
 import { ByteArrayOutputStream, ImageIO } from '../../port/imageio-codecs.js'
 import { ByteArrayInputStream } from '../../port/java-io.js'
-import { IllegalArgumentException, IndexOutOfBoundsException, NoSuchElementException, NoWhenBranchMatchedException, filterNotNull, isBlank, isNullOrBlank, nn, partition } from '../../port/kotlin.js'
+import { IllegalArgumentException, IndexOutOfBoundsException, NoSuchElementException, NoWhenBranchMatchedException, filterNotNull, first, isBlank, isNullOrBlank, nn, partition } from '../../port/kotlin.js'
 import { AccessDeniedException, NoSuchFileException, extension, translateNodeError } from '../../port/kotlin-io-path.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { type Token, component } from '../../port/spring.js'
@@ -267,10 +267,10 @@ export class BookAnalyzer {
 
   // PORT: fonction d'extension privée DivinaExtractor.getPoster(book) -> méthode privée (nom distinct de getPoster(book))
   private divinaGetPoster(self: DivinaExtractor, book: BookWithMedia): TypedBytes {
-    const it = self.getEntryStream(book.book.path, nn(book.media.pages[0]).fileName)
+    const it = self.getEntryStream(book.book.path, first(book.media.pages).fileName)
     return new TypedBytes({
       bytes: it,
-      mediaType: nn(book.media.pages[0]).mediaType,
+      mediaType: first(book.media.pages).mediaType,
     })
   }
 

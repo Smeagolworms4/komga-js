@@ -2,15 +2,22 @@
 import { Duration } from '@js-joda/core'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { NullPointerException } from '../../port/kotlin.js'
 import { component } from '../../port/spring.js'
 import { JournalMode } from '../../port/sqlite.js'
 import { NotBlank, Positive, constraints } from '../../port/validation.js'
 
 export class KomgaProperties {
   private makeDirs(): void {
+    // PORT: Path(file).parent est null sans séparateur (NullPointerException) : l'exception interrompt le bloc
+    const parent = (file: string): string => {
+      const trimmed = file.replace(/\/+$/, '')
+      if (!trimmed.includes('/')) throw new NullPointerException()
+      return dirname(trimmed) || '/'
+    }
     try {
-      mkdirSync(dirname(this.database.file), { recursive: true })
-      mkdirSync(dirname(this.tasksDb.file), { recursive: true })
+      mkdirSync(parent(this.database.file), { recursive: true })
+      mkdirSync(parent(this.tasksDb.file), { recursive: true })
     } catch {
       // ignoré
     }

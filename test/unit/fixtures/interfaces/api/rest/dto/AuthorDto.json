@@ -1,0 +1,1 @@
+{"toDto: normalized by Author":{"@class":"AuthorDto","name":"John DOE","role":"writer"},"toDto: empty":{"@class":"AuthorDto","name":"","role":""},"toDto: json":"{\"name\":\"Ünïcode\",\"role\":\"penciller\"}"}

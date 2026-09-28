@@ -1,0 +1,1 @@
+{"scanOnStartup: no library":[],"scanOnStartup: libraries":[["scanLibrary","L1",false,4],["scanLibrary","L3",false,4]],"scheduleScans: all libraries":[["scheduleScan","L1",{"@enum":"EVERY_6H"}],["scheduleScan","L2",{"@enum":"DISABLED"}],["scheduleScan","L3",{"@enum":"WEEKLY"}]]}

@@ -1,0 +1,1 @@
+{"getClaimStatus: no user":[{"@class":"ClaimStatus","isClaimed":false},[["countUsers"]]],"getClaimStatus: one user":[{"@class":"ClaimStatus","isClaimed":true},[["countUsers"]]],"getClaimStatus: many users":{"@class":"ClaimStatus","isClaimed":true}}

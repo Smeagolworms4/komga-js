@@ -30,10 +30,20 @@ export class InvalidFormatException extends MismatchedInputException {}
 export class MissingKotlinParameterException extends MismatchedInputException {}
 /** `JsonParseException` */
 export class JsonParseException extends JsonProcessingException {}
+/** `com.fasterxml.jackson.core.io.JsonEOFException` (fin d'entrée inattendue) */
+export class JsonEOFException extends JsonParseException {}
 /** `com.fasterxml.jackson.core.exc.InputCoercionException` (nombre hors limites) */
 export class InputCoercionException extends JsonProcessingException {}
 /** `com.fasterxml.jackson.databind.exc.InvalidTypeIdException` */
 export class InvalidTypeIdException extends MismatchedInputException {}
+/** `com.fasterxml.jackson.databind.exc.InvalidDefinitionException` */
+export class InvalidDefinitionException extends JsonMappingException {}
+
+/** Types abstraits (interfaces Kotlin portées en classes) : Jackson ne sait pas les instancier sans information de type */
+const abstractTypes = new WeakSet<object>()
+export function jsonAbstract(cls: object): void {
+  abstractTypes.add(cls)
+}
 
 // ---------------------------------------------------------------------------
 // Types (réflexion)
@@ -139,6 +149,25 @@ export function jsonPropertiesOf(cls: object): PropertiesMeta | undefined {
     c = Object.getPrototypeOf(c) as object | null
   }
   return undefined
+}
+
+/**
+ * Champs `val` hors constructeur (backing fields finaux) que Jackson renseigne quand même en lecture, après la création
+ * de l'objet (MapperFeature.ALLOW_FINAL_FIELDS_AS_MUTATORS, activé par défaut). Hérités par les sous-classes.
+ */
+const fieldsMeta = new WeakMap<object, Record<string, JsonType>>()
+export function jsonFields(cls: object, fields: Record<string, JsonType>): void {
+  fieldsMeta.set(cls, fields)
+}
+function jsonFieldsOf(cls: object): Record<string, JsonType> {
+  const out: Record<string, JsonType> = {}
+  let c: object | null = cls
+  while (c) {
+    const m = fieldsMeta.get(c)
+    if (m) for (const [k, t] of Object.entries(m)) if (!(k in out)) out[k] = t
+    c = Object.getPrototypeOf(c) as object | null
+  }
+  return out
 }
 
 /** `@JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)` */
@@ -337,7 +366,9 @@ function isSealed(t: object): t is SealedInterface<unknown> {
 
 /** Erreur de syntaxe rencontrée au fil de la lecture (voir JsonPoison dans port/jackson-tree.ts) */
 function poisonException(p: JsonPoison): JsonProcessingException {
-  return p.mismatch ? new MismatchedInputException(p.message) : new JsonParseException(p.message)
+  if (p.mismatch) return new MismatchedInputException(p.message)
+  // ParserMinimalBase._reportInvalidEOF : JsonEOFException
+  return p.message.startsWith('Unexpected end-of-input') ? new JsonEOFException(p.message) : new JsonParseException(p.message)
 }
 
 function checkPoison(n: JsonNode): void {
@@ -773,6 +804,10 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     if (node instanceof Map) scan(node)
     return target
   }
+  if (abstractTypes.has(target))
+    throw new InvalidDefinitionException(
+      `Cannot construct instance of \`${className(target)}\` (no Creators, like default constructor, exist): abstract types either need to be mapped to concrete types, have custom deserializer, or contain additional type information`,
+    )
   const pm = jsonPropertiesOf(target) ?? { typeParams: [], props: {}, required: [], getters: [] }
   const targetName = javaTypeName({ class: target, args: pm.typeParams.length > 0 ? args : [] }, bindings)
   if (!(node instanceof Map)) {
@@ -784,11 +819,16 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
   const names = jsonNamesOf(target)
   const meta = jsonMetaOf(target)
   const params: Record<string, unknown> = {}
+  const fields = jsonFieldsOf(target)
+  const fieldNames = new Map(Object.keys(fields).map((k) => [k, k]))
+  const fieldValues: Record<string, unknown> = {}
   for (const [key, value] of node) {
     const prop = findKey(names, key)
     // FAIL_ON_UNKNOWN_PROPERTIES est désactivé par Spring Boot : valeur ignorée (mais lue)
     if (prop === undefined) {
-      scan(value)
+      const field = fieldNames.size > 0 ? findKey(fieldNames, key) : undefined
+      if (field !== undefined) fieldValues[field] = fromTree(value, fields[field] as JsonType, localBindings, { prop: field, direct: true, element: false })
+      else scan(value)
       continue
     }
     const pt = pm.props[prop] as JsonType
@@ -810,6 +850,8 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
   const instance = new C(params) as Record<string, unknown>
   // module Kotlin : un paramètre nullable absent et sans valeur par défaut vaut null (pas undefined)
   for (const prop of Object.keys(pm.props)) if (instance[prop] === undefined) instance[prop] = null
+  // champs finaux hors constructeur, renseignés après la création
+  for (const [field, v] of Object.entries(fieldValues)) instance[field] = v
   return instance
 }
 

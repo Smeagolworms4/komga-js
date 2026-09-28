@@ -1,0 +1,1 @@
+{"makeDirs: both parents created":[{"@unit":true},true,true,false],"makeDirs: existing parents":{"@unit":true},"makeDirs: no parent stops silently":[{"@unit":true},false],"makeDirs: empty file names":{"@unit":true},"makeDirs: parent is a file":[{"@unit":true},false],"makeDirs: memory database":[{"@unit":true},false],"makeDirs: unicode path":[{"@unit":true},true]}

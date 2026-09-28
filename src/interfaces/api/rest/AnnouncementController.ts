@@ -4,7 +4,7 @@ import { KomgaUserRepository } from '../../../domain/persistence/KomgaUserReposi
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { ObjectMapper } from '../../../port/jackson-mapper.js'
-import { HttpStatus, MediaType, ResponseStatusException, WebClientResponseException, authenticationPrincipal, requestBody, restController } from '../../../port/spring-web.js'
+import { HttpStatus, MediaType, DecodingException, ResponseStatusException, WebClientResponseException, authenticationPrincipal, requestBody, restController } from '../../../port/spring-web.js'
 import { JsonFeedDto } from './dto/JsonFeedDto.js'
 
 const WEBSITE = 'https://komga.org'
@@ -58,9 +58,14 @@ export class AnnouncementController {
   async fetchWebsiteAnnouncements(): Promise<JsonFeedDto | null> {
     const response = await fetch(this.webClient.baseUrl)
     // retrieve() : WebClientResponseException pour un statut 4xx / 5xx
-    if (!response.ok) throw new WebClientResponseException(`${response.status} ${response.statusText} from GET ${this.webClient.baseUrl}`)
+    if (!response.ok) throw WebClientResponseException.create(response.status, 'GET', this.webClient.baseUrl)
     const body = await response.text()
-    return body.length > 0 ? this.objectMapper.readValue<JsonFeedDto>(body, { class: JsonFeedDto }) : null
+    // PORT: Jackson2JsonDecoder : une erreur de lecture devient une DecodingException ; un corps vide donne null
+    try {
+      return body.length > 0 ? this.objectMapper.readValue<JsonFeedDto>(body, { class: JsonFeedDto }) : null
+    } catch (e) {
+      throw new DecodingException(`JSON decoding error: ${(e as Error).message}`, e)
+    }
   }
 }
 

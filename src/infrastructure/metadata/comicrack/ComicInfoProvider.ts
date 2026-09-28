@@ -1,5 +1,4 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/ComicInfoProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { LocalDate } from '@js-joda/core'
 import { Author } from '../../../domain/model/Author.js'
 import { BCP47TagValidator } from '../../../domain/model/BCP47TagValidator.js'
 import { BookMetadataPatch, BookMetadataPatchCapability } from '../../../domain/model/BookMetadataPatch.js'
@@ -12,6 +11,7 @@ import { WebLink } from '../../../domain/model/WebLink.js'
 import { BookAnalyzer } from '../../../domain/service/BookAnalyzer.js'
 import { ISBNValidator } from '../../../port/commons-validator.js'
 import { XmlMapper } from '../../../port/jackson-xml.js'
+import { localDateOf } from '../../../port/java.js'
 import { javaUri } from '../../../port/java-uri.js'
 import { toFloatOrNull, toIntOrNull } from '../../../port/kotlin-numbers.js'
 import { NoWhenBranchMatchedException, distinctSet, filterNotNull, isBlank, isNullOrBlank, mapNotNull, nn, str, trim } from '../../../port/kotlin.js'
@@ -52,7 +52,7 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
   getBookMetadataFromBook(book: BookWithMedia): BookMetadataPatch | null {
     const comicInfo = this.getComicInfo(book)
     if (comicInfo !== null) {
-      const releaseDate = comicInfo.year !== null ? LocalDate.of(nn(comicInfo.year), comicInfo.month ?? 1, comicInfo.day ?? 1) : null
+      const releaseDate = comicInfo.year !== null ? localDateOf(nn(comicInfo.year), comicInfo.month ?? 1, comicInfo.day ?? 1) : null
 
       const authors: Author[] = []
       if (comicInfo.writer !== null) authors.push(...(this.splitWithRole(comicInfo.writer, 'writer') ?? []))

@@ -32,6 +32,8 @@ function pad(n: number, w: number): string {
 
 /** `java.sql.Timestamp.toString()` : `yyyy-mm-dd hh:mm:ss.f...` (nanos sans zéros finaux, au moins un chiffre). */
 export function timestampToString(d: LocalDateTime): string {
+  // Timestamp.valueOf(LocalDateTime) passe par l'heure locale : une heure dans un saut de l'heure d'été est décalée
+  d = d.atZone(ZoneId.systemDefault()).toLocalDateTime()
   const nanos = d.nano()
   let frac: string
   if (nanos === 0) frac = '0'
@@ -53,7 +55,10 @@ export function parseLocalDateTime(v: SqlValue): LocalDateTime | null {
   if (!m) throw new DataAccessException(`Error while reading field: cannot parse "${v}" as LocalDateTime`)
   // précision milliseconde (troncature), comme sqlite-jdbc
   const millis = m[7] ? Number(m[7].slice(0, 3).padEnd(3, '0')) : 0
-  return LocalDateTime.of(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6]), millis * 1_000_000)
+  const ldt = LocalDateTime.of(Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6]), millis * 1_000_000)
+  // sqlite-jdbc lit le texte comme une heure locale (java.sql.Timestamp) : une heure dans un saut de l'heure d'été
+  // (ex. 2021-03-28 02:30 à Paris) est décalée après le saut (03:30), comme ZonedDateTime.of
+  return ldt.atZone(ZoneId.systemDefault()).toLocalDateTime()
 }
 
 export function parseLocalDate(v: SqlValue): LocalDate | null {

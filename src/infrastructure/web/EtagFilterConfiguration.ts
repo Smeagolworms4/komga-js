@@ -2,6 +2,7 @@
 import { PathContainer, PathPatternParser } from '../../port/path-pattern.js'
 import { FilterRegistrationBean, type HttpServletRequest } from '../../port/servlet.js'
 import { configuration } from '../../port/spring.js'
+import { Ordered } from '../../port/spring-boot-web.js'
 import { ShallowEtagHeaderFilter } from '../../port/spring-web-filter.js'
 
 export class EtagFilterConfiguration {
@@ -15,7 +16,7 @@ export class EtagFilterConfiguration {
 
   shallowEtagHeaderFilter(): FilterRegistrationBean {
     const excludePatterns = this.excludePatterns
-    // PORT: FilterRegistrationBean(filter).also { addUrlPatterns(...); setName(...) } -> constructeur (ordre par défaut : 0)
+    // PORT: FilterRegistrationBean(filter).also { addUrlPatterns(...); setName(...) } -> constructeur (ordre par défaut de RegistrationBean : Ordered.LOWEST_PRECEDENCE)
     return new FilterRegistrationBean(
       new (class extends ShallowEtagHeaderFilter {
         protected override shouldNotFilter(request: HttpServletRequest): boolean {
@@ -23,7 +24,7 @@ export class EtagFilterConfiguration {
           return excludePatterns.some((it) => it.matches(path))
         }
       })(),
-      0,
+      Ordered.LOWEST_PRECEDENCE,
       ['/api/*', '/opds/*', '/kobo/*'],
       'etagFilter',
     )

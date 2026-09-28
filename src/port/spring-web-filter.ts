@@ -556,8 +556,11 @@ export class CommonsRequestLoggingFilter extends OncePerRequestFilter {
   private includePayload = false
   private maxPayloadLength = 50
   private includeHeaders = false
+  private includeClientInfo = false
   private beforeMessagePrefix = 'Before request ['
+  private beforeMessageSuffix = ']'
   private afterMessagePrefix = 'After request ['
+  private afterMessageSuffix = ']'
   private readonly log = KotlinLogging.logger('org.springframework.web.filter.CommonsRequestLoggingFilter')
 
   setIncludeQueryString(v: boolean): void {
@@ -586,17 +589,26 @@ export class CommonsRequestLoggingFilter extends OncePerRequestFilter {
   private createMessage(request: HttpServletRequest, prefix: string, suffix: string): string {
     let msg = `${prefix}${request.method} ${request.requestURI}`
     if (this.includeQueryString && request.queryString !== null) msg += `?${request.queryString}`
-    if (this.includeHeaders) msg += `, headers=[${request.getHeaderNames().map((n) => `${n}:"${request.getHeaders(n).join(', ')}"`).join(', ')}]`
+    if (this.includeClientInfo) {
+      const client = request.remoteAddr
+      if (client) msg += `, client=${client}`
+      const session = request.getSession(false)
+      if (session !== null) msg += `, session=${session.id}`
+      const user = request.userPrincipal?.getName() ?? null
+      if (user !== null) msg += `, user=${user}`
+    }
+    // ServletServerHttpRequest.getHeaders() : noms dans la casse reçue ; HttpHeaders.toString() (formatHeaders)
+    if (this.includeHeaders) msg += `, headers=[${rawHeaderNames(request).map((n) => `${n}:${request.getHeaders(n).map((v) => `"${v}"`).join(', ')}`).join(', ')}]`
     if (this.includePayload && request.body.length > 0) msg += `, payload=${request.body.subarray(0, this.maxPayloadLength).toString('utf8')}`
     return msg + suffix
   }
 
   protected async doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, filterChain: FilterChain): Promise<void> {
-    this.log.debug(() => this.createMessage(request, this.beforeMessagePrefix, ']'))
+    this.log.debug(() => this.createMessage(request, this.beforeMessagePrefix, this.beforeMessageSuffix))
     try {
       await filterChain.doFilter(request, response)
     } finally {
-      this.log.debug(() => this.createMessage(request, this.afterMessagePrefix, ']'))
+      this.log.debug(() => this.createMessage(request, this.afterMessagePrefix, this.afterMessageSuffix))
     }
   }
 }
@@ -619,3 +631,14 @@ export class ForwardedHeaderFilter extends OncePerRequestFilter {
 }
 
 export { unwrapResponse }
+
+/** Noms d'en-têtes uniques dans la casse reçue (Tomcat getHeaderNames) */
+function rawHeaderNames(request: HttpServletRequest): string[] {
+  const raw = request.raw.rawHeaders ?? []
+  const names: string[] = []
+  for (let i = 0; i < raw.length; i += 2) {
+    const n = raw[i] as string
+    if (!names.some((it) => it.toLowerCase() === n.toLowerCase())) names.push(n)
+  }
+  return names.length > 0 ? names : request.getHeaderNames()
+}

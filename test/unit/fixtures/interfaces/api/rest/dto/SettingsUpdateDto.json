@@ -1,0 +1,1 @@
+{"isSet: empty body":[false,false,false,false,false,null,null,null,null,null,null,null],"isSet: nulls":[true,true,true,true,false,null,null,null,null,null,null,null],"isSet: values":[true,true,true,true,false,8080,"/k",443,"/bin/k",2,{"@enum":"XLARGE"},30],"isSet: setter":[true,false]}

@@ -14,10 +14,12 @@
 import {
   type BigIntStats,
   accessSync,
+  closeSync,
   constants,
   copyFileSync,
   linkSync,
   lstatSync,
+  openSync,
   opendirSync,
   renameSync,
   rmdirSync,
@@ -383,10 +385,17 @@ export function copyTo(source: string, target: string, overwrite: boolean = fals
     if (!overwrite) throw new FileAlreadyExistsException(target)
     deleteExisting(target)
   }
+  // UnixCopyFile.copyFile : l'échec d'ouverture de la source est rapporté sur la source, celui de la cible (dossier
+  // parent absent, droits...) sur la cible seule
+  try {
+    closeSync(openSync(source, 'r'))
+  } catch (e) {
+    throw translateError(e, source)
+  }
   try {
     copyFileSync(source, target, constants.COPYFILE_EXCL)
   } catch (e) {
-    throw translateError(e, source, target)
+    throw translateError(e, target)
   }
   return target
 }

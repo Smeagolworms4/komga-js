@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/hash/KoreaderHasher.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { createHash } from 'node:crypto'
-import { closeSync, openSync, readSync } from 'node:fs'
+import { closeSync, readSync } from 'node:fs'
+import { openForRead } from '../../port/java-io.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 
@@ -23,7 +24,8 @@ export class KoreaderHasher {
     const digest = createHash('md5')
 
     // PORT: RandomAccessFile -> descripteur node:fs ; le fichier n'est jamais fermé en Kotlin (fermé par le GC de la JVM) : fermé ici
-    const file = openSync(path, 'r')
+    // PORT: openForRead lève FileNotFoundException comme RandomAccessFile(file, "r")
+    const file = openForRead(path)
     try {
       const buffer = new Uint8Array(size)
       for (let it = -1; it <= 10; it++) {

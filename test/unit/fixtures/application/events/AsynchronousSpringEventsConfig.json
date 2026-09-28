@@ -1,0 +1,1 @@
+{"simpleApplicationEventMulticaster: type":"SimpleApplicationEventMulticaster","simpleApplicationEventMulticaster: listener runs on the executor":[1,[]],"simpleApplicationEventMulticaster: after the executor runs":["hello"],"simpleApplicationEventMulticaster: events keep their order":["hello","a","b"]}

@@ -1,0 +1,1 @@
+{"toDto: all fields":{"@class":"PageHashUnknownDto","hash":"abc","size":99,"matchCount":4},"toDto: defaults":{"@class":"PageHashUnknownDto","hash":"abc","size":null,"matchCount":0},"toDto: json":"{\"hash\":\"abc\",\"size\":5000000000,\"matchCount\":1}"}

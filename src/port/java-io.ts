@@ -1,8 +1,9 @@
 // Support de portage : java.io.InputStream (lecture synchrone, bloquante comme en Kotlin) et ses implémentations
 // usuelles (ByteArrayInputStream, FileInputStream). Ce fichier n'a pas de jumeau Kotlin.
-// Conventions : `bytes.inputStream()` -> `new ByteArrayInputStream(bytes)`, `path.inputStream()` -> `new FileInputStream(path)`,
+// Conventions : `bytes.inputStream()` -> `new ByteArrayInputStream(bytes)`, `File(path).inputStream()` / `FileInputStream(file)` -> `new FileInputStream(path)`,
+// `path.inputStream()` (kotlin.io.path, Files.newInputStream) -> `inputStream(path)` de kotlin-io-path.ts,
 // `string.byteInputStream()` -> `ByteArrayInputStream.ofString(string)` (UTF-8), `stream.use { }` -> `use(stream, ...)`.
-import { closeSync, openSync, readSync } from 'node:fs'
+import { closeSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs'
 import { Exception } from './kotlin.js'
 
 /** `java.io.IOException` */
@@ -101,19 +102,73 @@ export class ByteArrayInputStream extends InputStream {
   }
 }
 
+/** Texte d'erreur de la JVM (Linux, locale anglaise) pour un code errno de Node */
+const ERRNO_TEXT: Record<string, string> = {
+  ENOENT: 'No such file or directory',
+  EACCES: 'Permission denied',
+  EPERM: 'Operation not permitted',
+  EISDIR: 'Is a directory',
+  ENOTDIR: 'Not a directory',
+  ELOOP: 'Too many levels of symbolic links',
+  ENAMETOOLONG: 'File name too long',
+}
+
+/**
+ * Exception levée par `java.io.FileInputStream(file)` / `RandomAccessFile(file, "r")` quand l'ouverture échoue :
+ * FileNotFoundException("<chemin> (<texte errno>)"). Les autres erreurs sont rendues telles quelles.
+ */
+export function fileNotFound(e: unknown, path: string): unknown {
+  const code = (e as NodeJS.ErrnoException | null)?.code
+  if (code !== undefined && code in ERRNO_TEXT) return new FileNotFoundException(`${path} (${ERRNO_TEXT[code]})`)
+  return e
+}
+
+/** Ouverture en lecture à la manière de `java.io.FileInputStream` : un répertoire est refusé (FileNotFoundException) */
+export function openForRead(path: string): number {
+  let fd: number
+  try {
+    fd = openSync(path, 'r')
+  } catch (e) {
+    throw fileNotFound(e, path)
+  }
+  if (fstatSync(fd).isDirectory()) {
+    closeSync(fd)
+    throw new FileNotFoundException(`${path} (Is a directory)`)
+  }
+  return fd
+}
+
+/** `File(path).readBytes()` (kotlin.io) : lecture par FileInputStream, FileNotFoundException("<chemin> (<errno>)") si l'ouverture échoue */
+export function fileReadBytes(path: string): Uint8Array {
+  const fd = openForRead(path)
+  try {
+    return new Uint8Array(readFileSync(fd))
+  } finally {
+    closeSync(fd)
+  }
+}
+
 export class FileInputStream extends InputStream {
   private fd: number | null
   private pos = 0
 
-  constructor(path: string) {
+  /** `FileInputStream(path)` ; `{ fd }` : descripteur déjà ouvert (voir `inputStream(path)` de kotlin-io-path.ts) */
+  constructor(path: string | { fd: number }) {
     super()
-    this.fd = openSync(path, 'r')
+    this.fd = typeof path === 'string' ? openForRead(path) : path.fd
   }
 
   read(b: Uint8Array, off = 0, len = b.length - off): number {
-    if (this.fd === null) throw new Error('Stream Closed')
+    if (this.fd === null) throw new IOException('Stream Closed')
     if (len === 0) return 0
-    const n = readSync(this.fd, b, off, len, this.pos)
+    let n: number
+    try {
+      n = readSync(this.fd, b, off, len, this.pos)
+    } catch (e) {
+      // PORT: erreur système de lecture -> IOException (ex. lecture d'un répertoire ouvert par Files.newInputStream)
+      const code = (e as NodeJS.ErrnoException | null)?.code
+      throw new IOException(code !== undefined && code in ERRNO_TEXT ? ERRNO_TEXT[code] : String(e))
+    }
     if (n === 0) return -1
     this.pos += n
     return n

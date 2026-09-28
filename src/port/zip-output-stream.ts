@@ -162,6 +162,20 @@ export class ZipArchiveOutputStream {
       await this.out(extra)
     }
     const cdSize = this.offset - cdStart
+    // commons-compress (writeZip64CentralDirectory) : sans entrée, aucune entrée n'a utilisé Zip64 et les tailles
+    // tiennent sur 32 bits, les enregistrements Zip64 de fin ne sont pas écrits (relevé : zip vide de 22 octets)
+    if (this.entries.length > 0) await this.writeZip64Eocd(cdStart, cdSize)
+    const eocd = Buffer.alloc(22)
+    eocd.writeUInt32LE(0x06054b50, 0)
+    const count = this.entries.length >= 0xffff ? 0xffff : this.entries.length
+    eocd.writeUInt16LE(count, 8)
+    eocd.writeUInt16LE(count, 10)
+    eocd.writeUInt32LE(u32max(cdSize), 12)
+    eocd.writeUInt32LE(u32max(cdStart), 16)
+    await this.out(eocd)
+  }
+
+  private async writeZip64Eocd(cdStart: number, cdSize: number): Promise<void> {
     const zip64EocdOffset = this.offset
     const z = Buffer.alloc(56)
     z.writeUInt32LE(0x06064b50, 0)
@@ -178,14 +192,6 @@ export class ZipArchiveOutputStream {
     loc.writeBigUInt64LE(BigInt(zip64EocdOffset), 8)
     loc.writeUInt32LE(1, 16)
     await this.out(loc)
-    const eocd = Buffer.alloc(22)
-    eocd.writeUInt32LE(0x06054b50, 0)
-    const count = this.entries.length >= 0xffff ? 0xffff : this.entries.length
-    eocd.writeUInt16LE(count, 8)
-    eocd.writeUInt16LE(count, 10)
-    eocd.writeUInt32LE(u32max(cdSize), 12)
-    eocd.writeUInt32LE(u32max(cdStart), 16)
-    await this.out(eocd)
   }
 
   /** `close()` : écrit le répertoire central et ferme le flux de sortie */
