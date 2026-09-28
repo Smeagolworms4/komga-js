@@ -18,6 +18,14 @@ export type JsonMeta = {
   typeInfo?: { property: string }
   /** @JsonTypeName / @JsonSubTypes */
   typeName?: string
+  /** @JsonAlias : noms supplémentaires acceptés en lecture */
+  alias?: Record<string, string[]>
+  /** @JsonIgnoreProperties(ignoreUnknown = true) */
+  ignoreUnknown?: boolean
+  /** @JsonCreator délégué à un argument String (enum `fromValue`) */
+  creator?: (value: string) => unknown
+  /** @JsonSetter(nulls = Nulls.AS_EMPTY) */
+  nullsAsEmpty?: string[]
 }
 
 const meta = new WeakMap<object, JsonMeta>()

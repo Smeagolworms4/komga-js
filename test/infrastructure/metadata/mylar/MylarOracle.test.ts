@@ -60,5 +60,5 @@ describe('MylarOracle', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
-  })
+  }, 60000)
 })

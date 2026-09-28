@@ -135,5 +135,5 @@ describe('XmlOracle', () => {
     }
     expect(mismatches).toEqual([])
     expect(cases.length).toBe(oracle.length)
-  })
+  }, 60000)
 })

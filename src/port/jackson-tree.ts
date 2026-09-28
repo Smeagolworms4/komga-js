@@ -15,7 +15,7 @@ export class JsonNumber {
 export type JsonNode = null | boolean | string | JsonNumber | JsonNode[] | Map<string, JsonNode>
 
 /** `ObjectMapper().readTree(text)` */
-export function readTree(text: string): JsonNode {
+export function readTree(text: string, { allowTrailing = false }: { allowTrailing?: boolean } = {}): JsonNode {
   let i = 0
   const ws = () => {
     while (i < text.length && ' \t\n\r'.includes(text[i] as string)) i++
@@ -93,6 +93,13 @@ export function readTree(text: string): JsonNode {
     return JSON.parse(text.slice(start, i)) as string
   }
   const v = value()
+  // allowTrailing : DeserializationFeature.FAIL_ON_TRAILING_TOKENS désactivé (ObjectMapper) : le contenu après la
+  // valeur racine n'est pas lu ; un nombre ou un littéral doit toutefois être suivi d'un délimiteur
+  if (allowTrailing) {
+    const scalarToken = v === null || typeof v === 'boolean' || v instanceof JsonNumber
+    if (scalarToken && /[A-Za-z0-9_.+-]/.test(text[i] ?? ' ')) fail()
+    return v
+  }
   ws()
   if (i !== text.length) fail()
   return v
