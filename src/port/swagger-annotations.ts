@@ -49,6 +49,8 @@ export type SchemaAnnotation = {
   required?: boolean
   /** `hidden = true` sur une propriété */
   hidden?: boolean
+  /** `deprecated = true`, ou `@Deprecated` Kotlin sur la propriété */
+  deprecated?: boolean
 }
 
 /** `@ArraySchema(schema = Schema(...))` */

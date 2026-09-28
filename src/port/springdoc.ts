@@ -360,7 +360,9 @@ export class SchemaResolver {
       if (pmeta !== undefined) ps = this.applyPropertyAnnotation(ps, pmeta)
       props.set(jsonName, ps)
       const nullable = typeof t === 'object' && 'nullable' in t
-      if (pmeta?.required ?? !nullable) required.push(jsonName)
+      // module Kotlin : non nul -> requis ; swagger-core : @NotNull / @NotBlank / @NotEmpty -> requis
+      const notNull = (cons[prop] ?? []).some((c) => c.type === 'NotNull' || c.type === 'NotBlank' || c.type === 'NotEmpty')
+      if (pmeta?.required ?? (!nullable || notNull)) required.push(jsonName)
     }
     for (const g of pm?.getters ?? []) {
       if (jm.ignore?.includes(g)) continue
@@ -395,6 +397,7 @@ export class SchemaResolver {
     if (a.description !== undefined) ps.description(a.description)
     if (a.example !== undefined) ps.example(a.example)
     if (a.examples !== undefined) ps.examples(a.examples)
+    if (a.deprecated) ps.deprecated(true)
     return ps
   }
 
