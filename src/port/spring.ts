@@ -34,8 +34,8 @@ function flatten(obj: unknown, prefix: string, out: Map<string, unknown>): void 
 }
 
 export type EnvironmentOptions = {
-  /** Répertoire contenant application.yml */
-  resourcesDir?: string
+  /** Répertoires de ressources (classpath), par ordre de priorité, contenant application*.yml */
+  resourcesDirs?: string[]
   profiles?: string[]
   /** Propriétés prioritaires (arguments --clé=valeur, propriétés de test) */
   properties?: Record<string, unknown>
@@ -67,11 +67,9 @@ export class Environment {
       ]),
     )
     // 4. application-<profil>.yml puis application.yml
-    const dir = opts.resourcesDir
-    if (dir) {
-      for (const p of [...this.activeProfiles].reverse()) this.loadYaml(`${dir}/application-${p}.yml`, opts.buildProperties)
-      this.loadYaml(`${dir}/application.yml`, opts.buildProperties)
-    }
+    const dirs = opts.resourcesDirs ?? []
+    for (const p of [...this.activeProfiles].reverse()) for (const dir of dirs) this.loadYaml(`${dir}/application-${p}.yml`, opts.buildProperties)
+    for (const dir of dirs) this.loadYaml(`${dir}/application.yml`, opts.buildProperties)
   }
 
   private loadYaml(path: string, build: Record<string, string> = {}): void {
