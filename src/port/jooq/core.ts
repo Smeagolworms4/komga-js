@@ -1121,6 +1121,11 @@ export class Record implements Iterable<unknown> {
   intoArray(): unknown[] {
     return [...this.values]
   }
+
+  /** `record.map(RecordMapper)` */
+  map<E>(mapper: RecordMapper<Record, E>): E {
+    return mapper(this)
+  }
 }
 
 /** Types acceptés par `into(X::class.java)` pour une valeur simple */
