@@ -1,7 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/language/LanguageUtils.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import '@js-joda/timezone'
 import { ChronoUnit, LocalDate, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime, type TemporalUnit } from '@js-joda/core'
-import { NoSuchElementException, equalsIgnoreCase, isNotBlank, maxByOrNull } from '../port/kotlin.js'
+import { NoSuchElementException, equalsIgnoreCase, isNotBlank, maxByOrNull, trim } from '../port/kotlin.js'
 
 export function toIndexedMap<T>(list: readonly T[]): Map<number, T> {
   return new Map(list.map((e, i) => [i, e]))
@@ -40,7 +40,7 @@ export function mostFrequent<T, R>(list: Iterable<T>, transform: (t: T) => R | n
 }
 
 export function lowerNotBlank(list: Iterable<string>): string[] {
-  return [...list].map((it) => it.toLowerCase().trim()).filter((it) => isNotBlank(it))
+  return [...list].map((it) => trim(it.toLowerCase())).filter((it) => isNotBlank(it))
 }
 
 export function notEquals(

@@ -240,9 +240,25 @@ export class NullPointerException extends RuntimeException {}
 // Chaînes
 // ---------------------------------------------------------------------------
 
-/** `isBlank()` : vide ou uniquement des espaces (au sens Kotlin `Char.isWhitespace`). */
+// Caractères `Char.isWhitespace()` de Kotlin. JS `\s` / `trim()` diffèrent : ils retirent ﻿
+// et gardent \u001C..\u001F. Vérifié contre la JVM (Java 21) sur les 65536 caractères du BMP.
+const KOTLIN_WHITESPACE = '[\\t\\n\\u000B\\f\\r\\u001C-\\u001F \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000]'
+const TRIM_REGEX = new RegExp(`^${KOTLIN_WHITESPACE}+|${KOTLIN_WHITESPACE}+$`, 'g')
+const BLANK_REGEX = new RegExp(`^${KOTLIN_WHITESPACE}*$`)
+
+/** `String.trim()` de Kotlin (à utiliser à la place de `.trim()` de JS). */
+export function trim(s: string): string {
+  return s.replace(TRIM_REGEX, '')
+}
+
+/** `isBlank()` : vide ou uniquement des caractères `Char.isWhitespace()`. */
 export function isBlank(s: string | null | undefined): boolean {
-  return s === null || s === undefined || /^[\s\u0085  ]*$/u.test(s)
+  return s === null || s === undefined || BLANK_REGEX.test(s)
+}
+
+/** `isNullOrBlank()` */
+export function isNullOrBlank(s: string | null | undefined): s is null | undefined | '' {
+  return isBlank(s)
 }
 export function isNotBlank(s: string | null | undefined): s is string {
   return !isBlank(s)
