@@ -100,7 +100,8 @@ class SimpleType<T> extends DataType<T> {
 const identity = <T>(v: T): SqlValue => v as unknown as SqlValue
 
 export const SQLDataType = {
-  VARCHAR: new SimpleType<string>('VARCHAR', true, identity, (v) => (v instanceof Uint8Array ? Buffer.from(v).toString('utf8') : String(v))),
+  // valeur non-String liée (ex. java.net.URL dans batch().bind()) : Convert jOOQ -> toString()
+  VARCHAR: new SimpleType<string>('VARCHAR', true, (v) => (typeof v === 'string' || (v as unknown) instanceof Uint8Array ? v : String(v)), (v) => (v instanceof Uint8Array ? Buffer.from(v).toString('utf8') : String(v))),
   CLOB: new SimpleType<string>('CLOB', true, identity, (v) => (v instanceof Uint8Array ? Buffer.from(v).toString('utf8') : String(v))),
   // sqlite-jdbc getBoolean = getInt() != 0 (le texte 'true' est lu comme false)
   BOOLEAN: new SimpleType<boolean>('BOOLEAN', true, (v) => (v ? 1 : 0), (v) => toNumber(v) !== 0),
@@ -109,7 +110,7 @@ export const SQLDataType = {
   // Float Kotlin : élargi en double à l'écriture, relu en float32
   REAL: new SimpleType<number>('REAL', true, (v) => Math.fround(v), (v) => Math.fround(toNumber(v) as number)),
   DOUBLE: new SimpleType<number>('DOUBLE', true, identity, (v) => toNumber(v)),
-  BLOB: new SimpleType<Uint8Array>('BLOB', true, (v) => v, (v) => (v instanceof Uint8Array ? v : Buffer.from(String(v), 'utf8'))),
+  BLOB: new SimpleType<Uint8Array>('BLOB', true, (v) => v, (v) => (v instanceof Uint8Array ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength) : new Uint8Array(Buffer.from(String(v), 'utf8')))),
   LOCALDATETIME: new SimpleType<LocalDateTime>('LOCALDATETIME', true, (v) => timestampToString(v), (v) => parseLocalDateTime(v)),
   LOCALDATE: new SimpleType<LocalDate>('LOCALDATE', true, (v) => v.toString(), (v) => parseLocalDate(v)),
   /** Type inconnu (DSL.field(name) sans type) : valeurs brutes */

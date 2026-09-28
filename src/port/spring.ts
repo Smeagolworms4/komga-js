@@ -278,6 +278,8 @@ export type BeanDefinition = {
   configurationProperties?: { prefix: string; types?: Record<string, Converter> }
   postConstruct: string[]
   preDestroy: string[]
+  /** `@EventListener` : méthode appelée pour chaque événement instance d'un des types */
+  eventListeners: { method: string; events: Token[] }[]
 }
 
 const definitions: BeanDefinition[] = []
@@ -298,6 +300,7 @@ type ComponentOptions = {
   configurationProperties?: { prefix: string; types?: Record<string, Converter> }
   postConstruct?: string[]
   preDestroy?: string[]
+  eventListeners?: { method: string; events: Token[] }[]
 }
 
 function profileMatcher(p?: string | ((profiles: string[]) => boolean)): ((profiles: string[]) => boolean) | undefined {
@@ -319,6 +322,7 @@ export function component<T>(cls: Token<T>, opts: ComponentOptions = {}): void {
     configurationProperties: opts.configurationProperties,
     postConstruct: opts.postConstruct ?? [],
     preDestroy: opts.preDestroy ?? [],
+    eventListeners: opts.eventListeners ?? [],
     create: (ctx) => {
       const args = (opts.inject ?? []).map((d) => ctx.resolve(d))
       return new (cls as unknown as new (...a: unknown[]) => T)(...args)
@@ -353,6 +357,7 @@ export function configuration<T>(cls: Token<T>, opts: ComponentOptions & { beans
       condition: b.condition,
       postConstruct: [],
       preDestroy: [],
+      eventListeners: [],
       create: (ctx) => {
         const config = ctx.getBean(configName) as Record<string, (...a: unknown[]) => unknown>
         const args = (b.inject ?? []).map((d) => ctx.resolve(d))
@@ -371,6 +376,14 @@ export function clearDefinitions(): void {
 // ApplicationContext
 // ---------------------------------------------------------------------------
 
+/** `org.springframework.context.ApplicationEventPublisher` */
+export abstract class ApplicationEventPublisher {
+  abstract publishEvent(event: unknown): void
+}
+
+/** `org.springframework.boot.context.event.ApplicationReadyEvent` */
+export class ApplicationReadyEvent {}
+
 export class NoSuchBeanDefinitionException extends IllegalStateException {}
 export class NoUniqueBeanDefinitionException extends IllegalStateException {}
 
@@ -379,7 +392,7 @@ function isAssignable(def: BeanDefinition, token: Token): boolean {
   return def.type.prototype instanceof token
 }
 
-export class ApplicationContext {
+export class ApplicationContext implements ApplicationEventPublisher {
   private readonly instances = new Map<BeanDefinition, unknown>()
   private readonly creating = new Set<BeanDefinition>()
   private readonly active: BeanDefinition[]
@@ -399,6 +412,7 @@ export class ApplicationContext {
         lazy: false,
         postConstruct: [],
         preDestroy: [],
+        eventListeners: [],
         create: () => e.instance,
       }
       this.active.push(def)
@@ -410,6 +424,23 @@ export class ApplicationContext {
   refresh(): this {
     for (const d of this.active) if (!d.lazy) this.instantiate(d)
     return this
+  }
+
+  /** Démarrage complet : refresh puis ApplicationReadyEvent */
+  start(): this {
+    this.refresh()
+    this.publishEvent(new ApplicationReadyEvent())
+    return this
+  }
+
+  /** Publication synchrone aux `@EventListener`, dans l'ordre d'enregistrement des beans */
+  publishEvent(event: unknown): void {
+    for (const d of this.active)
+      for (const l of d.eventListeners)
+        if (l.events.some((e) => event instanceof e)) {
+          const bean = this.instantiate(d) as Record<string, (e: unknown) => void>
+          ;(bean[l.method] as (e: unknown) => void).call(bean, event)
+        }
   }
 
   private candidates(token: Token): BeanDefinition[] {
@@ -461,7 +492,10 @@ export class ApplicationContext {
   resolve(dep: Dependency): unknown {
     if (typeof dep === 'function') {
       if (dep === (Environment as unknown as Token)) return this.environment
-      if (dep === (ApplicationContext as unknown as Token)) return this
+      if (dep === (ApplicationContext as unknown as Token) || dep === (ApplicationEventPublisher as unknown as Token)) {
+        const pub = this.candidates(dep).filter((d) => d.primary)
+        return pub.length ? this.instantiate(pub[0] as BeanDefinition) : this
+      }
       return this.getBean(dep)
     }
     if ('qualifier' in dep) return this.getBean(dep.type, dep.qualifier)

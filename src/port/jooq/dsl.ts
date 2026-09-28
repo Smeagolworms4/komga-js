@@ -99,8 +99,9 @@ export function lower(field: Field<string>): Field<string> {
 export function upper(field: Field<string>): Field<string> {
   return new FunctionField('upper', SQLDataType.VARCHAR, [field])
 }
-export function ltrim(field: Field<string>): Field<string> {
-  return new FunctionField('ltrim', SQLDataType.VARCHAR, [field])
+/** `ltrim(field)` ou `ltrim(field, characters)` : `ltrim(x, ?)` */
+export function ltrim(field: Field<string>, characters?: Field<string> | string): Field<string> {
+  return new FunctionField('ltrim', SQLDataType.VARCHAR, characters === undefined ? [field] : [field, asField(characters)])
 }
 export function trim(field: Field<string>): Field<string> {
   return new FunctionField('trim', SQLDataType.VARCHAR, [field])
@@ -276,6 +277,26 @@ export function transactional<T>(db: Database.Database, fn: () => T, { readOnly 
 // DSLContext
 // ---------------------------------------------------------------------------
 
+/** `DSLContext.with(cte)` : WithStep jOOQ, accumule les CTE jusqu'au `select` */
+export class WithStep {
+  constructor(
+    private readonly dsl: DSLContext,
+    private readonly ctes: CommonTableExpression[],
+  ) {}
+  with(cte: CommonTableExpression): WithStep {
+    return new WithStep(this.dsl, [...this.ctes, cte])
+  }
+  select(...fields: (SelectFieldOrAsterisk | SelectFieldOrAsterisk[])[]): Select {
+    return new Select(this.dsl, fields.flat()).withCtes(this.ctes)
+  }
+  selectDistinct(...fields: (SelectFieldOrAsterisk | SelectFieldOrAsterisk[])[]): Select {
+    return new Select(this.dsl, fields.flat(), true).withCtes(this.ctes)
+  }
+  selectFrom(t: Table<unknown>): Select {
+    return new Select(this.dsl, [t]).from(t).withCtes(this.ctes)
+  }
+}
+
 export class DSLContext {
   constructor(readonly db: Database.Database) {}
 
@@ -309,7 +330,13 @@ export class DSLContext {
   }
 
   /** `with(name).as(select)` puis `.select(...)` */
-  with(name: string): { as(s: Select): { select(...f: SelectFieldOrAsterisk[]): Select; selectFrom(t: Table<unknown>): Select; cte: CommonTableExpression } } {
+  with(cte: CommonTableExpression): WithStep
+  with(name: string): { as(s: Select): { select(...f: SelectFieldOrAsterisk[]): Select; selectFrom(t: Table<unknown>): Select; cte: CommonTableExpression } }
+  with(
+    name: string | CommonTableExpression,
+  ): WithStep | { as(s: Select): { select(...f: SelectFieldOrAsterisk[]): Select; selectFrom(t: Table<unknown>): Select; cte: CommonTableExpression } } {
+    // `with(cte).with(cte2).select(..)` (CTE construite par `name(..).as(..)` / `asMaterialized(..)`)
+    if (name instanceof CommonTableExpression) return new WithStep(this, [name])
     return {
       as: (s: Select) => {
         const cte = new CommonTableExpression(name, s)

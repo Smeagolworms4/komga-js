@@ -81,6 +81,14 @@ export class Name extends QueryPart {
   last(): string {
     return this.parts[this.parts.length - 1] as string
   }
+  /** `name("cte").as(select)` : expression de table commune */
+  as(select: Select): CommonTableExpression {
+    return new CommonTableExpression(this.last(), select)
+  }
+  /** `name("cte").asMaterialized(select)` */
+  asMaterialized(select: Select): CommonTableExpression {
+    return new CommonTableExpression(this.last(), select, true)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -119,6 +127,13 @@ export abstract class Field<T> extends QueryPart {
   }
   notEqual(v: FieldOrValue<T>): Condition {
     return this.ne(v)
+  }
+  /** `equalIgnoreCase(v)` : `lower(f) = lower(?)` (relevé jOOQ 3.19 SQLite) */
+  equalIgnoreCase(v: FieldOrValue<string>): Condition {
+    return new Compare(lowerOf(this as Field<unknown> as Field<string>), '=', lowerOf(toField(v, SQLDataType.VARCHAR)))
+  }
+  notEqualIgnoreCase(v: FieldOrValue<string>): Condition {
+    return new Compare(lowerOf(this as Field<unknown> as Field<string>), '<>', lowerOf(toField(v, SQLDataType.VARCHAR)))
   }
   gt(v: FieldOrValue<T>): Condition {
     return new Compare(this, '>', toField(v, this.type))
@@ -190,6 +205,10 @@ export abstract class Field<T> extends QueryPart {
   }
   containsIgnoreCase(v: FieldOrValue<string>): Condition {
     return new Like(lowerOf(this as Field<unknown> as Field<string>), lowerOf(concatLike(true, toField(v, SQLDataType.VARCHAR), true)), false, '!')
+  }
+  /** `notContainsIgnoreCase(v)` : `not (lower(f) like lower(('%' || ... || '%')) escape '!')` (relevé jOOQ 3.19 SQLite) */
+  notContainsIgnoreCase(v: FieldOrValue<string>): Condition {
+    return new Not(this.containsIgnoreCase(v))
   }
   startsWith(v: FieldOrValue<string>): Condition {
     return new Like(this, concatLike(false, toField(v, SQLDataType.VARCHAR), true), false, '!')
@@ -878,8 +897,14 @@ export class Table<R = unknown> extends TableLike {
     return this.tableFields
   }
 
-  field(name: string): TableField<R, unknown> | null {
-    return this.tableFields.find((f) => f.name === name) ?? null
+  /** `field(name)`, `field(Field)` (par nom) ou `field(name, Type::class.java)` (champ de la table converti dans ce type) */
+  field<T = unknown>(nameOrField: string | Field<T>, type?: DataType<T> | StringConstructor | NumberConstructor | BooleanConstructor): TableField<R, T> | null {
+    const name = typeof nameOrField === 'string' ? nameOrField : nameOrField.name
+    const f = this.tableFields.find((x) => x.name === name)
+    if (f === undefined) return null
+    if (type === undefined) return f as TableField<R, unknown> as TableField<R, T>
+    const t = (type === String ? SQLDataType.VARCHAR : type === Number ? SQLDataType.INTEGER : type === Boolean ? SQLDataType.BOOLEAN : type) as DataType<T>
+    return new TableField<R, T>(this, name, t)
   }
 
   /** Table aliasée : même classe générée, champs qualifiés par l'alias */
@@ -935,8 +960,34 @@ export class ValuesTable extends TableLike {
   fields(): Field<unknown>[] {
     return []
   }
+  /** `values(...).as(alias, fieldAliases...)` : table dérivée aux colonnes nommées */
+  as(alias: string, ...fieldAliases: string[]): ValuesDerivedTable {
+    return new ValuesDerivedTable(this, alias, fieldAliases)
+  }
   render(ctx: RenderContext): void {
     ctx.append('(values ').visitList(this.rows).append(')')
+  }
+}
+
+/**
+ * `values(...).as("t", "a", "b")` : SQLite n'accepte pas de liste de colonnes dérivées, jOOQ 3.19 émule avec
+ * `(select null as "a", null as "b" where 1 = 0 union all select * from (values (..), (..)) as "t") as "t"`
+ */
+export class ValuesDerivedTable extends Table<unknown> {
+  constructor(
+    readonly values: ValuesTable,
+    alias: string,
+    readonly fieldAliases: string[],
+  ) {
+    super(alias, alias)
+    for (const n of fieldAliases) this.createField(n, SQLDataType.OTHER)
+  }
+  render(ctx: RenderContext): void {
+    const alias = quote(this.alias as string)
+    if (ctx.declareTables) {
+      ctx.append(`(select ${this.fieldAliases.map((n) => `null as ${quote(n)}`).join(', ')} where 1 = 0 union all select * from (values `)
+      ctx.visitList(this.values.rows).append(`) as ${alias}) as ${alias}`)
+    } else ctx.append(alias)
   }
 }
 
@@ -945,12 +996,19 @@ export class CommonTableExpression extends Table<unknown> {
   constructor(
     name: string,
     readonly select: Select,
+    /** `name(..).asMaterialized(select)` : `"name" as materialized (select ..)` */
+    readonly materialized: boolean = false,
+    alias: string | null = null,
   ) {
-    super(name, null)
+    super(name, alias)
     for (const f of select.selectFields()) this.createField(f.name, f.type)
   }
+  /** CTE aliasée (`cte.as("b1")`) : `"cte" as "b1"` dans le FROM */
+  as(alias: string | Name): this {
+    return new CommonTableExpression(this.tableName, this.select, this.materialized, typeof alias === 'string' ? alias : alias.last()) as this
+  }
   renderDeclaration(ctx: RenderContext): void {
-    ctx.append(`${quote(this.tableName)} as (`).visit(this.select).append(')')
+    ctx.append(`${quote(this.tableName)} as ${this.materialized ? 'materialized ' : ''}(`).visit(this.select).append(')')
   }
 }
 
@@ -1007,8 +1065,10 @@ export class Record implements Iterable<unknown> {
     throw new IllegalArgumentException(`Field (${sql}) is not contained in Row`)
   }
 
-  get<T>(f: Field<T> | string | number): T {
-    return this.values[this.indexOf(f as Field<unknown>)] as T
+  /** `get(field)`, `get(name)`, `get(index)` ou `get(index, Type::class.java)` */
+  get<T>(f: Field<T> | string | number, type?: IntoType<T>): T {
+    const v = this.values[this.indexOf(f as Field<unknown>)]
+    return (type === undefined ? v : intoType(v, type as IntoType<unknown>)) as T
   }
 
   set<T>(f: Field<T>, v: T): void {
@@ -1023,6 +1083,15 @@ export class Record implements Iterable<unknown> {
   }
   value3<T = unknown>(): T {
     return this.values[2] as T
+  }
+  value4<T = unknown>(): T {
+    return this.values[3] as T
+  }
+  value5<T = unknown>(): T {
+    return this.values[4] as T
+  }
+  value6<T = unknown>(): T {
+    return this.values[5] as T
   }
 
   size(): number {
@@ -1057,9 +1126,19 @@ function intoType(v: unknown, t: IntoType<unknown>): unknown {
   if (v === null || v === undefined) return null
   if (t === String) return String(v)
   if (t === Number) return Number(v)
-  if (t === Boolean) return Boolean(v)
+  if (t === Boolean) {
+    // org.jooq.tools.Convert : chaînes reconnues (TRUE_VALUES / FALSE_VALUES), sinon null
+    if (typeof v === 'string') {
+      const l = v.trim().toLowerCase()
+      return JOOQ_TRUE_VALUES.includes(l) ? true : JOOQ_FALSE_VALUES.includes(l) ? false : null
+    }
+    return Boolean(v)
+  }
   return v
 }
+
+const JOOQ_TRUE_VALUES = ['1', '1.0', 'y', 'yes', 'true', 't', 'on', 'enabled']
+const JOOQ_FALSE_VALUES = ['0', '0.0', 'n', 'no', 'false', 'f', 'off', 'disabled']
 
 /** Record typé d'une table (généré) : accès par propriétés camelCase */
 export class TableRecordImpl<R = unknown> {
@@ -1238,6 +1317,8 @@ export class Select extends Query {
   /** `select 1 as one` */
   private selectOneFlag = false
   private countFlag = false
+  /** Jointure dont la condition ON est en cours de construction (`on(..).and(..)`) */
+  private onStep: Join | null = null
 
   constructor(ex: Executor | null, fields: SelectFieldOrAsterisk[] = [], distinct = false) {
     super(ex)
@@ -1274,6 +1355,7 @@ export class Select extends Query {
   }
 
   private addJoin(type: JoinType, t: TableLike): this {
+    this.onStep = null
     this.joins.push(new Join(type, t, [...this.fromList, ...this.joins.map((j) => j.table)]))
     return this
   }
@@ -1300,6 +1382,7 @@ export class Select extends Query {
     const j = this.joins[this.joins.length - 1]
     if (!j) throw new IllegalArgumentException('on() without join')
     j.on = conditions.reduce<Condition>((acc, c) => acc.and(c), new NoCondition())
+    this.onStep = j
     return this
   }
 
@@ -1318,19 +1401,24 @@ export class Select extends Query {
     }
     if (candidates.length !== 1) throw new DataAccessException(`Key ambiguous or not found between tables for onKey() (${candidates.length} candidates)`)
     j.on = candidates[0] as Condition
+    this.onStep = j
     return this
   }
 
   where(...conditions: (Condition | null | undefined)[]): this {
+    this.onStep = null
     this.whereCond = conditions.reduce<Condition>((acc, c) => (c ? acc.and(c) : acc), this.whereCond)
     return this
   }
+  /** Après `on()` / `onKey()` (SelectOnConditionStep), `and`/`or` complètent la condition de jointure, sinon le WHERE */
   and(c: Condition): this {
-    this.whereCond = this.whereCond.and(c)
+    if (this.onStep) this.onStep.on = (this.onStep.on ?? new NoCondition()).and(c)
+    else this.whereCond = this.whereCond.and(c)
     return this
   }
   or(c: Condition): this {
-    this.whereCond = this.whereCond.or(c)
+    if (this.onStep) this.onStep.on = (this.onStep.on ?? new NoCondition()).or(c)
+    else this.whereCond = this.whereCond.or(c)
     return this
   }
   andNot(c: Condition): this {
@@ -1473,12 +1561,17 @@ export class Select extends Query {
   fetchOne(): Record | null
   fetchOne<T>(field: Field<T>): T | null
   fetchOne<T>(mapper: RecordMapper<Record, T>): T | null
-  fetchOne<T>(arg?: Field<T> | RecordMapper<Record, T>): Record | T | null {
+  /** `fetchOne(fieldIndex, Class)` */
+  fetchOne(fieldIndex: number, type: StringConstructor): string | null
+  fetchOne(fieldIndex: number, type: NumberConstructor): number | null
+  fetchOne<T>(fieldIndex: number, type: IntoType<T>): T | null
+  fetchOne<T>(arg?: Field<T> | RecordMapper<Record, T> | number, type?: IntoType<T>): Record | T | null {
     const res = this.fetchResult()
     if (res.length > 1) throw new TooManyRowsException('Cursor returned more than one result')
     const r = res[0]
     if (r === undefined) return null
     if (arg === undefined) return r
+    if (typeof arg === 'number') return intoType(r.get(arg), type as IntoType<unknown>) as T | null
     if (arg instanceof Field) return r.get(arg)
     return arg(r)
   }
@@ -1514,11 +1607,16 @@ export class Select extends Query {
     return this.fetchSingle().into(target)
   }
 
-  fetchSet<T>(field: Field<T>): Set<T> {
-    return new Set(this.fetchResult().map((r) => r.get(field)))
+  /** `fetchSet(field)` ou `fetchSet(fieldIndex, Type::class.java)` */
+  fetchSet<T>(field: Field<T> | number, type?: IntoType<T>): Set<T> {
+    return new Set(this.fetchResult().map((r) => (type === undefined ? r.get(field) : (intoType(r.get(field), type) as T))))
   }
 
-  fetchArray(): Record[] {
+  /** `fetchArray()` : tableau de records ; `fetchArray(fieldIndex)` : valeurs de la colonne */
+  fetchArray(): Record[]
+  fetchArray<T = unknown>(fieldIndex: number): T[]
+  fetchArray(fieldIndex?: number): unknown[] {
+    if (fieldIndex !== undefined) return this.fetchResult().map((r) => r.get(fieldIndex))
     return [...this.fetchResult()]
   }
 
@@ -1609,7 +1707,7 @@ function fkCondition(a: Table<unknown>, af: string[], b: Table<unknown>, bf: str
 // ---------------------------------------------------------------------------
 
 export class Insert<R = unknown> extends Query {
-  private columns: Field<unknown>[] = []
+  private insertColumns: Field<unknown>[] = []
   private rows: Field<unknown>[][] = []
   private current: Map<Field<unknown>, Field<unknown>> = new Map()
   private selectSource: Select | null = null
@@ -1625,7 +1723,7 @@ export class Insert<R = unknown> extends Query {
     fields: Field<unknown>[] = [],
   ) {
     super(ex)
-    this.columns = fields
+    this.insertColumns = fields
   }
 
   set<T>(f: Field<T>, v: FieldOrValue<T>): this {
@@ -1647,9 +1745,18 @@ export class Insert<R = unknown> extends Query {
     return this
   }
 
+  /** `insertInto(t).columns(f1, f2...)` */
+  columns(...fields: Field<unknown>[]): this {
+    this.insertColumns = fields
+    return this
+  }
+
   values(...values: unknown[]): this {
     const vals = values.length === 1 && Array.isArray(values[0]) ? (values[0] as unknown[]) : values
-    this.rows.push(this.columns.map((c, i) => toField(vals[i], c.type)))
+    // `insertInto(t).values(..)` sans colonnes : jOOQ rend la liste des champs de la table générée
+    if (this.insertColumns.length === 0 && this.table.tableFields.length > 0) this.insertColumns = [...this.table.tableFields]
+    if (this.insertColumns.length === 0) this.rows.push(vals.map((v) => toField(v, inferType(v))))
+    else this.rows.push(this.insertColumns.map((c, i) => toField(vals[i], c.type)))
     return this
   }
 
@@ -1693,15 +1800,15 @@ export class Insert<R = unknown> extends Query {
 
   private flushCurrent(): void {
     if (this.current.size === 0) return
-    if (this.columns.length === 0) this.columns = [...this.current.keys()]
-    this.rows.push(this.columns.map((c) => this.current.get(c) ?? new RawField('default', SQLDataType.OTHER)))
+    if (this.insertColumns.length === 0) this.insertColumns = [...this.current.keys()]
+    this.rows.push(this.insertColumns.map((c) => this.current.get(c) ?? new RawField('default', SQLDataType.OTHER)))
     this.current = new Map()
   }
 
   render(ctx: RenderContext): void {
     this.flushCurrent()
     ctx.append('insert into ').visit(this.table)
-    if (this.columns.length) ctx.append(` (${this.columns.map((c) => quote(c.name)).join(', ')})`)
+    if (this.insertColumns.length) ctx.append(` (${this.insertColumns.map((c) => quote(c.name)).join(', ')})`)
     if (this.selectSource) ctx.append(' ').visit(this.selectSource)
     else {
       ctx.append(' values ')
@@ -1781,6 +1888,10 @@ export class Delete<R = unknown> extends Query {
   }
   and(c: Condition): this {
     this.whereCond = this.whereCond.and(c)
+    return this
+  }
+  or(c: Condition): this {
+    this.whereCond = this.whereCond.or(c)
     return this
   }
 

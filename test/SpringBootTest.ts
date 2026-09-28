@@ -7,21 +7,32 @@ import '../src/infrastructure/datasource/DataSourcesConfiguration.js'
 import '../src/infrastructure/datasource/FlywaySecondaryMigrationInitializer.js'
 import '../src/infrastructure/jooq/KomgaJooqConfiguration.js'
 import { rmSync } from 'node:fs'
-import { ApplicationContext, Environment } from '../src/port/spring.js'
+import { ApplicationContext, Environment, type Token } from '../src/port/spring.js'
 import { KomgaProperties } from '../src/infrastructure/configuration/KomgaProperties.js'
 
 let shared: ApplicationContext | null = null
 
-export function springBootTest(properties: Record<string, unknown> = {}): ApplicationContext {
-  if (shared && Object.keys(properties).length === 0) return shared
+/**
+ * `mocks` : équivalent de `@MockkBean` / `@SpykBean` : l'instance fournie remplace le bean du type donné.
+ * Un contexte avec propriétés ou mocks n'est pas partagé.
+ */
+export function springBootTest(
+  properties: Record<string, unknown> = {},
+  mocks: { type: Token; instance: unknown }[] = [],
+): ApplicationContext {
+  const isDefault = Object.keys(properties).length === 0 && mocks.length === 0
+  if (shared && isDefault) return shared
   const env = new Environment({
     resourcesDirs: ['test/resources', 'resources'],
     profiles: ['test'],
     properties,
     buildProperties: { version: 'TESTING', rootDir: process.cwd() },
   })
-  const ctx = new ApplicationContext(env).refresh()
-  if (Object.keys(properties).length === 0) shared = ctx
+  const ctx = new ApplicationContext(
+    env,
+    mocks.map((m) => ({ name: `mock${m.type.name}`, type: m.type, instance: m.instance, primary: true })),
+  ).refresh()
+  if (isDefault) shared = ctx
   return ctx
 }
 
