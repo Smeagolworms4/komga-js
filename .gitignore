@@ -4,3 +4,4 @@ dist/
 node_modules/
 resources/public/
 upstream
+resources/git.properties

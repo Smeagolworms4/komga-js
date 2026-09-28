@@ -30,8 +30,12 @@ RUN npm ci --no-audit --no-fund
 COPY . .
 COPY --from=webui /webui/dist /tmp/webui
 COPY --from=nextui /nextui/dist /tmp/nextui
+# Branche et commit de KomgaJS pour /actuator/info (le .git n'est pas copié dans le contexte de build)
+ARG GIT_BRANCH
+ARG GIT_COMMIT
+ARG GIT_COMMIT_TIME
 RUN npm run build:native && \
-    npm run build && \
+    GIT_BRANCH="$GIT_BRANCH" GIT_COMMIT="$GIT_COMMIT" GIT_COMMIT_TIME="$GIT_COMMIT_TIME" npm run build && \
     node tools/install-webui.mjs /tmp/webui /tmp/nextui && \
     npm prune --omit=dev
 

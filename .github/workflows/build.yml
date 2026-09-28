@@ -110,7 +110,11 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          build-args: KOMGA_REF=${{ steps.upstream.outputs.ref }}
+          build-args: |
+            KOMGA_REF=${{ steps.upstream.outputs.ref }}
+            GIT_BRANCH=${{ github.ref_name }}
+            GIT_COMMIT=${{ github.sha }}
+            GIT_COMMIT_TIME=${{ github.event.head_commit.timestamp }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

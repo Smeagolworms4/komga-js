@@ -6,3 +6,4 @@ coverage
 upstream
 test
 resources/public
+resources/git.properties
