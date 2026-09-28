@@ -1109,7 +1109,11 @@ export class Record implements Iterable<unknown> {
   /** `record.into(table)` : TableRecord typé ; `record.into(String::class.java)` : première valeur */
   into<R>(target: Table<R>): R
   into<T>(target: IntoType<T>): T
-  into(target: Table<unknown> | IntoType<unknown>): unknown {
+  /** `record.into(field1, field2...)` : Record des valeurs de ces champs (Record2...) */
+  into(...fields: Field<unknown>[]): Record
+  into(...args: (Table<unknown> | IntoType<unknown> | Field<unknown>)[]): unknown {
+    const target = args[0] as Table<unknown> | IntoType<unknown> | Field<unknown>
+    if (target instanceof Field) return new Record(args as Field<unknown>[], (args as Field<unknown>[]).map((f) => this.get(f)))
     if (target instanceof Table) return intoTable(this, target)
     return intoType(this.values[0], target)
   }
@@ -1762,6 +1766,8 @@ export class Insert<R = unknown> extends Query {
 
   select(s: Select): this {
     this.selectSource = s
+    // `insertInto(t).select(..)` sans colonnes : jOOQ rend la liste des champs de la table générée
+    if (this.insertColumns.length === 0 && this.table.tableFields.length > 0) this.insertColumns = [...this.table.tableFields]
     return this
   }
 
