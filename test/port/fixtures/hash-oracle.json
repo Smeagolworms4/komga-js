@@ -1,0 +1,297 @@
+{
+ "strings": [
+  {
+   "input": "",
+   "xxh3_128": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "input": "hello",
+   "xxh3_128": "b5e9c1ad071b3e7fc779cfaa5e523818"
+  },
+  {
+   "input": "a",
+   "xxh3_128": "a96faf705af16834e6c632b61e964e1f"
+  },
+  {
+   "input": "The quick brown fox jumps over the lazy dog",
+   "xxh3_128": "ddd650205ca3e7fa24a1cc2e3a8a7651"
+  },
+  {
+   "input": "éàü漢字🙂",
+   "xxh3_128": "de5a3c2b7e30a818003cc0e6d64d834d"
+  },
+  {
+   "input": {
+    "repeat": "x",
+    "count": 8192
+   },
+   "xxh3_128": "a9f20ae68e5dcb2b9fdb0e2ff17fcc3c"
+  },
+  {
+   "input": {
+    "repeat": "y",
+    "count": 8193
+   },
+   "xxh3_128": "76e8d20edb668164fec19f1440811cb4"
+  },
+  {
+   "input": {
+    "repeat": "z",
+    "count": 100000
+   },
+   "xxh3_128": "e8d9967efad88e1346aea077e4fefafb"
+  }
+ ],
+ "files": [
+  {
+   "path": "application-memorydb.yml",
+   "xxh3_128": "796218f6374fac92e2b1e693ea4b0910",
+   "koreader": "258c78cee3b68797d8cfabd48f86e738"
+  },
+  {
+   "path": "application-test.yml",
+   "xxh3_128": "d2c8290b2610a076197ea7add696b074",
+   "koreader": "fd8b8650757b9669126aef7352f7e4f2"
+  },
+  {
+   "path": "archives/7zip-encrypted.7z",
+   "xxh3_128": "a8275721a339078fa79871fb8e987ff1",
+   "koreader": "3180cd03abf3841789b7748ad474be76"
+  },
+  {
+   "path": "archives/7zip.7z",
+   "xxh3_128": "ffec410c0539643c726ea17e7cc61862",
+   "koreader": "e9adb0f24cdfa2600d0636fefd2f94ef"
+  },
+  {
+   "path": "archives/epub3.epub",
+   "xxh3_128": "7d8bddd17117f70cd033e2c166a1a3a0",
+   "koreader": "4300992b56baf3d82b11490010eb2487"
+  },
+  {
+   "path": "archives/rar4-encrypted.rar",
+   "xxh3_128": "602a170ebef703eceb5cec70e4a340a9",
+   "koreader": "0ab2e471c3ffde4301de4c14992278da"
+  },
+  {
+   "path": "archives/rar4-solid.rar",
+   "xxh3_128": "c20b145de650e637c5d16eb2601e0a61",
+   "koreader": "e6121a48e1e11f10eb78699d4d8ea29f"
+  },
+  {
+   "path": "archives/rar4.rar",
+   "xxh3_128": "3782e0705246385607383d878e8acc26",
+   "koreader": "096e6cb614ca252385cce9e313eecf80"
+  },
+  {
+   "path": "archives/rar5-encrypted.rar",
+   "xxh3_128": "eef9e5ea6c3015ed6fa304f33320e80e",
+   "koreader": "419b99f19e9e287bef5a3388c88625fc"
+  },
+  {
+   "path": "archives/rar5-solid.rar",
+   "xxh3_128": "f01b9cac5e9cc2a6c68353c4099f4b5c",
+   "koreader": "862a2fd24b9ccca17861dc29fbf1a49a"
+  },
+  {
+   "path": "archives/rar5.rar",
+   "xxh3_128": "91c692020b6e47f432838a871aea98f8",
+   "koreader": "70605f096826bf00f6c9ea71888a3334"
+  },
+  {
+   "path": "archives/zip-as-epub.epub",
+   "xxh3_128": "a68c42c7d487fdea6466e164dead07a5",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip-bzip2.zip",
+   "xxh3_128": "0b31d4549bd9636258678ac033fc3408",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip-copy.zip",
+   "xxh3_128": "cf71d85801c35a7a3fcbf0ac8a3dedb9",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip-deflate64.zip",
+   "xxh3_128": "251ee5f4585dcb7cd2606edd893193ab",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip-encrypted.zip",
+   "xxh3_128": "578f086189a05585e9f862c806fdf37e",
+   "koreader": "08ea47804597bf62737ad90b7eb876be"
+  },
+  {
+   "path": "archives/zip-lzma.zip",
+   "xxh3_128": "859f44c998ecfe54813d2491c8e1d404",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip-ppmd.zip",
+   "xxh3_128": "adb3fa89d5066cf7139bb74f7b9819b2",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "archives/zip.zip",
+   "xxh3_128": "a68c42c7d487fdea6466e164dead07a5",
+   "koreader": "77aca71b6c0e4343d35c6317c1eeb0f8"
+  },
+  {
+   "path": "barcode/komga.png",
+   "xxh3_128": "8f95b0c51a42787eb4a7d0cf468980ff",
+   "koreader": "358b81f6188664246676e0ee6984aebf"
+  },
+  {
+   "path": "barcode/page_384.jpg",
+   "xxh3_128": "8c0ca4c3dbdc7cff9802f30806148802",
+   "koreader": "6222fa553162abda334ddcabe26d1f61"
+  },
+  {
+   "path": "epub/1979.opf",
+   "xxh3_128": "e9906a41695ecf8db61c4ea41e1238f5",
+   "koreader": "19a929bee05c8719d75286cbac53535e"
+  },
+  {
+   "path": "epub/Die Drei 3.opf",
+   "xxh3_128": "67cf1c10aa990c409db71b855dd25dd3",
+   "koreader": "fe5c7a4774e904d8f370f02542ef2b58"
+  },
+  {
+   "path": "epub/Panik im Paradies - namespace.opf",
+   "xxh3_128": "29b97e55cfb9951e6090d0d38a42527f",
+   "koreader": "e1a69ab6c947b640d7c841f8c1435cee"
+  },
+  {
+   "path": "epub/Panik im Paradies.opf",
+   "xxh3_128": "2e503b49405cf9d979a1fbcead495c59",
+   "koreader": "f4322f79314c42c1fb56fdc6cc11ac69"
+  },
+  {
+   "path": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "xxh3_128": "9bd543fe13dd88a418d079635b584af6",
+   "koreader": "240b04159212dab2c938d14b4b976af6"
+  },
+  {
+   "path": "epub/clash.opf",
+   "xxh3_128": "e070a5165abe53dca277e5c9f4d225a2",
+   "koreader": "a469fdbe964fefd3151538591aa20ee4"
+  },
+  {
+   "path": "epub/nav.xhtml",
+   "xxh3_128": "da40701862e8e4db5e0094b188734c61",
+   "koreader": "71aea7ba45cf6b6be815d20edb57ad2f"
+  },
+  {
+   "path": "epub/toc.ncx",
+   "xxh3_128": "aa36933128cbb9ccafaaa082d0168d75",
+   "koreader": "32ac4ab479e2a3a3a64ee09043d82409"
+  },
+  {
+   "path": "hashpage/dd.png/1.png",
+   "xxh3_128": "5fdd15512f075be0e80025d8c0939a6c",
+   "koreader": "4fcc471cffb3ebe28aa93d7d66413662"
+  },
+  {
+   "path": "hashpage/dd.png/2.png",
+   "xxh3_128": "5fdd15512f075be0e80025d8c0939a6c",
+   "koreader": "4fcc471cffb3ebe28aa93d7d66413662"
+  },
+  {
+   "path": "hashpage/e-drq.webp/1.webp",
+   "xxh3_128": "72590450a379cb99b9ce9ed29330c107",
+   "koreader": "24a97ab5c23018e49d6f536fc1d11360"
+  },
+  {
+   "path": "hashpage/e-drq.webp/2.webp",
+   "xxh3_128": "72590450a379cb99b9ce9ed29330c107",
+   "koreader": "24a97ab5c23018e49d6f536fc1d11360"
+  },
+  {
+   "path": "hashpage/e-sou.jpeg/1.jpg",
+   "xxh3_128": "0038fa4956ebfcfad2d71efc1d907ff6",
+   "koreader": "b4f3d78ddfda95d3084164290f88a8a0"
+  },
+  {
+   "path": "hashpage/e-sou.jpeg/2.jpg",
+   "xxh3_128": "108b1b2501f328745be00d52d4b62135",
+   "koreader": "a294fa9c8fc19bff463bbd1b1116dbe4"
+  },
+  {
+   "path": "hashpage/e-sou.webp/1.webp",
+   "xxh3_128": "02ee3c81793c2f106789bdbe0464d6f0",
+   "koreader": "9222d656aada5aac81af1ece39af1252"
+  },
+  {
+   "path": "hashpage/e-sou.webp/2.webp",
+   "xxh3_128": "02ee3c81793c2f106789bdbe0464d6f0",
+   "koreader": "9222d656aada5aac81af1ece39af1252"
+  },
+  {
+   "path": "hashpage/e-z.jpeg/1.jpg",
+   "xxh3_128": "afa74117d4ba72dc4fe94a52c06ebfb7",
+   "koreader": "f83230769ed78331256be879016593b4"
+  },
+  {
+   "path": "hashpage/e-z.jpeg/2.jpg",
+   "xxh3_128": "9d609b9618b93cf53e313a5e90f2b1a9",
+   "koreader": "00146d4cc473c1c7d1040142592dd057"
+  },
+  {
+   "path": "hashpage/m-d.jpeg/1.jpg",
+   "xxh3_128": "0a24f6a2ccea462d1981398ce48d0b09",
+   "koreader": "80f4f803e753bfbe4b18269cefa4c12f"
+  },
+  {
+   "path": "hashpage/m-d.jpeg/2.jpg",
+   "xxh3_128": "0a24f6a2ccea462d1981398ce48d0b09",
+   "koreader": "80f4f803e753bfbe4b18269cefa4c12f"
+  },
+  {
+   "path": "hashpage/tg.png/1.png",
+   "xxh3_128": "bc4fcaa473f144e940e4b8d37a7732d9",
+   "koreader": "dc69cdaa21df4884d79ac56374e1fded"
+  },
+  {
+   "path": "hashpage/tg.png/2.png",
+   "xxh3_128": "bc4fcaa473f144e940e4b8d37a7732d9",
+   "koreader": "dc69cdaa21df4884d79ac56374e1fded"
+  },
+  {
+   "path": "hashpage/tr.gif/1.gif",
+   "xxh3_128": "40177ac4f21c29cb30892555c1aeb15a",
+   "koreader": "bd7ebe2cd0857bcd0aea6bc9617f596a"
+  },
+  {
+   "path": "hashpage/tr.gif/2.gif",
+   "xxh3_128": "40177ac4f21c29cb30892555c1aeb15a",
+   "koreader": "bd7ebe2cd0857bcd0aea6bc9617f596a"
+  },
+  {
+   "path": "hashpage/xt.png/1.png",
+   "xxh3_128": "ce09c8aebefad15b9187217fb984db8e",
+   "koreader": "44c67b2db527b14026bb9ab2b2428d45"
+  },
+  {
+   "path": "hashpage/xt.png/2.png",
+   "xxh3_128": "ce09c8aebefad15b9187217fb984db8e",
+   "koreader": "44c67b2db527b14026bb9ab2b2428d45"
+  },
+  {
+   "path": "io/mockk/settings.properties",
+   "xxh3_128": "304ed35baf5a34d15e56c9dd1d73c576",
+   "koreader": "acef40b7b92522dd147c16f276721f2a"
+  },
+  {
+   "path": "junit-platform.properties",
+   "xxh3_128": "11811d1fdc2afab8501446da5d740d0a",
+   "koreader": "136b906ec02f240c6bd13eac863e837e"
+  },
+  {
+   "path": "pdf/komga.pdf",
+   "xxh3_128": "e339d4a8edb00b42bd2d2fb48066f054",
+   "koreader": "3a5e9b4f9a9b5422767ea04193a07093"
+  }
+ ]
+}

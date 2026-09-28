@@ -15,7 +15,8 @@
     "coverage": "vitest run --coverage",
     "port:status": "node tools/port-status.mjs",
     "port:diff": "node tools/upstream-diff.mjs",
-    "build:native": "mkdir -p build && gcc -O2 -shared -fPIC -o build/komgasqlite.so native/komga_sqlite.c -I node_modules/better-sqlite3/deps/sqlite3 -licui18n -licuuc"
+    "build:native": "mkdir -p build && gcc -O2 -shared -fPIC -o build/komgasqlite.so native/komga_sqlite.c -I node_modules/better-sqlite3/deps/sqlite3 -licui18n -licuuc && npm run build:native:jpeg",
+    "build:native:jpeg": "mkdir -p build && gcc -O3 -shared -fPIC -fvisibility=hidden -fno-strict-aliasing -ffp-contract=off -DNDEBUG -DCMS_DONT_USE_FAST_FLOOR -DCMS_NO_HALF_SUPPORT -I\"$(node -p \"require('path').resolve(process.execPath, '../../include/node')\")\" -o build/komgajpeg.node native/komga_jpeg.c native/libjpeg6b/*.c native/lcms2/*.c -lm -Wl,-Bsymbolic"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
@@ -45,6 +46,7 @@
     "saxes": "^6.0.0",
     "seek-bzip": "^2.0.0",
     "sharp": "^0.35.5",
+    "swagger-ui-dist": "5.21.0",
     "xxhash-addon": "^2.1.0",
     "yaml": "^2.9.1"
   }

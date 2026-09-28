@@ -1,0 +1,1793 @@
+{
+ "open": [
+  {
+   "file": "archives/epub3.epub",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "mimetype",
+     "size": 20,
+     "dir": false,
+     "method": 0,
+     "data": "f2b65759bd7daabebf6fef2249066db3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/container.xml",
+     "size": 244,
+     "dir": false,
+     "method": 8,
+     "data": "879eb644579d8a572a274bdbec9c9946",
+     "getEntry": true
+    },
+    {
+     "name": "nav.xhtml",
+     "size": 516,
+     "dir": false,
+     "method": 8,
+     "data": "ca53844b51057290fdd1e899e5a6860c",
+     "getEntry": true
+    },
+    {
+     "name": "page_1.xhtml",
+     "size": 539,
+     "dir": false,
+     "method": 8,
+     "data": "06960c195af73feb77ce35b5bafa0ae8",
+     "getEntry": true
+    },
+    {
+     "name": "page_styles.css",
+     "size": 181,
+     "dir": false,
+     "method": 8,
+     "data": "197eb3a165240107b5971988ca54a928",
+     "getEntry": true
+    },
+    {
+     "name": "titlepage.xhtml",
+     "size": 814,
+     "dir": false,
+     "method": 8,
+     "data": "9d54a988637f38a4604709f56d44b891",
+     "getEntry": true
+    },
+    {
+     "name": "stylesheet.css",
+     "size": 202,
+     "dir": false,
+     "method": 8,
+     "data": "b21ec68b426b864e1585442d9506282f",
+     "getEntry": true
+    },
+    {
+     "name": "content.opf",
+     "size": 2047,
+     "dir": false,
+     "method": 8,
+     "data": "d662b3607c3a9d6d79707f55b6feeb80",
+     "getEntry": true
+    },
+    {
+     "name": "cover.jpeg",
+     "size": 1638,
+     "dir": false,
+     "method": 8,
+     "data": "f4cc7dc4c45cc539aacb04624d172c67",
+     "getEntry": true
+    },
+    {
+     "name": "0_0.png",
+     "size": 2593,
+     "dir": false,
+     "method": 8,
+     "data": "68e628421b389160df2764e7910d02fb",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/epub3.epub",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "mimetype",
+     "size": 20,
+     "dir": false,
+     "method": 0,
+     "data": "f2b65759bd7daabebf6fef2249066db3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/container.xml",
+     "size": 244,
+     "dir": false,
+     "method": 8,
+     "data": "879eb644579d8a572a274bdbec9c9946",
+     "getEntry": true
+    },
+    {
+     "name": "nav.xhtml",
+     "size": 516,
+     "dir": false,
+     "method": 8,
+     "data": "ca53844b51057290fdd1e899e5a6860c",
+     "getEntry": true
+    },
+    {
+     "name": "page_1.xhtml",
+     "size": 539,
+     "dir": false,
+     "method": 8,
+     "data": "06960c195af73feb77ce35b5bafa0ae8",
+     "getEntry": true
+    },
+    {
+     "name": "page_styles.css",
+     "size": 181,
+     "dir": false,
+     "method": 8,
+     "data": "197eb3a165240107b5971988ca54a928",
+     "getEntry": true
+    },
+    {
+     "name": "titlepage.xhtml",
+     "size": 814,
+     "dir": false,
+     "method": 8,
+     "data": "9d54a988637f38a4604709f56d44b891",
+     "getEntry": true
+    },
+    {
+     "name": "stylesheet.css",
+     "size": 202,
+     "dir": false,
+     "method": 8,
+     "data": "b21ec68b426b864e1585442d9506282f",
+     "getEntry": true
+    },
+    {
+     "name": "content.opf",
+     "size": 2047,
+     "dir": false,
+     "method": 8,
+     "data": "d662b3607c3a9d6d79707f55b6feeb80",
+     "getEntry": true
+    },
+    {
+     "name": "cover.jpeg",
+     "size": 1638,
+     "dir": false,
+     "method": 8,
+     "data": "f4cc7dc4c45cc539aacb04624d172c67",
+     "getEntry": true
+    },
+    {
+     "name": "0_0.png",
+     "size": 2593,
+     "dir": false,
+     "method": 8,
+     "data": "68e628421b389160df2764e7910d02fb",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-as-epub.epub",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-as-epub.epub",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-bzip2.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-bzip2.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-copy.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-copy.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-deflate64.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-deflate64.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-encrypted.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported feature encryption used in entry komga.png"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-encrypted.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported feature encryption used in entry komga.png"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-lzma.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-lzma.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-ppmd.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip-ppmd.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "archives/zip.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "komga.png",
+     "size": 3108,
+     "dir": false,
+     "method": 0,
+     "data": "8f95b0c51a42787eb4a7d0cf468980ff",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "mimetype",
+     "size": 20,
+     "dir": false,
+     "method": 0,
+     "data": "f2b65759bd7daabebf6fef2249066db3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/container.xml",
+     "size": 244,
+     "dir": false,
+     "method": 8,
+     "data": "879eb644579d8a572a274bdbec9c9946",
+     "getEntry": true
+    },
+    {
+     "name": "nav.xhtml",
+     "size": 621,
+     "dir": false,
+     "method": 8,
+     "data": "ba53767732ab39458d537eac1d07ba3b",
+     "getEntry": true
+    },
+    {
+     "name": "page_styles.css",
+     "size": 58,
+     "dir": false,
+     "method": 8,
+     "data": "2d052909e50ee05be234558992597ccf",
+     "getEntry": true
+    },
+    {
+     "name": "titlepage.xhtml",
+     "size": 818,
+     "dir": false,
+     "method": 8,
+     "data": "22ee57e0c7ad2e32086ef2a0d416d330",
+     "getEntry": true
+    },
+    {
+     "name": "stylesheet.css",
+     "size": 2799,
+     "dir": false,
+     "method": 8,
+     "data": "17d3b3301a6c8f8ddf6b18a60fcfe3fc",
+     "getEntry": true
+    },
+    {
+     "name": "content.opf",
+     "size": 2658,
+     "dir": false,
+     "method": 8,
+     "data": "667dcdc95b88105f53894ea6b67840c6",
+     "getEntry": true
+    },
+    {
+     "name": "cover.jpeg",
+     "size": 56756,
+     "dir": false,
+     "method": 8,
+     "data": "a77830b4deea1ff76fceca68ef9acc32",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_002.html",
+     "size": 31228,
+     "dir": false,
+     "method": 8,
+     "data": "f597bb06a8a558528cea443fdd05b854",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_000.html",
+     "size": 1869,
+     "dir": false,
+     "method": 8,
+     "data": "322c317d1458da5c51ae6bac699aa924",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_001.html",
+     "size": 911,
+     "dir": false,
+     "method": 8,
+     "data": "66ec8a94c07bd410718800a063505da3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/calibre_bookmarks.txt",
+     "size": 196,
+     "dir": false,
+     "method": 8,
+     "data": "86228feb1bf59be1c448d05c6a279aea",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "mimetype",
+     "size": 20,
+     "dir": false,
+     "method": 0,
+     "data": "f2b65759bd7daabebf6fef2249066db3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/container.xml",
+     "size": 244,
+     "dir": false,
+     "method": 8,
+     "data": "879eb644579d8a572a274bdbec9c9946",
+     "getEntry": true
+    },
+    {
+     "name": "nav.xhtml",
+     "size": 621,
+     "dir": false,
+     "method": 8,
+     "data": "ba53767732ab39458d537eac1d07ba3b",
+     "getEntry": true
+    },
+    {
+     "name": "page_styles.css",
+     "size": 58,
+     "dir": false,
+     "method": 8,
+     "data": "2d052909e50ee05be234558992597ccf",
+     "getEntry": true
+    },
+    {
+     "name": "titlepage.xhtml",
+     "size": 818,
+     "dir": false,
+     "method": 8,
+     "data": "22ee57e0c7ad2e32086ef2a0d416d330",
+     "getEntry": true
+    },
+    {
+     "name": "stylesheet.css",
+     "size": 2799,
+     "dir": false,
+     "method": 8,
+     "data": "17d3b3301a6c8f8ddf6b18a60fcfe3fc",
+     "getEntry": true
+    },
+    {
+     "name": "content.opf",
+     "size": 2658,
+     "dir": false,
+     "method": 8,
+     "data": "667dcdc95b88105f53894ea6b67840c6",
+     "getEntry": true
+    },
+    {
+     "name": "cover.jpeg",
+     "size": 56756,
+     "dir": false,
+     "method": 8,
+     "data": "a77830b4deea1ff76fceca68ef9acc32",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_002.html",
+     "size": 31228,
+     "dir": false,
+     "method": 8,
+     "data": "f597bb06a8a558528cea443fdd05b854",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_000.html",
+     "size": 1869,
+     "dir": false,
+     "method": 8,
+     "data": "322c317d1458da5c51ae6bac699aa924",
+     "getEntry": true
+    },
+    {
+     "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_001.html",
+     "size": 911,
+     "dir": false,
+     "method": 8,
+     "data": "66ec8a94c07bd410718800a063505da3",
+     "getEntry": true
+    },
+    {
+     "name": "META-INF/calibre_bookmarks.txt",
+     "size": 196,
+     "dir": false,
+     "method": 8,
+     "data": "86228feb1bf59be1c448d05c6a279aea",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/aes.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 99,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported feature encryption used in entry big.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/aes.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 99,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported feature encryption used in entry big.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/bzip2-7z.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 12,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/bzip2-7z.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 12,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/bzip2.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 12,
+     "data": "ec759017ee0f80b15fc5cff58838d14a",
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 12,
+     "data": "99aa06d3014798d86001c324468d497f",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/bzip2.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 12,
+     "data": "ec759017ee0f80b15fc5cff58838d14a",
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 12,
+     "data": "99aa06d3014798d86001c324468d497f",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/corrupt-deflate.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 8,
+     "data": {
+      "error": "ZipException",
+      "message": "invalid block type"
+     },
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 8,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/corrupt-deflate.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 8,
+     "data": {
+      "error": "ZipException",
+      "message": "invalid block type"
+     },
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 8,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate-big.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 8,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 8,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate-big.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 8,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 8,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 8,
+     "data": "ec759017ee0f80b15fc5cff58838d14a",
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 8,
+     "data": "99aa06d3014798d86001c324468d497f",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 8,
+     "data": "ec759017ee0f80b15fc5cff58838d14a",
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 8,
+     "data": "99aa06d3014798d86001c324468d497f",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate64.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 9,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 9,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/deflate64.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 9,
+     "data": "50116f0fe3469b8f9f71804d1759b61e",
+     "getEntry": true
+    },
+    {
+     "name": "page_384.jpg",
+     "size": 197762,
+     "dir": false,
+     "method": 9,
+     "data": "8c0ca4c3dbdc7cff9802f30806148802",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/lzma.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 14,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 14 (LZMA) used in entry text.txt"
+     },
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 14,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 14 (LZMA) used in entry empty.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/lzma.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "text.txt",
+     "size": 86000,
+     "dir": false,
+     "method": 14,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 14 (LZMA) used in entry text.txt"
+     },
+     "getEntry": true
+    },
+    {
+     "name": "empty.txt",
+     "size": 0,
+     "dir": false,
+     "method": 14,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 14 (LZMA) used in entry empty.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/notazip.zip",
+   "ignoreLFH": false,
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/notazip.zip",
+   "ignoreLFH": true,
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/ppmd.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 98,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 98 (PPMD) used in entry big.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/ppmd.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "big.txt",
+     "size": 710000,
+     "dir": false,
+     "method": 98,
+     "data": {
+      "error": "UnsupportedZipFeatureException",
+      "message": "Unsupported compression method 98 (PPMD) used in entry big.txt"
+     },
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "a.txt",
+     "size": 1000,
+     "dir": false,
+     "method": 8,
+     "data": "aa133e388f626707b58eaaea0d13a6fa",
+     "getEntry": true
+    },
+    {
+     "name": "folder/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "b.bin",
+     "size": 3000,
+     "dir": false,
+     "method": 8,
+     "data": "27882ecda6f83aba373e7c7b406384aa",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "a.txt",
+     "size": 1000,
+     "dir": false,
+     "method": 8,
+     "data": "aa133e388f626707b58eaaea0d13a6fa",
+     "getEntry": true
+    },
+    {
+     "name": "folder/",
+     "size": 0,
+     "dir": true,
+     "method": 8,
+     "data": null,
+     "getEntry": true
+    },
+    {
+     "name": "b.bin",
+     "size": 3000,
+     "dir": false,
+     "method": 8,
+     "data": "27882ecda6f83aba373e7c7b406384aa",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/truncated.zip",
+   "ignoreLFH": false,
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/truncated.zip",
+   "ignoreLFH": true,
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "ignoreLFH": false,
+   "result": [
+    {
+     "name": "café-u.txt",
+     "size": 10,
+     "dir": false,
+     "method": 8,
+     "data": "83e72fc9c5e5f983cd48a53afabcbb35",
+     "getEntry": true
+    },
+    {
+     "name": "dir/sub/fat.txt",
+     "size": 3,
+     "dir": false,
+     "method": 0,
+     "data": "3b12ac101f16f710fe5e3f7ac352b164",
+     "getEntry": true
+    },
+    {
+     "name": "unix\\name.txt",
+     "size": 4,
+     "dir": false,
+     "method": 0,
+     "data": "647f761c75b62f55b599b3a254297d0c",
+     "getEntry": true
+    },
+    {
+     "name": "été.txt",
+     "size": 4,
+     "dir": false,
+     "method": 8,
+     "data": "21d1a6d39543fb57158d59aab169a317",
+     "getEntry": true
+    },
+    {
+     "name": "bad??name.txt",
+     "size": 3,
+     "dir": false,
+     "method": 0,
+     "data": "5508f3bdd90a41daf7c170336e83ce9a",
+     "getEntry": true
+    },
+    {
+     "name": "dup.txt",
+     "size": 5,
+     "dir": false,
+     "method": 0,
+     "data": "c9cbc8166703d7b011d9552b2b5188a5",
+     "getEntry": true
+    },
+    {
+     "name": "dup.txt",
+     "size": 6,
+     "dir": false,
+     "method": 0,
+     "data": "885b08846244feb4e13dcb4be2a53071",
+     "getEntry": false
+    },
+    {
+     "name": "wrongcrc.txt",
+     "size": 2,
+     "dir": false,
+     "method": 0,
+     "data": "b99c9bf69e1a4fd2e5973a6650602a4b",
+     "getEntry": true
+    },
+    {
+     "name": "central-only.txt",
+     "size": 12,
+     "dir": false,
+     "method": 0,
+     "data": "44525887dc08f66bb7367365caa15b32",
+     "getEntry": true
+    }
+   ]
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "ignoreLFH": true,
+   "result": [
+    {
+     "name": "caf?.txt",
+     "size": 10,
+     "dir": false,
+     "method": 8,
+     "data": "83e72fc9c5e5f983cd48a53afabcbb35",
+     "getEntry": true
+    },
+    {
+     "name": "dir/sub/fat.txt",
+     "size": 3,
+     "dir": false,
+     "method": 0,
+     "data": "3b12ac101f16f710fe5e3f7ac352b164",
+     "getEntry": true
+    },
+    {
+     "name": "unix\\name.txt",
+     "size": 4,
+     "dir": false,
+     "method": 0,
+     "data": "647f761c75b62f55b599b3a254297d0c",
+     "getEntry": true
+    },
+    {
+     "name": "été.txt",
+     "size": 4,
+     "dir": false,
+     "method": 8,
+     "data": "21d1a6d39543fb57158d59aab169a317",
+     "getEntry": true
+    },
+    {
+     "name": "bad??name.txt",
+     "size": 3,
+     "dir": false,
+     "method": 0,
+     "data": "5508f3bdd90a41daf7c170336e83ce9a",
+     "getEntry": true
+    },
+    {
+     "name": "dup.txt",
+     "size": 5,
+     "dir": false,
+     "method": 0,
+     "data": "c9cbc8166703d7b011d9552b2b5188a5",
+     "getEntry": true
+    },
+    {
+     "name": "dup.txt",
+     "size": 6,
+     "dir": false,
+     "method": 0,
+     "data": "885b08846244feb4e13dcb4be2a53071",
+     "getEntry": false
+    },
+    {
+     "name": "wrongcrc.txt",
+     "size": 2,
+     "dir": false,
+     "method": 0,
+     "data": "b99c9bf69e1a4fd2e5973a6650602a4b",
+     "getEntry": true
+    },
+    {
+     "name": "caf?.txt2",
+     "size": 12,
+     "dir": false,
+     "method": 0,
+     "data": "44525887dc08f66bb7367365caa15b32",
+     "getEntry": true
+    }
+   ]
+  }
+ ],
+ "getZipEntryBytes": [
+  {
+   "file": "archives/epub3.epub",
+   "name": "mimetype",
+   "result": "f2b65759bd7daabebf6fef2249066db3"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "META-INF/",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "META-INF/container.xml",
+   "result": "879eb644579d8a572a274bdbec9c9946"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "nav.xhtml",
+   "result": "ca53844b51057290fdd1e899e5a6860c"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "page_1.xhtml",
+   "result": "06960c195af73feb77ce35b5bafa0ae8"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "page_styles.css",
+   "result": "197eb3a165240107b5971988ca54a928"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "titlepage.xhtml",
+   "result": "9d54a988637f38a4604709f56d44b891"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "stylesheet.css",
+   "result": "b21ec68b426b864e1585442d9506282f"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "content.opf",
+   "result": "d662b3607c3a9d6d79707f55b6feeb80"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "cover.jpeg",
+   "result": "f4cc7dc4c45cc539aacb04624d172c67"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "0_0.png",
+   "result": "68e628421b389160df2764e7910d02fb"
+  },
+  {
+   "file": "archives/epub3.epub",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-as-epub.epub",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-as-epub.epub",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-bzip2.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-bzip2.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-copy.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-copy.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-deflate64.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-deflate64.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-encrypted.zip",
+   "name": "komga.png",
+   "result": {
+    "error": "UnsupportedZipFeatureException",
+    "message": "Unsupported feature encryption used in entry komga.png"
+   }
+  },
+  {
+   "file": "archives/zip-encrypted.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-lzma.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-lzma.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip-ppmd.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip-ppmd.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "archives/zip.zip",
+   "name": "komga.png",
+   "result": "8f95b0c51a42787eb4a7d0cf468980ff"
+  },
+  {
+   "file": "archives/zip.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "mimetype",
+   "result": "f2b65759bd7daabebf6fef2249066db3"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "META-INF/",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "META-INF/container.xml",
+   "result": "879eb644579d8a572a274bdbec9c9946"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "nav.xhtml",
+   "result": "ba53767732ab39458d537eac1d07ba3b"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "page_styles.css",
+   "result": "2d052909e50ee05be234558992597ccf"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "titlepage.xhtml",
+   "result": "22ee57e0c7ad2e32086ef2a0d416d330"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "stylesheet.css",
+   "result": "17d3b3301a6c8f8ddf6b18a60fcfe3fc"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "content.opf",
+   "result": "667dcdc95b88105f53894ea6b67840c6"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "cover.jpeg",
+   "result": "a77830b4deea1ff76fceca68ef9acc32"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "OEBPS/",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_002.html",
+   "result": "f597bb06a8a558528cea443fdd05b854"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_000.html",
+   "result": "322c317d1458da5c51ae6bac699aa924"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "OEBPS/@public@vhost@g@gutenberg@html@files@65659@65659-h@65659-h-0.htm_split_001.html",
+   "result": "66ec8a94c07bd410718800a063505da3"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "META-INF/calibre_bookmarks.txt",
+   "result": "86228feb1bf59be1c448d05c6a279aea"
+  },
+  {
+   "file": "epub/The Incomplete Theft - Ralph Burke.epub",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/aes.zip",
+   "name": "big.txt",
+   "result": {
+    "error": "UnsupportedZipFeatureException",
+    "message": "Unsupported feature encryption used in entry big.txt"
+   }
+  },
+  {
+   "file": "port/zip/aes.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/bzip2-7z.zip",
+   "name": "big.txt",
+   "result": "50116f0fe3469b8f9f71804d1759b61e"
+  },
+  {
+   "file": "port/zip/bzip2-7z.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/bzip2.zip",
+   "name": "text.txt",
+   "result": "ec759017ee0f80b15fc5cff58838d14a"
+  },
+  {
+   "file": "port/zip/bzip2.zip",
+   "name": "empty.txt",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "port/zip/bzip2.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/corrupt-deflate.zip",
+   "name": "big.txt",
+   "result": {
+    "error": "ZipException",
+    "message": "invalid block type"
+   }
+  },
+  {
+   "file": "port/zip/corrupt-deflate.zip",
+   "name": "page_384.jpg",
+   "result": "8c0ca4c3dbdc7cff9802f30806148802"
+  },
+  {
+   "file": "port/zip/corrupt-deflate.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/deflate-big.zip",
+   "name": "big.txt",
+   "result": "50116f0fe3469b8f9f71804d1759b61e"
+  },
+  {
+   "file": "port/zip/deflate-big.zip",
+   "name": "page_384.jpg",
+   "result": "8c0ca4c3dbdc7cff9802f30806148802"
+  },
+  {
+   "file": "port/zip/deflate-big.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/deflate.zip",
+   "name": "text.txt",
+   "result": "ec759017ee0f80b15fc5cff58838d14a"
+  },
+  {
+   "file": "port/zip/deflate.zip",
+   "name": "empty.txt",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "port/zip/deflate.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/deflate64.zip",
+   "name": "big.txt",
+   "result": "50116f0fe3469b8f9f71804d1759b61e"
+  },
+  {
+   "file": "port/zip/deflate64.zip",
+   "name": "page_384.jpg",
+   "result": "8c0ca4c3dbdc7cff9802f30806148802"
+  },
+  {
+   "file": "port/zip/deflate64.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/lzma.zip",
+   "name": "text.txt",
+   "result": {
+    "error": "UnsupportedZipFeatureException",
+    "message": "Unsupported compression method 14 (LZMA) used in entry text.txt"
+   }
+  },
+  {
+   "file": "port/zip/lzma.zip",
+   "name": "empty.txt",
+   "result": {
+    "error": "UnsupportedZipFeatureException",
+    "message": "Unsupported compression method 14 (LZMA) used in entry empty.txt"
+   }
+  },
+  {
+   "file": "port/zip/lzma.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/notazip.zip",
+   "name": "nope",
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/ppmd.zip",
+   "name": "big.txt",
+   "result": {
+    "error": "UnsupportedZipFeatureException",
+    "message": "Unsupported compression method 98 (PPMD) used in entry big.txt"
+   }
+  },
+  {
+   "file": "port/zip/ppmd.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "name": "a.txt",
+   "result": "aa133e388f626707b58eaaea0d13a6fa"
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "name": "folder/",
+   "result": "99aa06d3014798d86001c324468d497f"
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "name": "b.bin",
+   "result": "27882ecda6f83aba373e7c7b406384aa"
+  },
+  {
+   "file": "port/zip/prefixed.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  },
+  {
+   "file": "port/zip/truncated.zip",
+   "name": "nope",
+   "result": {
+    "error": "ZipException",
+    "message": "Archive is not a ZIP archive"
+   }
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "café-u.txt",
+   "result": "83e72fc9c5e5f983cd48a53afabcbb35"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "dir/sub/fat.txt",
+   "result": "3b12ac101f16f710fe5e3f7ac352b164"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "unix\\name.txt",
+   "result": "647f761c75b62f55b599b3a254297d0c"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "été.txt",
+   "result": "21d1a6d39543fb57158d59aab169a317"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "bad??name.txt",
+   "result": "5508f3bdd90a41daf7c170336e83ce9a"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "dup.txt",
+   "result": "c9cbc8166703d7b011d9552b2b5188a5"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "wrongcrc.txt",
+   "result": "b99c9bf69e1a4fd2e5973a6650602a4b"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "central-only.txt",
+   "result": "44525887dc08f66bb7367365caa15b32"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "caf?.txt",
+   "result": "83e72fc9c5e5f983cd48a53afabcbb35"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "caf?.txt2",
+   "result": "44525887dc08f66bb7367365caa15b32"
+  },
+  {
+   "file": "port/zip/unicode-extra-local.zip",
+   "name": "nope",
+   "result": {
+    "error": "EntryNotFoundException",
+    "message": "Entry does not exist: nope"
+   }
+  }
+ ]
+}
