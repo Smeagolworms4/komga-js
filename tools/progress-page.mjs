@@ -150,8 +150,24 @@ footer{color:var(--muted);font-size:13px}
     <div class="stat"><span class="k">Code principal porté</span><span class="v num">${pct(mainDone, mainLines)} %</span>${bar(mainDone, mainLines)}<span class="d num">${nf(mainDone)} / ${nf(mainLines)} lignes · ${main.filter(ok).length} / ${main.length} fichiers</span></div>
     <div class="stat"><span class="k">Tests Kotlin portés</span><span class="v num">${pct(testDone, testCount)} %</span>${bar(testDone, testCount)}<span class="d num">${nf(testDone)} / ${nf(testCount)} tests</span></div>
     <div class="stat"><span class="k">Lots terminés</span><span class="v num">${done.length}</span><span class="d">${running.length} en cours · ${fmtMin(workMin)} de travail cumulé</span></div>
-    <div class="stat"><span class="k">RAM du Komga Java (référence)</span><span class="v num">${data.ramJavaMo} Mo</span><span class="d">Au repos, bibliothèque vide, mémoire Java plafonnée à 512 Mo</span></div>
+    <div class="stat"><span class="k">RAM après lecture</span><span class="v num">${data.bench.js.afterRead} Mo</span><span class="d">KomgaJS, contre ${data.bench.java.afterRead} Mo pour Komga Java (÷ ${(data.bench.java.afterRead / data.bench.js.afterRead).toFixed(1)})</span></div>
   </div>
+
+  <section>
+    <h2>Mémoire : Komga Java contre KomgaJS</h2>
+    <p class="sub">Même bibliothèque de 60 BD (645 Mo), même scénario, configuration vierge, réglages par défaut. Mémoire réelle du processus (RSS).</p>
+    ${[
+      ['Au repos', 'idle'],
+      ['Après scan et analyse', 'afterScan'],
+      ['Après lecture (miniatures, pages)', 'afterRead'],
+    ]
+      .map(([label, k]) => {
+        const max = Math.max(data.bench.java.afterRead, data.bench.java.afterScan)
+        return `<div class="pk"><span class="n">${label}</span><div style="display:grid;gap:4px"><div class="bar"><span style="width:${(data.bench.java[k] / max) * 100}%;background:var(--kt)"></span></div><div class="bar"><span style="width:${(data.bench.js[k] / max) * 100}%;background:var(--ts)"></span></div></div><span class="c num">Java ${data.bench.java[k]} Mo<br>JS ${data.bench.js[k]} Mo</span></div>`
+      })
+      .join('\n    ')}
+    <div class="pk"><span class="n">Démarrage / durée du scan</span><span class="c num" style="text-align:left">Java ${data.bench.java.startup} s / ${data.bench.java.scan} s</span><span class="c num">JS ${data.bench.js.startup} s / ${data.bench.js.scan} s</span></div>
+  </section>
 
   <section>
     <h2>Avancement par partie de Komga</h2>

@@ -1,6 +1,6 @@
 {
   "sessionStart": "2026-09-28T10:12:00",
-  "ramJavaMo": 505,
+  "ramJavaMo": 641,
   "lots": [
     {
       "lot": "Inventaire, outils de suivi, couverture de départ",
@@ -221,27 +221,51 @@
     {
       "lot": "Contrôleurs 5 : Kobo, KOReader, SSE, OpenAPI",
       "who": "agent",
-      "start": "15:00",
-      "status": "running"
+      "status": "done",
+      "min": 46,
+      "check": "Komga en marche",
+      "result": "Kobo 8/8, KOReader 5/5, SSE identique, générateur OpenAPI"
     },
     {
       "lot": "Démarrage de l'application",
       "who": "moi",
-      "start": "15:10",
+      "status": "done",
+      "min": 45,
+      "check": "Lancement réel",
+      "result": "Démarre en 1,4 s, scan et API fonctionnels"
+    },
+    {
+      "lot": "Banc d'essai mémoire (60 BD, 645 Mo)",
+      "who": "moi",
+      "min": 20,
+      "check": "Komga Java, même scénario",
+      "result": "RAM ÷4 à ÷6 ; scan 2,4× plus lent",
+      "status": "done"
+    },
+    {
+      "lot": "Documentation OpenAPI identique à Komga",
+      "who": "agent",
+      "start": "15:55",
+      "status": "running"
+    },
+    {
+      "lot": "Derniers tests Kotlin et petits écarts",
+      "who": "agent",
+      "start": "15:55",
       "status": "running"
     }
   ],
   "remaining": [
     {
-      "step": "Fin des contrôleurs et de leurs tests",
-      "estimate": "environ 45 min"
+      "step": "Documentation OpenAPI et derniers tests",
+      "estimate": "en cours"
     },
     {
-      "step": "Démarrage de l'application, tests d'architecture",
-      "estimate": "environ 30 min"
+      "step": "Accélérer le scan (réglage mémoire / vitesse, worker threads)",
+      "estimate": "environ 1 h"
     },
     {
-      "step": "Premier lancement réel, frontend, mesure de la RAM",
+      "step": "Test sur une vraie base Komga et avec le vrai frontend",
       "estimate": "environ 1 h"
     }
   ],
@@ -249,5 +273,21 @@
     "Index de recherche : format de fichier propre, reconstruit automatiquement s'il est absent",
     "Miniatures et rendu PDF : pixels légèrement différents, dimensions et formats identiques",
     "Blobs gzip : octets différents, contenu identique"
-  ]
+  ],
+  "bench": {
+    "java": {
+      "idle": 641,
+      "afterScan": 1125,
+      "afterRead": 1321,
+      "startup": 22.5,
+      "scan": 55
+    },
+    "js": {
+      "idle": 166,
+      "afterScan": 245,
+      "afterRead": 221,
+      "startup": 1.4,
+      "scan": 134
+    }
+  }
 }
