@@ -4,7 +4,7 @@
 // test/port/jooq/*.test.ts). Ce fichier n'a pas de jumeau Kotlin.
 import type Database from 'better-sqlite3'
 import { IllegalArgumentException, UnsupportedOperationException } from '../kotlin.js'
-import { DataAccessException, DataIntegrityViolationException, NoDataFoundException, TooManyRowsException } from './exceptions.js'
+import { DataAccessException, IntegrityConstraintViolationException, NoDataFoundException, TooManyRowsException } from './exceptions.js'
 import { type DataType, SQLDataType, type SqlValue, inferType } from './types.js'
 
 // ---------------------------------------------------------------------------
@@ -1254,7 +1254,7 @@ function toBinds(params: RenderContext['params']): SqlValue[] {
 function wrapSqliteError(e: unknown, sql: string): never {
   const err = e as { code?: string; message?: string }
   if (typeof err.code === 'string' && err.code.startsWith('SQLITE_CONSTRAINT'))
-    throw new DataIntegrityViolationException(`SQL [${sql}]; ${err.message}`, e)
+    throw new IntegrityConstraintViolationException(`SQL [${sql}]; ${err.message}`, e)
   throw new DataAccessException(`SQL [${sql}]; ${err.message ?? String(e)}`, e)
 }
 
