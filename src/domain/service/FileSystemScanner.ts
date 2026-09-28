@@ -28,7 +28,7 @@ import {
   walkFileTree,
 } from '../../port/java-nio-file.js'
 import { containsIgnoreCase, regexMatches } from '../../port/kotlin-text.js'
-import { DataClass, eq, equalsIgnoreCase, firstOrNull, ifBlank, isNullOrBlank, mapNotNull, nn, sumOf, union } from '../../port/kotlin.js'
+import { DataClass, eq, equalsIgnoreCase, firstOrNull, hash, ifBlank, isNullOrBlank, mapNotNull, nn, sumOf } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 
@@ -112,9 +112,28 @@ export class FileSystemScanner {
       const pathToBookSidecars = new Map<string, TempSidecar[]>()
 
       // PORT: MutableMap.merge(key, value) { prev, one -> prev.union(one).toMutableList() }
+      // Même résultat qu'un union recalculé à chaque fichier, mais incrémental : un index par hashCode et par clé
+      // (prev est déjà dédoublonné), sinon le scan d'un dossier de milliers de livres devient quadratique.
+      const mergeIndexes = new Map<Map<string, unknown[]>, Map<string, Map<number, unknown[]>>>()
       function merge<T>(map: Map<string, T[]>, key: string, value: T[]): void {
-        const prev = map.get(key)
-        map.set(key, prev === undefined ? value : [...union(prev, value)])
+        let indexes = mergeIndexes.get(map as Map<string, unknown[]>)
+        if (indexes === undefined) mergeIndexes.set(map as Map<string, unknown[]>, (indexes = new Map()))
+        let prev = map.get(key)
+        let index = indexes.get(key)
+        if (prev === undefined || index === undefined) {
+          prev = []
+          index = new Map()
+          map.set(key, prev)
+          indexes.set(key, index)
+        }
+        for (const x of value) {
+          const h = hash(x)
+          const bucket = index.get(h)
+          if (bucket === undefined) index.set(h, [x])
+          else if (bucket.some((y) => eq(x, y))) continue
+          else bucket.push(x)
+          prev.push(x)
+        }
       }
 
       // PORT: `self` : instance englobante pour le visiteur (this implicite de Kotlin dans l'objet anonyme)

@@ -304,8 +304,19 @@ export function subtract<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
 }
 /** `toSet()` : dédoublonne avec l'égalité structurelle, en conservant l'ordre. */
 export function distinctSet<T>(a: Iterable<T>): Set<T> {
+  // Comme LinkedHashSet : index par hashCode (cohérent avec eq), puis equals dans le seau.
+  // Une recherche linéaire rendait union/toSet quadratiques (merge du FileSystemScanner cubique).
   const out = new Set<T>()
-  for (const x of a) if (!setHas(out, x)) out.add(x)
+  const buckets = new Map<number, T[]>()
+  for (const x of a) {
+    if (out.has(x)) continue
+    const h = hash(x)
+    const bucket = buckets.get(h)
+    if (bucket === undefined) buckets.set(h, [x])
+    else if (bucket.some((y) => eq(x, y))) continue
+    else bucket.push(x)
+    out.add(x)
+  }
   return out
 }
 /** `distinct()` */
@@ -314,14 +325,16 @@ export function distinct<T>(a: Iterable<T>): T[] {
 }
 /** `distinctBy { }` */
 export function distinctBy<T, K>(a: Iterable<T>, sel: (t: T) => K): T[] {
-  const keys: K[] = []
+  const buckets = new Map<number, K[]>()
   const out: T[] = []
   for (const x of a) {
     const k = sel(x)
-    if (!keys.some((y) => eq(k, y))) {
-      keys.push(k)
-      out.push(x)
-    }
+    const h = hash(k)
+    const bucket = buckets.get(h)
+    if (bucket === undefined) buckets.set(h, [k])
+    else if (bucket.some((y) => eq(k, y))) continue
+    else bucket.push(k)
+    out.push(x)
   }
   return out
 }
