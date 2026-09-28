@@ -1,0 +1,66 @@
+{
+  "test/resources/barcode/page_384.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/resources/barcode/komga.png" : {
+    "decode" : null,
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/half.jpg" : {
+    "decode" : null,
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/eighth.png" : {
+    "decode" : null,
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/q5.jpg" : {
+    "decode" : null,
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/rot90.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/rot270.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/rot180.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/gray.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/cmyk.jpg" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/webp.webp" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/bottom-alpha.png" : {
+    "decode" : "9782811632397",
+    "isbn" : "9782811632397"
+  },
+  "test/infrastructure/metadata/fixtures/barcode/negate.jpg" : {
+    "decode" : null,
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/garbage.bin" : {
+    "decode" : "NULL_IMAGE",
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/empty.bin" : {
+    "decode" : "NULL_IMAGE",
+    "isbn" : null
+  },
+  "test/infrastructure/metadata/fixtures/barcode/truncated.jpg" : {
+    "decode" : null,
+    "isbn" : null
+  }
+}

@@ -10,16 +10,19 @@ import '../src/port/spring-boot-jackson.js'
 import { rmSync } from 'node:fs'
 import { ApplicationContext, Environment, type Token } from '../src/port/spring.js'
 import { KomgaProperties } from '../src/infrastructure/configuration/KomgaProperties.js'
+import { spykLazy } from './support/mockk.js'
 
 let shared: ApplicationContext | null = null
 
 /**
  * `mocks` : équivalent de `@MockkBean` / `@SpykBean` : l'instance fournie remplace le bean du type donné.
+ * `{ type, spyk: true }` (`@SpykBean`) : espion (test/support/mockk.ts) du vrai bean, injecté à sa place ;
+ * `ctx.getBean(type)` renvoie l'espion.
  * Un contexte avec propriétés ou mocks n'est pas partagé.
  */
 export function springBootTest(
   properties: Record<string, unknown> = {},
-  mocks: { type: Token; instance: unknown }[] = [],
+  mocks: ({ type: Token; instance: unknown } | { type: Token; spyk: true })[] = [],
 ): ApplicationContext {
   const isDefault = Object.keys(properties).length === 0 && mocks.length === 0
   if (shared && isDefault) return shared
@@ -29,10 +32,23 @@ export function springBootTest(
     properties,
     buildProperties: { version: 'TESTING', rootDir: process.cwd() },
   })
-  const ctx = new ApplicationContext(
-    env,
-    mocks.map((m) => ({ name: `mock${m.type.name}`, type: m.type, instance: m.instance, primary: true })),
-  ).refresh()
+  let ctxRef: ApplicationContext | null = null
+  const extra = mocks.map((m) => {
+    if ('spyk' in m) {
+      const spy: object = spykLazy(
+        () => (ctxRef as ApplicationContext).getBeansOfType(m.type).find((b) => b !== spy) as object,
+        { name: `#spyk<${m.type.name}>`, prototype: m.type.prototype as object },
+      )
+      return { name: `spyk${m.type.name}`, type: m.type, instance: spy, primary: true }
+    }
+    return { name: `mock${m.type.name}`, type: m.type, instance: m.instance, primary: true }
+  })
+  const ctx = new ApplicationContext(env, extra)
+  ctxRef = ctx
+  // Spring Boot : les DSLContext dépendent de l'initialisation des bases (JooqDependsOnDatabaseInitializationDetector) :
+  // les migrations Flyway passent avant tout bean qui lit la base dans son constructeur (ex. KomgaSettingsProvider)
+  for (const n of ['flywayInitializer', 'flywaySecondaryMigrationInitializer']) ctx.getBean(n)
+  ctx.refresh()
   if (isDefault) shared = ctx
   return ctx
 }

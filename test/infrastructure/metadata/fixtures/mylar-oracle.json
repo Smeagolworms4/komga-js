@@ -1,0 +1,829 @@
+[ {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=119731, year=2020, descriptionText=null, descriptionFormatted=null, volume=4, bookType=Print, ageRating=null, comicImage=img, totalIssues=9, publicationRun=December 2020 - Present, status=Ended))",
+  "patch" : {
+    "title" : "American Vampire 1976 (2020)",
+    "titleSort" : "American Vampire 1976 (2020)",
+    "status" : "ENDED",
+    "summary" : null,
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : null,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=null, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : null,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=null, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=null, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "text",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=null, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : null,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Ended))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ENDED",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ALL, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 0,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=NINE, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 9,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=TWELVE, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 12,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=FIFTEEN, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 15,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=SEVENTEEN, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 17,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2019, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2019, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:JsonMappingException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=-1, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=1, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=2, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976 (2020)",
+    "titleSort" : "American Vampire 1976 (2020)",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=2, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976 (2020)",
+    "titleSort" : "American Vampire 1976 (2020)",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=0, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976 (2020)",
+    "titleSort" : "American Vampire 1976 (2020)",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=1, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=12.5, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=abc, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=true, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=2, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=2, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=a, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=b, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=a, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=a, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=Upper, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "Upper",
+    "titleSort" : "Upper",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=P, imprint=null, name=UPPER, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Ended))",
+  "patch" : {
+    "title" : "UPPER",
+    "titleSort" : "UPPER",
+    "status" : "ENDED",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "P",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=dt, descriptionFormatted=null, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "dt",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:InvalidFormatException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=12, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 12,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=123, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "123",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=true, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "true",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=Sàndman 日本, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=<p>x</p>, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "Sàndman 日本",
+    "titleSort" : "Sàndman 日本",
+    "status" : "ONGOING",
+    "summary" : "<p>x</p>",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "",
+    "titleSort" : "",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:MismatchedInputException",
+  "patch" : null
+}, {
+  "dto" : "EXC:JsonEOFException",
+  "patch" : null
+}, {
+  "dto" : "EXC:KotlinInvalidNullException",
+  "patch" : null
+}, {
+  "dto" : null,
+  "patch" : null
+}, {
+  "dto" : "Series(metadata=MylarMetadata(type=comicSeries, publisher=DC Comics, imprint=null, name=American Vampire 1976, comicid=130865, year=2020, descriptionText=text, descriptionFormatted=formatted, volume=null, bookType=Print, ageRating=ADULT, comicImage=https://x/y.jpg, totalIssues=9, publicationRun=December 2020 - Present, status=Continuing))",
+  "patch" : {
+    "title" : "American Vampire 1976",
+    "titleSort" : "American Vampire 1976",
+    "status" : "ONGOING",
+    "summary" : "formatted",
+    "readingDirection" : null,
+    "publisher" : "DC Comics",
+    "ageRating" : 18,
+    "language" : null,
+    "genres" : null,
+    "totalBookCount" : 9,
+    "collections" : [ ]
+  }
+} ]

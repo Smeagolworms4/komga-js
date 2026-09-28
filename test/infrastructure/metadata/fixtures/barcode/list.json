@@ -1,0 +1,18 @@
+[
+ "test/resources/barcode/page_384.jpg",
+ "test/resources/barcode/komga.png",
+ "test/infrastructure/metadata/fixtures/barcode/half.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/eighth.png",
+ "test/infrastructure/metadata/fixtures/barcode/q5.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/rot90.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/rot270.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/rot180.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/gray.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/cmyk.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/webp.webp",
+ "test/infrastructure/metadata/fixtures/barcode/bottom-alpha.png",
+ "test/infrastructure/metadata/fixtures/barcode/negate.jpg",
+ "test/infrastructure/metadata/fixtures/barcode/garbage.bin",
+ "test/infrastructure/metadata/fixtures/barcode/empty.bin",
+ "test/infrastructure/metadata/fixtures/barcode/truncated.jpg"
+]

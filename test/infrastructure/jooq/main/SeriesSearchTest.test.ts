@@ -13,6 +13,43 @@ import '../../../../src/domain/service/SeriesLifecycle.js'
 import '../../../../src/domain/service/LibraryLifecycle.js'
 import '../../../../src/domain/service/KomgaUserLifecycle.js'
 import '../../../../src/domain/service/SeriesMetadataLifecycle.js'
+// PORT: équivalent du scan de composants (contexte complet de @SpringBootTest) : dépendances des services
+import '../../../../src/infrastructure/jooq/main/AuthenticationActivityDao.js'
+import '../../../../src/infrastructure/jooq/main/BookCommonDao.js'
+import '../../../../src/infrastructure/jooq/main/BookDtoDao.js'
+import '../../../../src/infrastructure/jooq/main/BookMetadataAggregationDao.js'
+import '../../../../src/infrastructure/jooq/main/BookProjectionDao.js'
+import '../../../../src/infrastructure/jooq/main/ClientSettingsDtoDao.js'
+import '../../../../src/infrastructure/jooq/main/HistoricalEventDao.js'
+import '../../../../src/infrastructure/jooq/main/HistoricalEventDtoDao.js'
+import '../../../../src/infrastructure/jooq/main/KoboDtoDao.js'
+import '../../../../src/infrastructure/jooq/main/PageHashDao.js'
+import '../../../../src/infrastructure/jooq/main/ReadListDao.js'
+import '../../../../src/infrastructure/jooq/main/ReadListRequestDao.js'
+import '../../../../src/infrastructure/jooq/main/ReadProgressDtoDao.js'
+import '../../../../src/infrastructure/jooq/main/ReferentialDao.js'
+import '../../../../src/infrastructure/jooq/main/ServerSettingsDao.js'
+import '../../../../src/infrastructure/jooq/main/SidecarDao.js'
+import '../../../../src/infrastructure/jooq/main/SyncPointDao.js'
+import '../../../../src/infrastructure/jooq/main/ThumbnailBookDao.js'
+import '../../../../src/infrastructure/jooq/main/ThumbnailReadListDao.js'
+import '../../../../src/infrastructure/jooq/main/ThumbnailSeriesCollectionDao.js'
+import '../../../../src/infrastructure/jooq/main/ThumbnailSeriesDao.js'
+import '../../../../src/infrastructure/jooq/tasks/TasksDao.js'
+import '../../../../src/infrastructure/configuration/StaticConfiguration.js'
+import '../../../../src/infrastructure/mediacontainer/TikaConfiguration.js'
+import '../../../../src/infrastructure/mediacontainer/divina/ZipExtractor.js'
+import '../../../../src/infrastructure/mediacontainer/divina/RarExtractor.js'
+import '../../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../../src/infrastructure/metadata/barcode/IsbnConfiguration.js'
+import '../../../../src/infrastructure/security/PasswordEncoderConfiguration.js'
+import '../../../../src/infrastructure/security/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/transaction/TransactionConfiguration.js'
+import '../../../../src/infrastructure/search/LuceneConfiguration.js'
+import '../../../../src/infrastructure/search/LuceneSyncCommitter.js'
+import '../../../../src/infrastructure/search/LuceneAsyncCommitter.js'
+import '../../../../src/infrastructure/search/LuceneHelper.js'
+import '../../../../src/infrastructure/search/SearchIndexLifecycle.js'
 import { Duration, LocalDate, LocalDateTime, ZonedDateTime } from '@js-joda/core'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Author } from '../../../../src/domain/model/Author.js'
@@ -41,6 +78,7 @@ import { SeriesDao } from '../../../../src/infrastructure/jooq/main/SeriesDao.js
 import { SeriesDtoDao } from '../../../../src/infrastructure/jooq/main/SeriesDtoDao.js'
 import { IllegalArgumentException, first } from '../../../../src/port/kotlin.js'
 import { Pageable, Sort } from '../../../../src/port/spring-data.js'
+import { ApplicationEventPublisher } from '../../../../src/port/spring.js'
 import { closeContext, springBootTest } from '../../../SpringBootTest.js'
 import { makeBook, makeLibrary, makeSeries } from '../../../domain/model/Utils.js'
 
@@ -55,7 +93,10 @@ function catchThrowable(block: () => unknown): unknown {
 }
 
 describe('SeriesSearchTest', () => {
-  const ctx = springBootTest()
+  // @MockkBean private lateinit var mockEventPublisher: ApplicationEventPublisher
+  const mockEventPublisher = { publishEvent: vi.fn<(event: unknown) => void>() }
+
+  const ctx = springBootTest({}, [{ type: ApplicationEventPublisher, instance: mockEventPublisher }])
   const seriesDao = ctx.getBean(SeriesDao)
   const seriesDtoDao = ctx.getBean(SeriesDtoDao)
   const seriesRepository = ctx.getBean(SeriesRepository)
@@ -75,9 +116,6 @@ describe('SeriesSearchTest', () => {
   const user1 = new KomgaUser({ email: 'user1@example.org', password: 'p' })
   const user2 = new KomgaUser({ email: 'user2@example.org', password: 'p' })
 
-  // PORT: @MockkBean ApplicationEventPublisher : springBootTest() ne sait pas encore remplacer un bean par un mock,
-  // le mock est déclaré mais n'est pas injecté dans le contexte
-  const mockEventPublisher = { publishEvent: vi.fn() }
 
   beforeAll(() => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
