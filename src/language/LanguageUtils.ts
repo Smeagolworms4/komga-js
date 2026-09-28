@@ -1,10 +1,13 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/language/LanguageUtils.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import '@js-joda/timezone'
 import { ChronoUnit, LocalDate, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime, type TemporalUnit } from '@js-joda/core'
+import { SortedMap } from '../port/extra-metadata.js'
 import { NoSuchElementException, equalsIgnoreCase, isNotBlank, maxByOrNull, trim } from '../port/kotlin.js'
 
-export function toIndexedMap<T>(list: readonly T[]): Map<number, T> {
-  return new Map(list.map((e, i) => [i, e]))
+export function toIndexedMap<T>(list: readonly T[]): SortedMap<number, T> {
+  const m = new SortedMap<number, T>()
+  list.forEach((e, i) => m.set(i, e))
+  return m
 }
 
 export interface Enumeration<T> {
