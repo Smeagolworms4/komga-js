@@ -233,7 +233,11 @@ export function toTree(v: unknown, declared?: JsonType, bindings: Map<string, Js
     const out = new Map<string, JsonNode>()
     const typeId = typeIdOf(v)
     if (typeId !== null) out.set(typeId.property, typeId.name)
-    const keys = [...Object.keys(v), ...(pm?.getters ?? [])]
+    // MapperFeature.SORT_CREATOR_PROPERTIES_FIRST (activé par défaut) : les paramètres du constructeur (déclarés par
+    // jsonProperties) d'abord, dans leur ordre, puis les autres propriétés (champs de la classe parente d'abord)
+    const ownKeys = Object.keys(v)
+    const creatorKeys = pm !== undefined ? Object.keys(pm.props).filter((k) => ownKeys.includes(k)) : []
+    const keys = [...creatorKeys, ...ownKeys.filter((k) => !creatorKeys.includes(k)), ...(pm?.getters ?? [])]
     for (const k of keys) {
       if (k.startsWith('_') || meta.ignore?.includes(k)) continue
       const value = (v as Record<string, unknown>)[k]
@@ -407,7 +411,10 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     if (!(r in params))
       throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${(target as { name: string }).name}] value failed for JSON property ${r} due to missing (therefore NULL) value for creator parameter ${r} which is a non-nullable type`)
   const C = target as unknown as new (p: Record<string, unknown>) => unknown
-  return new C(params)
+  const instance = new C(params) as Record<string, unknown>
+  // module Kotlin : un paramètre nullable absent et sans valeur par défaut vaut null (pas undefined)
+  for (const prop of Object.keys(pm.props)) if (instance[prop] === undefined) instance[prop] = null
+  return instance
 }
 
 /** Valeur JSON brute (type effacé / Any) : Map -> LinkedHashMap, nombres -> Int/Long/Double */

@@ -301,6 +301,8 @@ type ComponentOptions = {
   postConstruct?: string[]
   preDestroy?: string[]
   eventListeners?: { method: string; events: Token[] }[]
+  /** `@DependsOn("bean")` : beans créés avant celui-ci */
+  dependsOn?: string[]
 }
 
 function profileMatcher(p?: string | ((profiles: string[]) => boolean)): ((profiles: string[]) => boolean) | undefined {
@@ -324,6 +326,7 @@ export function component<T>(cls: Token<T>, opts: ComponentOptions = {}): void {
     preDestroy: opts.preDestroy ?? [],
     eventListeners: opts.eventListeners ?? [],
     create: (ctx) => {
+      for (const n of opts.dependsOn ?? []) ctx.getBean(n)
       const args = (opts.inject ?? []).map((d) => ctx.resolve(d))
       return new (cls as unknown as new (...a: unknown[]) => T)(...args)
     },

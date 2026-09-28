@@ -1,0 +1,183 @@
+[ {
+  "class" : "org.gotson.komga.application.tasks.Task$ScanLibrary",
+  "simpleType" : "ScanLibrary",
+  "uniqueId" : "SCAN_LIBRARY_lib1_DEEP_true",
+  "payload" : "{\"libraryId\":\"lib1\",\"scanDeep\":true,\"priority\":3,\"groupId\":null,\"uniqueId\":\"SCAN_LIBRARY_lib1_DEEP_true\"}",
+  "toString" : "ScanLibrary(libraryId='lib1', scanDeep='true', priority='3')",
+  "readBack" : "ScanLibrary(libraryId='lib1', scanDeep='true', priority='3')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$FindBooksToConvert",
+  "simpleType" : "FindBooksToConvert",
+  "uniqueId" : "FIND_BOOKS_TO_CONVERT_lib1",
+  "payload" : "{\"libraryId\":\"lib1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"FIND_BOOKS_TO_CONVERT_lib1\"}",
+  "toString" : "FindBooksToConvert(libraryId='lib1', priority='4')",
+  "readBack" : "FindBooksToConvert(libraryId='lib1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$FindBooksWithMissingPageHash",
+  "simpleType" : "FindBooksWithMissingPageHash",
+  "uniqueId" : "FIND_BOOKS_WITH_MISSING_PAGE_HASH_lib1",
+  "payload" : "{\"libraryId\":\"lib1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"FIND_BOOKS_WITH_MISSING_PAGE_HASH_lib1\"}",
+  "toString" : "FindBooksWithMissingPageHash(libraryId='lib1', priority='4')",
+  "readBack" : "FindBooksWithMissingPageHash(libraryId='lib1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$FindDuplicatePagesToDelete",
+  "simpleType" : "FindDuplicatePagesToDelete",
+  "uniqueId" : "FIND_DUPLICATE_PAGES_TO_DELETE_lib1",
+  "payload" : "{\"libraryId\":\"lib1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"FIND_DUPLICATE_PAGES_TO_DELETE_lib1\"}",
+  "toString" : "FindDuplicatePagesToDelete(libraryId='lib1', priority='4')",
+  "readBack" : "FindDuplicatePagesToDelete(libraryId='lib1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$EmptyTrash",
+  "simpleType" : "EmptyTrash",
+  "uniqueId" : "EMPTY_TRASH_lib1",
+  "payload" : "{\"libraryId\":\"lib1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"EMPTY_TRASH_lib1\"}",
+  "toString" : "EmptyTrash(libraryId='lib1', priority='4')",
+  "readBack" : "EmptyTrash(libraryId='lib1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$AnalyzeBook",
+  "simpleType" : "AnalyzeBook",
+  "uniqueId" : "ANALYZE_BOOK_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":5,\"groupId\":\"grp\",\"uniqueId\":\"ANALYZE_BOOK_book1\"}",
+  "toString" : "AnalyzeBook(bookId='book1', priority='5')",
+  "readBack" : "AnalyzeBook(bookId='book1', priority='5')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$GenerateBookThumbnail",
+  "simpleType" : "GenerateBookThumbnail",
+  "uniqueId" : "GENERATE_BOOK_THUMBNAIL_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"GENERATE_BOOK_THUMBNAIL_book1\"}",
+  "toString" : "GenerateBookThumbnail(bookId='book1', priority='4')",
+  "readBack" : "GenerateBookThumbnail(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RefreshBookMetadata",
+  "simpleType" : "RefreshBookMetadata",
+  "uniqueId" : "REFRESH_BOOK_METADATA_book1",
+  "payload" : "{\"bookId\":\"book1\",\"capabilities\":[\"TITLE\",\"AUTHORS\"],\"priority\":4,\"groupId\":\"grp\",\"uniqueId\":\"REFRESH_BOOK_METADATA_book1\"}",
+  "toString" : "RefreshBookMetadata(bookId='book1', capabilities=[TITLE, AUTHORS], priority='4')",
+  "readBack" : "RefreshBookMetadata(bookId='book1', capabilities=[AUTHORS, TITLE], priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$HashBook",
+  "simpleType" : "HashBook",
+  "uniqueId" : "HASH_BOOK_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"HASH_BOOK_book1\"}",
+  "toString" : "HashBook(bookId='book1', priority='4')",
+  "readBack" : "HashBook(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$HashBookPages",
+  "simpleType" : "HashBookPages",
+  "uniqueId" : "HASH_BOOK_PAGES_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"HASH_BOOK_PAGES_book1\"}",
+  "toString" : "HashBookPages(bookId='book1', priority='4')",
+  "readBack" : "HashBookPages(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$HashBookKoreader",
+  "simpleType" : "HashBookKoreader",
+  "uniqueId" : "HASH_BOOK_KOREADER_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"HASH_BOOK_KOREADER_book1\"}",
+  "toString" : "HashBookKoreader(bookId='book1', priority='4')",
+  "readBack" : "HashBookKoreader(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RefreshSeriesMetadata",
+  "simpleType" : "RefreshSeriesMetadata",
+  "uniqueId" : "REFRESH_SERIES_METADATA_series1",
+  "payload" : "{\"seriesId\":\"series1\",\"priority\":4,\"groupId\":\"series1\",\"uniqueId\":\"REFRESH_SERIES_METADATA_series1\"}",
+  "toString" : "RefreshSeriesMetadata(seriesId='series1', priority='4')",
+  "readBack" : "RefreshSeriesMetadata(seriesId='series1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$AggregateSeriesMetadata",
+  "simpleType" : "AggregateSeriesMetadata",
+  "uniqueId" : "AGGREGATE_SERIES_METADATA_series1",
+  "payload" : "{\"seriesId\":\"series1\",\"priority\":4,\"groupId\":\"series1\",\"uniqueId\":\"AGGREGATE_SERIES_METADATA_series1\"}",
+  "toString" : "AggregateSeriesMetadata(seriesId='series1', priority='4')",
+  "readBack" : "AggregateSeriesMetadata(seriesId='series1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RefreshBookLocalArtwork",
+  "simpleType" : "RefreshBookLocalArtwork",
+  "uniqueId" : "REFRESH_BOOK_LOCAL_ARTWORK_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"REFRESH_BOOK_LOCAL_ARTWORK_book1\"}",
+  "toString" : "RefreshBookLocalArtwork(bookId='book1', priority='4')",
+  "readBack" : "RefreshBookLocalArtwork(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RefreshSeriesLocalArtwork",
+  "simpleType" : "RefreshSeriesLocalArtwork",
+  "uniqueId" : "REFRESH_SERIES_LOCAL_ARTWORK_series1",
+  "payload" : "{\"seriesId\":\"series1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"REFRESH_SERIES_LOCAL_ARTWORK_series1\"}",
+  "toString" : "RefreshSeriesLocalArtwork(seriesId=series1, priority='4')",
+  "readBack" : "RefreshSeriesLocalArtwork(seriesId=series1, priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$ImportBook",
+  "simpleType" : "ImportBook",
+  "uniqueId" : "IMPORT_BOOK_series1_/tmp/a b.cbz",
+  "payload" : "{\"sourceFile\":\"/tmp/a b.cbz\",\"seriesId\":\"series1\",\"copyMode\":\"HARDLINK\",\"destinationName\":null,\"upgradeBookId\":\"book2\",\"priority\":4,\"groupId\":\"series1\",\"uniqueId\":\"IMPORT_BOOK_series1_/tmp/a b.cbz\"}",
+  "toString" : "ImportBook(sourceFile='/tmp/a b.cbz', seriesId='series1', copyMode=HARDLINK, destinationName=null, upgradeBookId=book2, priority='4')",
+  "readBack" : "ImportBook(sourceFile='/tmp/a b.cbz', seriesId='series1', copyMode=HARDLINK, destinationName=null, upgradeBookId=book2, priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$ImportBook",
+  "simpleType" : "ImportBook",
+  "uniqueId" : "IMPORT_BOOK_series1_/tmp/é \"q\".cbz",
+  "payload" : "{\"sourceFile\":\"/tmp/é \\\"q\\\".cbz\",\"seriesId\":\"series1\",\"copyMode\":\"COPY\",\"destinationName\":\"dest\",\"upgradeBookId\":null,\"priority\":4,\"groupId\":\"series1\",\"uniqueId\":\"IMPORT_BOOK_series1_/tmp/é \\\"q\\\".cbz\"}",
+  "toString" : "ImportBook(sourceFile='/tmp/é \"q\".cbz', seriesId='series1', copyMode=COPY, destinationName=dest, upgradeBookId=null, priority='4')",
+  "readBack" : "ImportBook(sourceFile='/tmp/é \"q\".cbz', seriesId='series1', copyMode=COPY, destinationName=dest, upgradeBookId=null, priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$ConvertBook",
+  "simpleType" : "ConvertBook",
+  "uniqueId" : "CONVERT_BOOK_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":\"grp\",\"uniqueId\":\"CONVERT_BOOK_book1\"}",
+  "toString" : "ConvertBook(bookId='book1', priority='4')",
+  "readBack" : "ConvertBook(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RepairExtension",
+  "simpleType" : "RepairExtension",
+  "uniqueId" : "REPAIR_EXTENSION_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":\"grp\",\"uniqueId\":\"REPAIR_EXTENSION_book1\"}",
+  "toString" : "RepairExtension(bookId='book1', priority='4')",
+  "readBack" : "RepairExtension(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RemoveHashedPages",
+  "simpleType" : "RemoveHashedPages",
+  "uniqueId" : "REMOVE_HASHED_PAGES_book1",
+  "payload" : "{\"bookId\":\"book1\",\"pages\":[{\"fileName\":\"p1.jpg\",\"mediaType\":\"image/jpeg\",\"dimension\":{\"width\":10,\"height\":20},\"fileHash\":\"abc\",\"fileSize\":123,\"pageNumber\":1},{\"fileName\":\"p2.jpg\",\"mediaType\":\"image/png\",\"dimension\":null,\"fileHash\":\"\",\"fileSize\":null,\"pageNumber\":2}],\"priority\":4,\"groupId\":null,\"uniqueId\":\"REMOVE_HASHED_PAGES_book1\"}",
+  "toString" : "RemoveHashedPages(bookId='book1', priority='4')",
+  "readBack" : "RemoveHashedPages(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RebuildIndex",
+  "simpleType" : "RebuildIndex",
+  "uniqueId" : "REBUILD_INDEX",
+  "payload" : "{\"entities\":null,\"priority\":4,\"groupId\":null,\"uniqueId\":\"REBUILD_INDEX\"}",
+  "toString" : "RebuildIndex(priority='4',entities='null')",
+  "readBack" : "RebuildIndex(priority='4',entities='null')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$RebuildIndex",
+  "simpleType" : "RebuildIndex",
+  "uniqueId" : "REBUILD_INDEX",
+  "payload" : "{\"entities\":[\"Book\",\"ReadList\"],\"priority\":4,\"groupId\":null,\"uniqueId\":\"REBUILD_INDEX\"}",
+  "toString" : "RebuildIndex(priority='4',entities='[book, readlist]')",
+  "readBack" : "RebuildIndex(priority='4',entities='[book, readlist]')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$UpgradeIndex",
+  "simpleType" : "UpgradeIndex",
+  "uniqueId" : "UPGRADE_INDEX",
+  "payload" : "{\"priority\":4,\"groupId\":null,\"uniqueId\":\"UPGRADE_INDEX\"}",
+  "toString" : "UpgradeIndex(priority='4')",
+  "readBack" : "UpgradeIndex(priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$DeleteBook",
+  "simpleType" : "DeleteBook",
+  "uniqueId" : "DELETE_BOOK_book1",
+  "payload" : "{\"bookId\":\"book1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"DELETE_BOOK_book1\"}",
+  "toString" : "DeleteBook(bookId='book1', priority='4')",
+  "readBack" : "DeleteBook(bookId='book1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$DeleteSeries",
+  "simpleType" : "DeleteSeries",
+  "uniqueId" : "DELETE_SERIES_series1",
+  "payload" : "{\"seriesId\":\"series1\",\"priority\":4,\"groupId\":null,\"uniqueId\":\"DELETE_SERIES_series1\"}",
+  "toString" : "DeleteSeries(seriesId='series1', priority='4')",
+  "readBack" : "DeleteSeries(seriesId='series1', priority='4')"
+}, {
+  "class" : "org.gotson.komga.application.tasks.Task$FindBookThumbnailsToRegenerate",
+  "simpleType" : "FindBookThumbnailsToRegenerate",
+  "uniqueId" : "FIND_BOOK_THUMBNAILS_TO_REGENERATE",
+  "payload" : "{\"forBiggerResultOnly\":true,\"priority\":2,\"groupId\":null,\"uniqueId\":\"FIND_BOOK_THUMBNAILS_TO_REGENERATE\"}",
+  "toString" : "FindBookThumbnailsToRegenerate(forBiggerResultOnly='true', priority='2')",
+  "readBack" : "FindBookThumbnailsToRegenerate(forBiggerResultOnly='true', priority='2')"
+} ]

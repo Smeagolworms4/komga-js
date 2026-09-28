@@ -1,7 +1,8 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookPageNumbered.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { jsonProperties } from '../../port/jackson-mapper.js'
 import { str } from '../../port/kotlin.js'
 import { BookPage } from './BookPage.js'
-import type { Dimension } from './Dimension.js'
+import { Dimension } from './Dimension.js'
 
 type BookPageNumberedParams = {
   fileName: string
@@ -30,3 +31,10 @@ export class BookPageNumbered extends BookPage {
     return `BookPageNumbered(fileName='${this.fileName}', mediaType='${this.mediaType}', dimension=${str(this.dimension)}, fileHash='${this.fileHash}', fileSize=${str(this.fileSize)}, pageNumber=${this.pageNumber})`
   }
 }
+
+jsonProperties(
+  BookPageNumbered,
+  { fileName: 'String', mediaType: 'String', dimension: { nullable: { class: Dimension } }, fileHash: 'String', fileSize: { nullable: 'Long' }, pageNumber: 'Int' },
+  [],
+  { required: ['fileName', 'mediaType', 'pageNumber'] },
+)
