@@ -124,12 +124,22 @@ side by side, give each its own copy of `/config` and the same books, read-only.
 
 The whole backend is ported and every Kotlin test of Komga has been ported with it.
 
-- **Ported**: 442 of 442 source files, 775 of 775 Kotlin tests. 1,485 tests pass on every push.
+- **Ported**: 442 of 442 source files, 775 of 775 Kotlin tests.
+- **Compared function by function with Komga**: 1,380 of the 1,384 Kotlin functions that have
+  code have an oracle unit test. The real Komga code runs on the JVM on given inputs (edge cases,
+  errors, empty values, Unicode, large lists), its results are recorded, and the TypeScript twin
+  must return exactly the same values or throw the same exception: 11,684 cases. The 4 functions
+  left are the application entry point and the three Spring Security filter chains, which the
+  differential tests below cover. Writing these tests found and fixed about 70 port bugs.
 - **Checked against the real Komga**: the database schema and every Flyway checksum; the
   OpenAPI document (174 of 174 operations, 170 of 170 schemas identical); about a thousand
   live API responses; OPDS v1 XML byte for byte; JPEG page hashes byte for byte; search
   results, archive reading, metadata import, authentication — each against the Java library
   Komga uses, run as an oracle.
+- **Every push** runs about 1,500 port tests and about 11,900 oracle unit tests (in about
+  two minutes, no Java needed); the Kotlin oracles run on
+  [a fork of Komga](https://github.com/Smeagolworms4/komga/tree/unit-oracles), whose CI checks
+  that they still produce the fixtures committed here.
 - **Not yet tried in real life**: a large library over days, real Kobo and KOReader devices,
   Mihon and other clients, OAuth2 against a real provider.
 

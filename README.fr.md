@@ -128,13 +128,24 @@ modifications de l'autre. Pour les comparer côte à côte, donnez à chacun sa 
 
 Tout le backend est porté, et tous les tests Kotlin de Komga l'ont été avec lui.
 
-- **Porté** : 442 fichiers sur 442, 775 tests Kotlin sur 775. 1 485 tests passent à chaque push.
+- **Porté** : 442 fichiers sur 442, 775 tests Kotlin sur 775.
+- **Comparé fonction par fonction avec Komga** : 1 380 des 1 384 fonctions Kotlin qui ont du
+  code ont un test unitaire à oracle. Le vrai code de Komga tourne sur la JVM avec des entrées
+  choisies (cas limites, erreurs, valeurs vides, Unicode, grandes listes), ses résultats sont
+  enregistrés, et le jumeau TypeScript doit rendre exactement les mêmes valeurs ou lever la
+  même exception : 11 684 cas. Les 4 fonctions restantes sont le point d'entrée de
+  l'application et les trois chaînes de filtres Spring Security, couvertes par les tests
+  différentiels ci-dessous. Écrire ces tests a trouvé et corrigé environ 70 bugs de portage.
 - **Vérifié contre le vrai Komga** : le schéma de la base et chaque checksum Flyway ; le
   document OpenAPI (174 opérations sur 174 et 170 schémas sur 170 identiques) ; environ un
   millier de réponses d'API réelles ; le XML OPDS v1 octet pour octet ; les hash des pages
   JPEG octet pour octet ; la recherche, la lecture des archives, l'import des métadonnées,
   l'authentification — chacun contre la bibliothèque Java qu'utilise Komga, exécutée comme
   référence.
+- **À chaque push** : environ 1 500 tests du portage et environ 11 900 tests unitaires à
+  oracle (en deux minutes environ, sans Java) ; les oracles Kotlin tournent sur
+  [un fork de Komga](https://github.com/Smeagolworms4/komga/tree/unit-oracles), dont la CI
+  vérifie qu'ils produisent toujours les fixtures enregistrées ici.
 - **Pas encore éprouvé en conditions réelles** : une grosse bibliothèque sur plusieurs jours,
   de vraies liseuses Kobo et KOReader, Mihon et les autres clients, OAuth2 avec un vrai
   fournisseur.
