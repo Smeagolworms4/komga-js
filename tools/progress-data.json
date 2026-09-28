@@ -213,8 +213,10 @@
     {
       "lot": "Contrôleurs 4 : listes de lecture, bibliothèques, OPDS",
       "who": "agent",
-      "start": "15:00",
-      "status": "running"
+      "status": "done",
+      "min": 44,
+      "check": "Komga en marche",
+      "result": "53 tests, OPDS v1 XML identique octet pour octet"
     },
     {
       "lot": "Contrôleurs 5 : Kobo, KOReader, SSE, OpenAPI",
