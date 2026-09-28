@@ -7,13 +7,14 @@
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
-API, same database, same web interface, **four to six times less memory**.
+API, same database, same web interface, **two to three times less memory** on a small library
+(see below: not yet on a large one).
 
 *[Version française](README.fr.md)*
 
 Komga is written in Kotlin on the JVM, and a JVM is generous with memory: an idle Komga
-with an empty library sits above half a gigabyte, and grows well past a gigabyte once it
-has scanned and served a library. KomgaJS runs the same program on Node.js. It is not a
+with an empty library sits above half a gigabyte, and grows toward a gigabyte once it has
+scanned and served a library. KomgaJS runs the same program on Node.js. It is not a
 rewrite and not a clone: every one of Komga's 442 backend files has a TypeScript twin of
 the same name, in the same place, with the same functions in the same order — so that when
 Komga moves on, its changes can be carried over by reading the diff.
@@ -21,24 +22,30 @@ Komga moves on, its changes can be carried over by reading the diff.
 ## Memory
 
 The same library of 60 comic books (645 MB), the same scenario, each server starting from an
-empty configuration with its default settings. Resident memory of the process:
+empty configuration with its default settings, both measured on the same machine under the
+same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the process:
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Idle, after start-up | 641 MB | **166 MB** | ÷ 3.9 |
-| After scanning and analysing the library | 1,125 MB | **245 MB** | ÷ 4.6 |
-| After reading (thumbnails, pages) | 1,321 MB | **221 MB** | ÷ 6 |
-| Start-up | 22.5 s | **1.4 s** | |
-| Scan of the 60 books | **55 s** | 134 s | 2.4 × slower |
+| Idle, after start-up | 612 MB | **237 MB** | ÷ 2.6 |
+| After scanning and analysing the library | 862 MB | **345 MB** | ÷ 2.5 |
+| After reading (thumbnails, pages) | 785 MB | **345 MB** | ÷ 2.3 |
+| Start-up | 22.8 s | **2.2 s** | ÷ 10 |
+| Scan and analysis of the 60 books | **51 s** | 101 s | 2 × slower |
 
-The scan is slower on purpose for now: image processing runs on a single thread to keep
-memory low. Background tasks (scan, analysis, hashing, thumbnails) run in a worker thread,
-like Komga's task pool, so the web server keeps answering during a scan; the worker adds
-about 60–100 MB while it runs and stops after 60 s without tasks. The benchmarks are
-`tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`; run them on your own library.
-In a container, each thread's V8 heap is capped at 40 % of the memory limit (at least 256 MB)
-(`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_TASK_WORKER=false` runs the tasks on
-the main thread.
+**On a large library, the gain is not there yet.** On a Raspberry Pi 4 with a real library of
+6,594 books, KomgaJS sat at 564 MB when idle after rebuilding its search index, against
+583 MB for Komga right after its start. This is being worked on (memory of the index rebuild,
+memory kept by the allocator after large tasks).
+
+The scan is slower: image processing runs on a single thread to keep memory low. Background
+tasks (scan, analysis, hashing, thumbnails) run in a worker thread, like Komga's task pool, so
+the web server keeps answering during a scan (10 ms median, 45 ms at the 99th percentile,
+measured during a scan); the worker adds about 60–100 MB while it runs and stops after 60 s
+without tasks. The benchmarks are `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`;
+run them on your own library. In a container, each thread's V8 heap is capped at 40 % of the
+memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly);
+`KOMGAJS_TASK_WORKER=false` runs the tasks on the main thread.
 
 ## Features
 

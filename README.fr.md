@@ -7,14 +7,14 @@
 
 [Komga](https://komga.org), le serveur multimédia pour vos BD, mangas, comics, magazines et
 livres numériques — avec son backend porté ligne à ligne de Kotlin vers TypeScript. Même
-serveur, même API, même base de données, même interface web, **quatre à six fois moins de
-mémoire**.
+serveur, même API, même base de données, même interface web, **deux à trois fois moins de
+mémoire** sur une petite bibliothèque (voir plus bas : pas encore sur une grosse).
 
 *[English version](README.md)*
 
 Komga est écrit en Kotlin sur la JVM, et une JVM est généreuse en mémoire : un Komga au
-repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et passe largement le gigaoctet
-une fois une bibliothèque scannée et servie. KomgaJS fait tourner le même programme sur
+repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et approche le gigaoctet une
+fois une bibliothèque scannée et servie. KomgaJS fait tourner le même programme sur
 Node.js. Ce n'est ni une réécriture ni un clone : chacun des 442 fichiers du backend de Komga
 a son jumeau TypeScript, du même nom, au même endroit, avec les mêmes fonctions dans le même
 ordre — pour que les évolutions de Komga puissent être reportées en lisant le diff.
@@ -22,24 +22,32 @@ ordre — pour que les évolutions de Komga puissent être reportées en lisant 
 ## Mémoire
 
 La même bibliothèque de 60 BD (645 Mo), le même scénario, chaque serveur partant d'une
-configuration vierge avec ses réglages par défaut. Mémoire résidente du processus :
+configuration vierge avec ses réglages par défaut, les deux mesurés sur la même machine sous la
+même charge, avec le code actuel (`tools/mem-bench.mjs`). Mémoire résidente du processus :
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Au repos, après le démarrage | 641 Mo | **166 Mo** | ÷ 3,9 |
-| Après scan et analyse de la bibliothèque | 1 125 Mo | **245 Mo** | ÷ 4,6 |
-| Après lecture (miniatures, pages) | 1 321 Mo | **221 Mo** | ÷ 6 |
-| Démarrage | 22,5 s | **1,4 s** | |
-| Scan des 60 livres | **55 s** | 134 s | 2,4 × plus lent |
+| Au repos, après le démarrage | 612 Mo | **237 Mo** | ÷ 2,6 |
+| Après scan et analyse de la bibliothèque | 862 Mo | **345 Mo** | ÷ 2,5 |
+| Après lecture (miniatures, pages) | 785 Mo | **345 Mo** | ÷ 2,3 |
+| Démarrage | 22,8 s | **2,2 s** | ÷ 10 |
+| Scan et analyse des 60 livres | **51 s** | 101 s | 2 × plus lent |
 
-Le scan est plus lent volontairement pour l'instant : le traitement d'image tourne sur un
-seul thread pour garder la mémoire basse. Les tâches de fond (scan, analyse, empreintes,
-miniatures) tournent dans un worker thread, comme le pool de tâches de Komga : le serveur web
-continue de répondre pendant un scan ; le worker ajoute 60 à 100 Mo pendant qu'il tourne et
-s'arrête après 60 s sans tâche. Les bancs d'essai sont `tools/mem-bench.mjs` et
-`tools/scan-latency-bench.mjs` ; lancez-les sur votre propre bibliothèque. Dans un conteneur,
-le tas V8 de chaque thread est limité à 40 % de la mémoire allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB`
-l'impose) ; `KOMGAJS_TASK_WORKER=false` exécute les tâches dans le thread principal.
+**Sur une grosse bibliothèque, le gain n'est pas encore là.** Sur un Raspberry Pi 4 avec une
+vraie bibliothèque de 6 594 livres, KomgaJS était à 564 Mo au repos après avoir reconstruit son
+index de recherche, contre 583 Mo pour Komga juste après son démarrage. C'est en cours
+(mémoire de la reconstruction de l'index, mémoire gardée par l'allocateur après les grosses
+tâches).
+
+Le scan est plus lent : le traitement d'image tourne sur un seul thread pour garder la mémoire
+basse. Les tâches de fond (scan, analyse, empreintes, miniatures) tournent dans un worker
+thread, comme le pool de tâches de Komga : le serveur web continue de répondre pendant un scan
+(10 ms en médiane, 45 ms au 99ᵉ centile, mesuré pendant un scan) ; le worker ajoute 60 à
+100 Mo pendant qu'il tourne et s'arrête après 60 s sans tâche. Les bancs d'essai sont
+`tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ; lancez-les sur votre propre
+bibliothèque. Dans un conteneur, le tas V8 de chaque thread est limité à 40 % de la mémoire
+allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_TASK_WORKER=false`
+exécute les tâches dans le thread principal.
 
 ## Fonctionnalités
 
