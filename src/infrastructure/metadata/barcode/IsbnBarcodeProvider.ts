@@ -28,26 +28,29 @@ const PAGES_FIRST = 3
 function getRGB(image: BufferedImage): Int32Array {
   const { width, height, data, channels } = image
   const pixels = new Int32Array(width * height)
-  for (let i = 0, p = 0; i < pixels.length; i++, p += channels) {
-    let r: number
-    let g: number
-    let b: number
-    let a = 255
-    if (channels <= 2) {
-      r = g = b = data[p] as number
-      if (channels === 2 && image.colorModel.hasAlpha()) a = data[p + 1] as number
-    } else if (image.info.cmyk === true && channels === 4) {
-      const k = data[p + 3] as number
-      r = 255 - Math.min(255, (data[p] as number) + k)
-      g = 255 - Math.min(255, (data[p + 1] as number) + k)
-      b = 255 - Math.min(255, (data[p + 2] as number) + k)
-    } else {
-      r = data[p] as number
-      g = data[p + 1] as number
-      b = data[p + 2] as number
-      if (channels === 4 && image.colorModel.hasAlpha()) a = data[p + 3] as number
+  const n = pixels.length
+  // invariants sortis de la boucle (un appel de hasAlpha() par pixel coûtait autant que la conversion)
+  const alpha = (channels === 2 || channels === 4) && image.colorModel.hasAlpha()
+  const cmyk = image.info.cmyk === true && channels === 4
+  if (channels <= 2) {
+    for (let i = 0, p = 0; i < n; i++, p += channels) {
+      const v = data[p] as number
+      const a = alpha ? (data[p + 1] as number) : 255
+      pixels[i] = (a << 24) | (v << 16) | (v << 8) | v
     }
-    pixels[i] = (a << 24) | (r << 16) | (g << 8) | b
+  } else if (cmyk) {
+    for (let i = 0, p = 0; i < n; i++, p += channels) {
+      const k = data[p + 3] as number
+      const r = 255 - Math.min(255, (data[p] as number) + k)
+      const g = 255 - Math.min(255, (data[p + 1] as number) + k)
+      const b = 255 - Math.min(255, (data[p + 2] as number) + k)
+      pixels[i] = (255 << 24) | (r << 16) | (g << 8) | b
+    }
+  } else {
+    for (let i = 0, p = 0; i < n; i++, p += channels) {
+      const a = alpha ? (data[p + 3] as number) : 255
+      pixels[i] = (a << 24) | ((data[p] as number) << 16) | ((data[p + 1] as number) << 8) | (data[p + 2] as number)
+    }
   }
   return pixels
 }

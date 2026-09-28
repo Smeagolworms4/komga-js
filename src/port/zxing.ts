@@ -90,14 +90,17 @@ export class GrayscaleLuminanceSource extends LuminanceSource {
   }
 
   override rotateCounterClockwise(): LuminanceSource {
-    const rotated = new Uint8ClampedArray(this.luminances.length)
-    for (let y = 0; y < this.dataHeight; y++) {
-      for (let x = 0; x < this.dataWidth; x++) {
-        const i = y * this.dataWidth + x
+    const luminances = this.luminances
+    const dataWidth = this.dataWidth
+    const dataHeight = this.dataHeight
+    const rotated = new Uint8ClampedArray(luminances.length)
+    for (let y = 0; y < dataHeight; y++) {
+      for (let x = 0; x < dataWidth; x++) {
+        const i = y * dataWidth + x
         const x2 = y
-        const y2 = this.dataWidth - 1 - x
-        const j = y2 * this.dataHeight + x2
-        rotated[j] = this.luminances[i] as number
+        const y2 = dataWidth - 1 - x
+        const j = y2 * dataHeight + x2
+        rotated[j] = luminances[i] as number
       }
     }
     const newWidth = this.getHeight()
@@ -131,7 +134,8 @@ export class RGBLuminanceSource extends GrayscaleLuminanceSource {
       const g2 = (pixel >> 7) & 0x1fe // 2 * green
       const b = pixel & 0xff // blue
       // Calculate green-favouring average cheaply
-      luminances[offset] = ((r + g2 + b) / 4) & 0xff
+      // PORT: (r + g2 + b) / 4 en division entière Java : décalage (somme positive)
+      luminances[offset] = (r + g2 + b) >> 2
     }
     return luminances
   }
