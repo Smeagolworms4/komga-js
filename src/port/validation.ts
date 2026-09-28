@@ -28,3 +28,21 @@ export const Max = (value: number): Constraint => ({ type: 'Max', value })
 export const Size = (attrs: { min?: number; max?: number }): Constraint => ({ type: 'Size', ...attrs })
 export const Valid = (): Constraint => ({ type: 'Valid' })
 export const Custom = (name: string, attrs: Record<string, unknown> = {}): Constraint => ({ type: name, ...attrs })
+export const Pattern = (attrs: { regexp: string }): Constraint => ({ type: 'Pattern', ...attrs })
+/** `org.hibernate.validator.constraints.UniqueElements` */
+export const UniqueElements = (): Constraint => ({ type: 'UniqueElements' })
+/** `org.hibernate.validator.constraints.URL` */
+export const URL = (attrs: { protocol?: string; host?: string; port?: number } = {}): Constraint => ({ type: 'URL', ...attrs })
+
+const classRegistry = new WeakMap<object, Constraint[]>()
+
+/** Enregistre les annotations de validation posées sur une classe (`@Target(AnnotationTarget.CLASS)`). */
+export function classConstraints(cls: object, list: Constraint[]): void {
+  classRegistry.set(cls, [...(classRegistry.get(cls) ?? []), ...list])
+}
+
+/** Annotations de classe enregistrées pour une classe (ses classes parentes incluses). */
+export function classConstraintsOf(cls: object): Constraint[] {
+  const parent = Object.getPrototypeOf(cls) as object | null
+  return [...(parent ? classConstraintsOf(parent) : []), ...(classRegistry.get(cls) ?? [])]
+}

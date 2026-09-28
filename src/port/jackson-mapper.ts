@@ -354,16 +354,16 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     // ACCEPT_SINGLE_VALUE_AS_ARRAY est désactivé
     if (!Array.isArray(node)) throw new MismatchedInputException(`Cannot deserialize value of type \`java.util.List\` from ${nodeKind(node)} at ${path || '$'}`)
     const items = node.map((it, i) => fromTree(it, el, bindings, `${path}[${i}]`))
-    return 'set' in type ? new Set(items) : items
+    return 'set' in type ? javaHashSet(items) : items
   }
   if ('map' in type) {
     if (!(node instanceof Map)) throw new MismatchedInputException(`Cannot deserialize value of type \`java.util.Map\` from ${nodeKind(node)} at ${path || '$'}`)
     return new Map([...node].map(([k, x]) => [type.key ? fromTree(k, type.key, bindings, path) : k, fromTree(x, type.map, bindings, `${path}.${k}`)]))
   }
   if ('enum' in type) {
-    // spring.jackson.mapper.accept-case-insensitive-values: true
+    // accept-case-insensitive-values ne s'applique pas aux enums (il faudrait ACCEPT_CASE_INSENSITIVE_ENUMS) : casse exacte
     const name = scalarText(node) ?? ''
-    const e = type.enum.entries().find((it) => it.name === name) ?? type.enum.entries().find((it) => it.name.toLowerCase() === name.toLowerCase())
+    const e = type.enum.entries().find((it) => (it as KEnum & { toJSON(): string }).toJSON() === name)
     if (!e) throw new InvalidFormatException(`Cannot deserialize value of type enum from String "${name}": not one of the values accepted for Enum class`)
     return e
   }
@@ -402,8 +402,8 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     if (prop === undefined) continue
     const pt = pm.props[prop] as JsonType
     const v = fromTree(value, pt, localBindings, `${path}.${key}`)
-    // module Kotlin : null pour un paramètre non nul
-    if (v === null && !(typeof pt === 'object' && 'nullable' in pt) && pt !== 'Any' && pm.required.includes(prop))
+    // module Kotlin : null explicite pour un paramètre non nul (même avec valeur par défaut)
+    if (v === null && pt !== undefined && !(typeof pt === 'object' && 'nullable' in pt) && pt !== 'Any')
       throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${(target as { name: string }).name}] value failed for JSON property ${key} due to missing (therefore NULL) value for creator parameter ${prop} which is a non-nullable type`)
     params[prop] = v
   }
@@ -415,6 +415,31 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
   // module Kotlin : un paramètre nullable absent et sans valeur par défaut vaut null (pas undefined)
   for (const prop of Object.keys(pm.props)) if (instance[prop] === undefined) instance[prop] = null
   return instance
+}
+
+function javaStringHash(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (31 * h + s.charCodeAt(i)) | 0
+  return h
+}
+
+/**
+ * `HashSet` Java rempli par Jackson (constructeur par défaut, ajouts successifs) : ordre d'itération par seau
+ * (hash ^ hash >>> 16) & (capacité - 1), capacité 16 doublée au-delà de 0,75, ordre d'insertion dans un seau.
+ * Déterministe pour les chaînes et les entiers ; les autres éléments (enums : hash d'identité) gardent l'ordre JSON.
+ */
+export function javaHashSet<T>(items: T[]): Set<T> {
+  const unique: T[] = []
+  for (const it of items) if (!unique.includes(it)) unique.push(it)
+  if (!unique.every((it) => typeof it === 'string' || (typeof it === 'number' && Number.isInteger(it) && Math.abs(it) < 2 ** 31)))
+    return new Set(unique)
+  let cap = 16
+  while (unique.length > cap * 0.75) cap *= 2
+  const bucket = (it: T) => {
+    const h = typeof it === 'string' ? javaStringHash(it) : (it as number) | 0
+    return (h ^ (h >>> 16)) & (cap - 1)
+  }
+  return new Set(unique.map((it, i) => [bucket(it), i, it] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]))
 }
 
 /** Valeur JSON brute (type effacé / Any) : Map -> LinkedHashMap, nombres -> Int/Long/Double */

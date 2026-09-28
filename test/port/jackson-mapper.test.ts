@@ -68,3 +68,13 @@ describe('ObjectMapper', () => {
     )
   })
 })
+
+describe('javaHashSet', () => {
+  it('iterates like java.util.HashSet<String> (values from jshell)', async () => {
+    const { javaHashSet } = await import('../../src/port/jackson-mapper.js')
+    expect([...javaHashSet(['b', 'a', 'zebra', 'action', 'Comedy', '12', 'x y'])].join(',')).toBe('zebra,x y,a,12,b,action,Comedy')
+    expect([...javaHashSet(['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 't9', 't10', 't11', 't12', 't13', 't14'])].join(',')).toBe(
+      't4,t5,t6,t7,t8,t9,t10,t12,t11,t14,t13,t1,t2,t3',
+    )
+  })
+})
