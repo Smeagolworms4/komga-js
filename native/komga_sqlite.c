@@ -1,5 +1,11 @@
 /*
- * Support de portage : extension SQLite chargeable qui enregistre les collations ICU de Komga.
+ * Support de portage : extension SQLite chargeable qui aligne better-sqlite3 sur sqlite-jdbc (utilisé par Komga).
+ *
+ * 1. DQS : sqlite-jdbc est compilé avec les chaînes entre guillemets doubles autorisées (défaut SQLite),
+ *    better-sqlite3 avec SQLITE_DQS=0. Certaines migrations Komga en dépendent ("SIDECAR"...).
+ *    -> réactivé par connexion avec SQLITE_DBCONFIG_DQS_DML / DQS_DDL.
+ *
+ * 2. Collations ICU de Komga.
  * Équivalent de SqliteUdfDataSource.createUnicodeCollation + infrastructure/unicode/Collators.kt :
  *   COLLATION_UNICODE_1 : Collator.getInstance(), strength PRIMARY,  decomposition CANONICAL (matching)
  *   COLLATION_UNICODE_3 : Collator.getInstance(), strength TERTIARY, decomposition CANONICAL (sorting)
@@ -45,8 +51,10 @@ static int register_collation(sqlite3 *db, const char *name, UColAttributeValue 
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
-int sqlite3_komgacollations_init(sqlite3 *db, char **err, const sqlite3_api_routines *api) {
+int sqlite3_komgasqlite_init(sqlite3 *db, char **err, const sqlite3_api_routines *api) {
   SQLITE_EXTENSION_INIT2(api);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_DQS_DML, 1, (int *)0);
+  sqlite3_db_config(db, SQLITE_DBCONFIG_DQS_DDL, 1, (int *)0);
   int rc = register_collation(db, "COLLATION_UNICODE_3", UCOL_TERTIARY, err);
   if (rc == SQLITE_OK) rc = register_collation(db, "COLLATION_UNICODE_1", UCOL_PRIMARY, err);
   return rc;

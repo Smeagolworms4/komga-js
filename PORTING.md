@@ -117,3 +117,25 @@ Modèles de référence déjà portés : `src/domain/model/{Book,Media,Library,K
 Tests : `describe('<ClasseDeTest>')`, `describe('<Nested>')`, `it('<nom exact>')`.
 AssertJ → `expect` de Vitest ; `.as("msg")` → `expect(x, 'msg')` ; `containsExactlyInAnyOrder` → comparaison après tri ;
 MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
+
+## Écarts connus et assumés
+
+| Sujet | Écart | Impact |
+|---|---|---|
+| gzip (`GZIPOutputStream`) | octets compressés différents de la JVM (même contenu décompressé) | aucun : relu par Komga et KomgaJS |
+| SQLite : compilation | better-sqlite3 est compilé différemment de sqlite-jdbc. Écarts corrigés au chargement par `native/komga_sqlite.c` : DQS (guillemets doubles). **À traiter** : `MAX_VARIABLE_NUMBER` 32766 contre 250000 (recompiler better-sqlite3 avec les options de sqlite-jdbc) ; `LIKE_DOESNT_MATCH_BLOBS` | à vérifier au portage des DAO |
+| Collations ICU | ICU4C du système (74) au lieu d'ICU4J 78 | ordre identique sur les jeux de test ; différences possibles sur des caractères très rares |
+
+## Stockage SQLite (jOOQ 3.19 + sqlite-jdbc), relevé sur les vraies bibliothèques
+
+À respecter par la couche d'accès aux données TS pour que les bases restent interchangeables :
+
+| Type jOOQ / Kotlin | Écrit en base | Relu |
+|---|---|---|
+| `LOCALDATETIME` / `LocalDateTime` | texte `Timestamp.toString()` : `'2024-03-05 07:08:09.123456789'`, zéros finaux retirés, au moins `.0` (`'2024-03-05 07:08:09.0'`) | précision milliseconde |
+| `CURRENT_TIMESTAMP` (défaut SQL) | texte `'2026-09-28 09:56:56'` | idem |
+| `LOCALDATE` | texte `'2024-03-05'` | |
+| `BOOLEAN` | entier `1` / `0` | |
+| `REAL` / `Float` | le float32 élargi en double : `0.1f` → `0.10000000149011612` (`Math.fround` avant écriture) | float32 |
+| `INTEGER`, `BIGINT` | entier | `number` (`bigint` au-delà de 2^53) |
+| `BLOB` | octets | `Uint8Array` |
