@@ -139,3 +139,25 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | `REAL` / `Float` | le float32 élargi en double : `0.1f` → `0.10000000149011612` (`Math.fround` avant écriture) | float32 |
 | `INTEGER`, `BIGINT` | entier | `number` (`bigint` au-delà de 2^53) |
 | `BLOB` | octets | `Uint8Array` |
+
+## Conventions : couche d'accès aux données (DAO)
+
+Référence : `src/infrastructure/jooq/main/LibraryDao.ts` et `test/infrastructure/jooq/main/LibraryDaoTest.test.ts`.
+
+| Kotlin | TypeScript |
+|---|---|
+| `interface XRepository` (domain/persistence) | `export abstract class XRepository { abstract ... }` (jeton d'injection) |
+| `@Component class XDao(dslRW, @Qualifier("dslContextRO") dslRO) : SplitDslDaoBase(...), XRepository` | `class XDao extends SplitDslDaoBase implements XRepository` + `component(XDao, { inject: [DSLContext, { type: DSLContext, qualifier: 'dslContextRO' }], types: [XRepository] })` en fin de fichier |
+| `@param:Value("#{@komgaProperties.database.batchChunkSize}") batchSize: Int` | `{ expression: (ctx) => ctx.getBean(KomgaProperties).database.batchChunkSize }` dans `inject` |
+| `private val b = Tables.BOOK` | `private readonly b = Tables.BOOK` (depuis `port/jooq/generated/main/Tables.js`) ; usage `this.b.ID` |
+| DSL jOOQ | même chaîne d'appels (`port/jooq/core.ts`, `port/jooq/dsl.ts`) : `` `in`(x) `` → `.in(x)`, `DSL.xxx` → `DSL.xxx` |
+| `record.field` (records générés) | idem, propriétés camelCase générées (`self.importComicinfoBook`) |
+| `it[b.ID]` | `it.get(this.b.ID)` |
+| fonction d'extension privée `DSLContext.selectBase()` / `XRecord.toDomain()` | méthode privée `selectBase(self: DSLContext)` / `toDomain(self: XRecord)` au même endroit |
+| `@Transactional fun f() { ... }` | `f() { transactional(this.dslRW.db, () => { ... }) }` précédé du commentaire `// @Transactional` |
+| `@Transactional(readOnly = true)` | `transactional(this.dslRW.db, () => ..., { readOnly: true })` |
+| `dsl.withTempTable(batchSize, ids).use { t -> ... }` | `use(TempTable.withTempTable(dsl, batchSize, ids), (t) => ...)` (depuis `infrastructure/jooq/TempTable.js`) |
+| `fetchCount` renvoyant `Int` puis `.toLong()` | `number` |
+| tests `@SpringBootTest` + `@Autowired` | `const ctx = springBootTest()` (`test/SpringBootTest.ts`), `ctx.getBean(XDao)`, `afterAll(() => closeContext(ctx))` ; importer le module du DAO testé et de ses dépendances |
+| `@AfterEach` / `@BeforeAll` / `@AfterAll` | `afterEach` / `beforeAll` / `afterAll` de Vitest, dans le `describe` |
+| `assertThat(date).isCloseTo(now, offset)` | `expectCloseTo(date, now)` (`test/infrastructure/jooq/TestUtils.ts`) |
