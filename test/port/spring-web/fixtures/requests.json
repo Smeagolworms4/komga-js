@@ -1,0 +1,630 @@
+[
+ {
+  "id": "claim-get",
+  "method": "GET",
+  "path": "/api/v1/claim",
+  "headers": {}
+ },
+ {
+  "id": "claim-head",
+  "method": "HEAD",
+  "path": "/api/v1/claim",
+  "headers": {}
+ },
+ {
+  "id": "claim-options",
+  "method": "OPTIONS",
+  "path": "/api/v1/claim",
+  "headers": {}
+ },
+ {
+  "id": "claim-delete",
+  "method": "DELETE",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "claim-accept-png",
+  "method": "GET",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept": "image/png"
+  }
+ },
+ {
+  "id": "claim-get-origin",
+  "method": "GET",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Origin": "http://foo.com"
+  }
+ },
+ {
+  "id": "claim-preflight",
+  "method": "OPTIONS",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Origin": "http://foo.com",
+   "Access-Control-Request-Method": "GET"
+  }
+ },
+ {
+  "id": "claim-post-no-header",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {}
+ },
+ {
+  "id": "claim-post-no-password",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "X-Komga-Email": "bad"
+  }
+ },
+ {
+  "id": "claim-post-invalid",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "X-Komga-Email": "bad",
+   "X-Komga-Password": ""
+  }
+ },
+ {
+  "id": "claim-post-invalid-en",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept-Language": "en",
+   "X-Komga-Email": "bad",
+   "X-Komga-Password": ""
+  }
+ },
+ {
+  "id": "claim-post-invalid-de",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept-Language": "de",
+   "X-Komga-Email": "bad",
+   "X-Komga-Password": ""
+  }
+ },
+ {
+  "id": "claim-post-blank-password",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept-Language": "en",
+   "X-Komga-Email": "a@b.com",
+   "X-Komga-Password": "  "
+  }
+ },
+ {
+  "id": "claim-post-claimed",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "X-Komga-Email": "a@b.com",
+   "X-Komga-Password": "x"
+  }
+ },
+ {
+  "id": "api-unknown",
+  "method": "GET",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "api-unknown-html",
+  "method": "GET",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Accept": "text/html"
+  }
+ },
+ {
+  "id": "api-unknown-html-en",
+  "method": "GET",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+   "Accept-Language": "en-US,en;q=0.5"
+  }
+ },
+ {
+  "id": "api-unknown-head",
+  "method": "HEAD",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "api-unknown-png",
+  "method": "GET",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Accept": "image/png"
+  }
+ },
+ {
+  "id": "book-not-found",
+  "method": "GET",
+  "path": "/api/v1/books/NOPE",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-bad-boolean",
+  "method": "GET",
+  "path": "/api/v1/series?deleted=maybe",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-bad-enum-list",
+  "method": "GET",
+  "path": "/api/v1/series?read_status=UNREAD,FOO",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-bad-enum-array",
+  "method": "GET",
+  "path": "/api/v1/series?read_status=UNREAD&read_status=FOO",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-bad-nested-enum",
+  "method": "GET",
+  "path": "/api/v1/series?status=ongoing",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-empty-boolean",
+  "method": "GET",
+  "path": "/api/v1/series?deleted=",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-page-abc",
+  "method": "GET",
+  "path": "/api/v1/series?page=abc&size=1",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-size-abc-sort",
+  "method": "GET",
+  "path": "/api/v1/series?size=abc&sort=name,desc",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-page-negative",
+  "method": "GET",
+  "path": "/api/v1/series?page=-3&size=5000",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-size-zero",
+  "method": "GET",
+  "path": "/api/v1/series?page=2&size=0",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-size-7",
+  "method": "GET",
+  "path": "/api/v1/series?size=7",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-page-plus",
+  "method": "GET",
+  "path": "/api/v1/series?page=%2B2&size=%205",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "book-page-abc",
+  "method": "GET",
+  "path": "/api/v1/books/X/pages/abc",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "book-page-overflow",
+  "method": "GET",
+  "path": "/api/v1/books/X/pages/99999999999",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "book-page-decimal",
+  "method": "GET",
+  "path": "/api/v1/books/X/pages/1.5",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-families",
+  "method": "GET",
+  "path": "/api/v1/fonts/families",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-file",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {}
+ },
+ {
+  "id": "fonts-range",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=0-9"
+  }
+ },
+ {
+  "id": "fonts-range-multi",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=0-9,20-29"
+  }
+ },
+ {
+  "id": "fonts-range-unsatisfiable",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=999999-"
+  }
+ },
+ {
+  "id": "fonts-range-suffix",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=-5"
+  }
+ },
+ {
+  "id": "fonts-range-invalid",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "foo"
+  }
+ },
+ {
+  "id": "fonts-range-too-large",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=0-200000"
+  }
+ },
+ {
+  "id": "fonts-range-head",
+  "method": "HEAD",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "Range": "bytes=0-9"
+  }
+ },
+ {
+  "id": "fonts-if-none-match",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/OpenDyslexic-Regular.woff2",
+  "headers": {
+   "If-None-Match": "\"0209dda5cb26799aa32208505e357980c\""
+  }
+ },
+ {
+  "id": "fonts-css",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/css",
+  "headers": {}
+ },
+ {
+  "id": "fonts-unknown",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/Nope/x.woff",
+  "headers": {}
+ },
+ {
+  "id": "claim-if-none-match",
+  "method": "GET",
+  "path": "/api/v1/claim",
+  "headers": {
+   "If-None-Match": "\"0c1925f40ed80f7eef8eda0eb7bb03e58\""
+  }
+ },
+ {
+  "id": "libraries-malformed",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{"
+ },
+ {
+  "id": "libraries-no-body",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": ""
+ },
+ {
+  "id": "libraries-text-plain",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "text/plain"
+  },
+  "body": "x"
+ },
+ {
+  "id": "libraries-form",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/x-www-form-urlencoded"
+  },
+  "body": "x"
+ },
+ {
+  "id": "libraries-empty-object",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{}"
+ },
+ {
+  "id": "libraries-invalid",
+  "method": "POST",
+  "path": "/api/v1/libraries",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{\"name\":\"\",\"root\":\"\"}"
+ },
+ {
+  "id": "thumbnail-too-large",
+  "method": "POST",
+  "path": "/api/v1/series/NOPE/thumbnails",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  },
+  "body": {
+   "multipart": {
+    "field": "file",
+    "filename": "f2m.bin",
+    "size": 2000000
+   }
+  }
+ },
+ {
+  "id": "thumbnail-small",
+  "method": "POST",
+  "path": "/api/v1/series/NOPE/thumbnails",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  },
+  "body": {
+   "multipart": {
+    "field": "file",
+    "filename": "f1k.bin",
+    "size": 1000
+   }
+  }
+ },
+ {
+  "id": "thumbnail-json",
+  "method": "POST",
+  "path": "/api/v1/series/NOPE/thumbnails",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{}"
+ },
+ {
+  "id": "filesystem-missing",
+  "method": "POST",
+  "path": "/api/v1/filesystem",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{\"path\":\"/nonexistent/zz\"}"
+ },
+ {
+  "id": "filesystem-nul",
+  "method": "POST",
+  "path": "/api/v1/filesystem",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Content-Type": "application/json"
+  },
+  "body": "{\"path\":\"\\u0000\"}"
+ },
+ {
+  "id": "static-index",
+  "method": "GET",
+  "path": "/index.html",
+  "headers": {}
+ },
+ {
+  "id": "static-css",
+  "method": "GET",
+  "path": "/css/nope.css",
+  "headers": {}
+ },
+ {
+  "id": "static-favicon",
+  "method": "GET",
+  "path": "/favicon.ico",
+  "headers": {}
+ },
+ {
+  "id": "static-js-nested",
+  "method": "GET",
+  "path": "/js/a/b.js",
+  "headers": {}
+ },
+ {
+  "id": "static-assets",
+  "method": "GET",
+  "path": "/assets/x",
+  "headers": {}
+ },
+ {
+  "id": "static-post",
+  "method": "POST",
+  "path": "/css/nope.css",
+  "headers": {}
+ },
+ {
+  "id": "claim-trailing-slash",
+  "method": "GET",
+  "path": "/api/v1/claim/",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "claim-uppercase",
+  "method": "GET",
+  "path": "/API/v1/claim",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "claim-accept-html",
+  "method": "GET",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept": "text/html"
+  }
+ },
+ {
+  "id": "claim-post-invalid-xx",
+  "method": "POST",
+  "path": "/api/v1/claim",
+  "headers": {
+   "Accept-Language": "xx",
+   "X-Komga-Email": "a@b.com",
+   "X-Komga-Password": ""
+  }
+ },
+ {
+  "id": "series-bracket-param",
+  "method": "GET",
+  "path": "/api/v1/series?read_status[]=FOO",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "series-bracket-param-ok",
+  "method": "GET",
+  "path": "/api/v1/series?deleted[]=true&page=1",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-families-head",
+  "method": "HEAD",
+  "path": "/api/v1/fonts/families",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-families-post",
+  "method": "POST",
+  "path": "/api/v1/fonts/families",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-css-accept-json",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/OpenDyslexic/css",
+  "headers": {
+   "Accept": "application/json"
+  }
+ },
+ {
+  "id": "fonts-encoded-path",
+  "method": "GET",
+  "path": "/api/v1/fonts/resource/Open%44yslexic/css",
+  "headers": {}
+ },
+ {
+  "id": "api-unknown-options",
+  "method": "OPTIONS",
+  "path": "/api/v1/nope",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0"
+  }
+ },
+ {
+  "id": "fonts-accept-invalid",
+  "method": "GET",
+  "path": "/api/v1/fonts/families",
+  "headers": {
+   "Authorization": "Basic YWRtaW5AZXhhbXBsZS5vcmc6c2VjcmV0",
+   "Accept": "foo"
+  }
+ }
+]

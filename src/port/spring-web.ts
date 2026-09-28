@@ -20,8 +20,22 @@
 //       },
 //     },
 //   })
+//
+// Compléments au contrat (exécution : port/spring-web-dispatcher.ts ; serveur : port/spring-boot-web.ts) :
+// - paramètre Kotlin `x: T?` : type `{ nullable: T }` et option `{ nullable: true }` (jamais « manquant ») ;
+//   paramètre avec valeur par défaut : `{ hasDefault: true }` (absent -> `undefined`, la valeur par défaut TS s'applique) ;
+// - contraintes jakarta sur un paramètre : `withConstraints(requestHeader('X'), 'email', [Email()])`, et
+//   `validated: true` dans ControllerSpec si la classe porte @Validated (ConstraintViolationException `méthode.paramètre`) ;
+// - `@RequestParam file: MultipartFile` : type `{ class: MultipartFile }` ; `Model` : `modelArg()` ;
+// - `@ExceptionHandler` : `{ exceptions, responseStatus?, args? (défaut : [exceptionArg()]), returns? }` ;
+//   `controllerAdvice(X, { rest: false, ... })` pour un @ControllerAdvice dont les méthodes renvoient des vues ;
+// - `@PreAuthorize` de classe : `preAuthorize` dans ControllerSpec (évaluée par setPreAuthorizeEvaluator) ;
+// - messages d'erreur de Spring : `javaName` (ControllerSpec), `signature` (HandlerSpec, Method.toString()),
+//   noms qualifiés des enums convertis : `registerClass('org.gotson.komga...X$Y', X.Y)` (port/jackson.ts) ;
+// - `@AuthenticationPrincipal` : attribut de requête `komga.principal` (posé par la sécurité), sinon `request.userPrincipal`.
 import type { Readable, Writable } from 'node:stream'
 import type { JavaType } from './jackson-mapper.js'
+import type { Constraint } from './validation.js'
 import { Exception, KEnum, RuntimeException } from './kotlin.js'
 import type { HttpServletRequest, HttpServletResponse } from './servlet.js'
 import { type ComponentOptions, component } from './spring.js'
@@ -131,8 +145,29 @@ export class MethodArgumentTypeMismatchException extends Exception {}
 export class HttpMessageNotReadableException extends Exception {}
 /** `@Valid` en échec (400) : erreurs par champ */
 export class MethodArgumentNotValidException extends Exception {
-  constructor(readonly errors: { field: string; message: string; rejectedValue: unknown }[]) {
+  constructor(
+    readonly errors: { field: string; message: string; rejectedValue: unknown }[],
+    /** erreurs globales (contraintes de classe) : ajout facultatif */
+    readonly globalErrors: { objectName: string; message: string }[] = [],
+    /** nom de l'objet validé (`libraryCreationDto`) : ajout facultatif */
+    readonly objectName: string = 'target',
+  ) {
     super(`Validation failed: ${errors.map((e) => `${e.field} ${e.message}`).join(', ')}`)
+  }
+
+  /** `getBindingResult()` : `fieldErrors` (field, defaultMessage, rejectedValue) et `globalErrors` */
+  get bindingResult(): {
+    objectName: string
+    fieldErrors: { field: string; defaultMessage: string; rejectedValue: unknown }[]
+    globalErrors: { objectName: string; defaultMessage: string }[]
+    errorCount: number
+  } {
+    return {
+      objectName: this.objectName,
+      fieldErrors: this.errors.map((e) => ({ field: e.field, defaultMessage: e.message, rejectedValue: e.rejectedValue })),
+      globalErrors: this.globalErrors.map((e) => ({ objectName: e.objectName, defaultMessage: e.message })),
+      errorCount: this.errors.length + this.globalErrors.length,
+    }
   }
 }
 /** `@Validated` sur des paramètres simples (400) */
@@ -311,8 +346,17 @@ export type RequestMappingSpec = {
 /** Type de conversion d'un paramètre de requête (ConversionService) */
 export type ParamType = JavaType
 
+/**
+ * Options communes d'un argument (ajout au contrat, facultatives) :
+ * - `nullable` : paramètre Kotlin `T?` (MethodParameter.isOptional : jamais « manquant », types Java encapsulés) ;
+ * - `hasDefault` : paramètre Kotlin avec valeur par défaut (isOptional) : absent -> `undefined`, la valeur par défaut TS s'applique ;
+ * - `parameterName` / `constraints` : nom Kotlin du paramètre et contraintes jakarta posées dessus
+ *   (validation de méthode : `@Validated` sur la classe -> ConstraintViolationException `méthode.paramètre`).
+ */
+export type ArgSpecOptions = { nullable?: boolean; hasDefault?: boolean; parameterName?: string; constraints?: Constraint[] }
+
 /** Résolution d'un argument de méthode (équivalent d'une annotation de paramètre ou d'un type résolu par Spring) */
-export type ArgSpec =
+export type ArgSpec = (
   | { kind: 'pathVariable'; name: string; type: ParamType; required: boolean }
   | { kind: 'requestParam'; name: string; type: ParamType; required: boolean; defaultValue: string | null }
   | { kind: 'requestParamMap' }
@@ -330,24 +374,33 @@ export type ArgSpec =
   | { kind: 'session' }
   /** Résolveur d'argument personnalisé (HandlerMethodArgumentResolver) désigné par son nom */
   | { kind: 'custom'; resolver: string; name: string; required: boolean }
+  /** `org.springframework.ui.Model` (contrôleurs à vues) */
+  | { kind: 'model' }
+  /** Exception traitée (méthodes `@ExceptionHandler`) */
+  | { kind: 'exception' }
+) &
+  ArgSpecOptions
 
-export const pathVariable = (name: string, type: ParamType = 'String', { required = true }: { required?: boolean } = {}): ArgSpec => ({
+type NamedValueOptions = { required?: boolean; nullable?: boolean; hasDefault?: boolean }
+
+export const pathVariable = (name: string, type: ParamType = 'String', { required = true, ...opts }: NamedValueOptions = {}): ArgSpec => ({
   kind: 'pathVariable',
   name,
   type,
   required,
+  ...opts,
 })
 export const requestParam = (
   name: string,
   type: ParamType = 'String',
-  { required = true, defaultValue = null }: { required?: boolean; defaultValue?: string | null } = {},
-): ArgSpec => ({ kind: 'requestParam', name, type, required: defaultValue === null ? required : false, defaultValue })
+  { required = true, defaultValue = null, ...opts }: NamedValueOptions & { defaultValue?: string | null } = {},
+): ArgSpec => ({ kind: 'requestParam', name, type, required: defaultValue === null ? required : false, defaultValue, ...opts })
 export const requestParamMap = (): ArgSpec => ({ kind: 'requestParamMap' })
 export const requestHeader = (
   name: string,
   type: ParamType = 'String',
-  { required = true, defaultValue = null }: { required?: boolean; defaultValue?: string | null } = {},
-): ArgSpec => ({ kind: 'requestHeader', name, type, required: defaultValue === null ? required : false, defaultValue })
+  { required = true, defaultValue = null, ...opts }: NamedValueOptions & { defaultValue?: string | null } = {},
+): ArgSpec => ({ kind: 'requestHeader', name, type, required: defaultValue === null ? required : false, defaultValue, ...opts })
 export const requestBody = (type: JavaType, { required = true, valid = false }: { required?: boolean; valid?: boolean } = {}): ArgSpec => ({
   kind: 'requestBody',
   type,
@@ -376,6 +429,10 @@ export const customArg = (resolver: string, name: string, { required = true }: {
   name,
   required,
 })
+export const modelArg = (): ArgSpec => ({ kind: 'model' })
+export const exceptionArg = (): ArgSpec => ({ kind: 'exception' })
+/** Contraintes jakarta posées sur un paramètre (`@Email @RequestHeader("X") email: String`) */
+export const withConstraints = (spec: ArgSpec, parameterName: string, constraints: Constraint[]): ArgSpec => ({ ...spec, parameterName, constraints })
 
 export type HandlerSpec = {
   mapping: RequestMappingSpec
@@ -386,6 +443,19 @@ export type HandlerSpec = {
   preAuthorize?: string
   /** Type Kotlin de retour, pour la sérialisation JSON (Float…) ; facultatif si les DTO déclarent jsonProperties */
   returns?: JavaType
+  /**
+   * Signature Java de la méthode (`Method.toString()`), utilisée dans les messages d'erreur de Spring
+   * (« Required request body is missing: public ... »). Déduite de `javaName` et du nom de méthode si absente.
+   */
+  signature?: string
+}
+
+/** `@ExceptionHandler` : exceptions traitées, `@ResponseStatus`, arguments (défaut : l'exception) et type de retour */
+export type ExceptionHandlerSpec = {
+  exceptions: (abstract new (...a: never[]) => unknown)[]
+  responseStatus?: HttpStatus
+  args?: ArgSpec[]
+  returns?: JavaType
 }
 
 export type ControllerSpec = ComponentOptions & {
@@ -395,7 +465,13 @@ export type ControllerSpec = ComponentOptions & {
   rest?: boolean
   handlers: Record<string, HandlerSpec>
   /** `@ExceptionHandler` de ce contrôleur : méthode -> classes d'exceptions */
-  exceptionHandlers?: Record<string, { exceptions: (abstract new (...a: never[]) => unknown)[]; responseStatus?: HttpStatus }>
+  exceptionHandlers?: Record<string, ExceptionHandlerSpec>
+  /** `@PreAuthorize` au niveau de la classe (remplacé par celui de la méthode) */
+  preAuthorize?: string
+  /** `@Validated` au niveau de la classe : validation des paramètres par proxy (ConstraintViolationException) */
+  validated?: boolean
+  /** Nom qualifié Java de la classe (messages d'erreur), ex. `org.gotson.komga.interfaces.api.rest.LibraryController` */
+  javaName?: string
 }
 
 type ControllerRegistration = { type: abstract new (...a: never[]) => unknown; spec: ControllerSpec }
@@ -411,16 +487,23 @@ export function registeredControllers(): readonly ControllerRegistration[] {
   return controllers
 }
 
-type AdviceRegistration = { type: abstract new (...a: never[]) => unknown; handlers: NonNullable<ControllerSpec['exceptionHandlers']> }
+type AdviceRegistration = {
+  type: abstract new (...a: never[]) => unknown
+  handlers: NonNullable<ControllerSpec['exceptionHandlers']>
+  /** `@RestControllerAdvice` (true, défaut) ou `@ControllerAdvice` (false : valeur de retour = vue) */
+  rest?: boolean
+  /** `@Order` */
+  order?: number
+}
 const advices: AdviceRegistration[] = []
 
 /** `@ControllerAdvice` / `@RestControllerAdvice` avec ses `@ExceptionHandler` */
 export function controllerAdvice<T>(
   cls: abstract new (...a: never[]) => T,
-  spec: ComponentOptions & { exceptionHandlers: NonNullable<ControllerSpec['exceptionHandlers']> },
+  spec: ComponentOptions & { exceptionHandlers: NonNullable<ControllerSpec['exceptionHandlers']>; rest?: boolean; order?: number },
 ): void {
   component(cls as never, spec)
-  advices.push({ type: cls as never, handlers: spec.exceptionHandlers })
+  advices.push({ type: cls as never, handlers: spec.exceptionHandlers, rest: spec.rest ?? true, order: spec.order })
 }
 
 export function registeredAdvices(): readonly AdviceRegistration[] {
@@ -429,6 +512,8 @@ export function registeredAdvices(): readonly AdviceRegistration[] {
 
 /** `HandlerMethodArgumentResolver` personnalisé (WebMvcConfigurer.addArgumentResolvers) */
 export interface HandlerMethodArgumentResolver {
+  /** `supportsParameter` : `annotation` = `resolver` de l'ArgSpec `custom`, `name` = son `name` (ajout facultatif) */
+  supportsParameter?(parameter: { annotation: string; name: string }): boolean
   resolveArgument(name: string, request: HttpServletRequest): unknown
 }
 
