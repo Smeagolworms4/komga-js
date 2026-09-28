@@ -1,0 +1,1 @@
+{"takeFirst: default owner is the current thread name":["HashBook(bookId='B2', priority='2')",[["HASH_BOOK_B1",false],["HASH_BOOK_B2",true]]],"takeFirst: explicit owner":["HashBook(bookId='B1', priority='1')",[["HASH_BOOK_B1","me"],["HASH_BOOK_B2","<current thread>"]]],"takeFirst: empty queue":null}

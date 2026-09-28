@@ -50,7 +50,25 @@ export class RenderContext {
   }
 }
 
+// Dialecte SQLITE de jOOQ 3.19 : un nom n'est entouré de guillemets que s'il le faut (caractères hors
+// [A-Za-z][A-Za-z0-9_]* ou mot-clé SQLite), relevé par les oracles de infrastructure/jooq (`"RLB_a""b c".X`, `SERIES.ID`)
+const IDENTIFIER = /^[A-Za-z][A-Za-z0-9_]*$/
+const SQLITE_KEYWORDS = new Set(
+  (
+    'ABORT ACTION ADD AFTER ALL ALTER ALWAYS ANALYZE AND AS ASC ATTACH AUTOINCREMENT BEFORE BEGIN BETWEEN BY CASCADE CASE CAST ' +
+    'CHECK COLLATE COLUMN COMMIT CONFLICT CONSTRAINT CREATE CROSS CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP DATABASE ' +
+    'DEFAULT DEFERRABLE DEFERRED DELETE DESC DETACH DISTINCT DO DROP EACH ELSE END ESCAPE EXCEPT EXCLUDE EXCLUSIVE EXISTS ' +
+    'EXPLAIN FAIL FILTER FIRST FOLLOWING FOR FOREIGN FROM FULL GENERATED GLOB GROUP GROUPS HAVING IF IGNORE IMMEDIATE IN INDEX ' +
+    'INDEXED INITIALLY INNER INSERT INSTEAD INTERSECT INTO IS ISNULL JOIN KEY LAST LEFT LIKE LIMIT MATCH MATERIALIZED NATURAL NO ' +
+    'NOT NOTHING NOTNULL NULL NULLS OF OFFSET ON OR ORDER OTHERS OUTER OVER PARTITION PLAN PRAGMA PRECEDING PRIMARY QUERY RAISE ' +
+    'RANGE RECURSIVE REFERENCES REGEXP REINDEX RELEASE RENAME REPLACE RESTRICT RETURNING RIGHT ROLLBACK ROW ROWS SAVEPOINT SELECT ' +
+    'SET TABLE TEMP TEMPORARY THEN TIES TO TRANSACTION TRIGGER UNBOUNDED UNION UNIQUE UPDATE USING VACUUM VALUES VIEW VIRTUAL ' +
+    'WHEN WHERE WINDOW WITH WITHOUT'
+  ).split(' '),
+)
+
 export function quote(name: string): string {
+  if (IDENTIFIER.test(name) && !SQLITE_KEYWORDS.has(name.toUpperCase())) return name
   return `"${name.replaceAll('"', '""')}"`
 }
 
@@ -177,11 +195,13 @@ export abstract class Field<T> extends QueryPart {
   isNotNull(): Condition {
     return new Postfix(this, ' is not null')
   }
+  /** `isTrue()` : jOOQ 3.19 (SQLite) rend la valeur en ligne, `f = 1` */
   isTrue(): Condition {
-    return this.eq(true as T)
+    return new Compare(this, '=', new Param<T>(true as T, this.type, true))
   }
+  /** `isFalse()` : `f = 0` en ligne */
   isFalse(): Condition {
-    return this.eq(false as T)
+    return new Compare(this, '=', new Param<T>(false as T, this.type, true))
   }
   isDistinctFrom(v: FieldOrValue<T>): Condition {
     return new Compare(this, ' is not ', toField(v, this.type))
@@ -889,8 +909,9 @@ export class Table<R = unknown> extends TableLike {
     return []
   }
 
+  /** `Table.getName()` : l'alias pour une table aliasée */
   getName(): string {
-    return this.tableName
+    return this.alias ?? this.tableName
   }
 
   fields(): Field<unknown>[] {
@@ -1260,11 +1281,33 @@ function toBinds(params: RenderContext['params']): SqlValue[] {
   return params.map((p) => p.type.toSql(p.value as never))
 }
 
+/** Descriptions de `org.sqlite.SQLiteErrorCode` (sqlite-jdbc), reprises dans le message de ses exceptions */
+const SQLITE_ERROR_DESCRIPTIONS: { [code: string]: string } = {
+  SQLITE_ERROR: 'SQL error or missing database',
+  SQLITE_BUSY: 'The database file is locked',
+  SQLITE_CONSTRAINT: 'Abort due to constraint violation',
+  SQLITE_MISMATCH: 'Data type mismatch',
+  SQLITE_CONSTRAINT_CHECK: 'A CHECK constraint failed',
+  SQLITE_CONSTRAINT_FOREIGNKEY: 'A foreign key constraint failed',
+  SQLITE_CONSTRAINT_NOTNULL: 'A NOT NULL constraint failed',
+  SQLITE_CONSTRAINT_PRIMARYKEY: 'A PRIMARY KEY constraint failed',
+  SQLITE_CONSTRAINT_UNIQUE: 'A UNIQUE constraint failed',
+}
+
+/** Message d'une SQLiteException de sqlite-jdbc : `[CODE] description (message de SQLite)` */
+function sqliteJdbcMessage(err: { code?: string; message?: string }, e: unknown): string {
+  // une exception levée par une fonction SQL (UDF) est rapportée par sqlite-jdbc en SQLITE_ERROR
+  const code = typeof err.code === 'string' ? err.code : 'SQLITE_ERROR'
+  const description = SQLITE_ERROR_DESCRIPTIONS[code]
+  if (description === undefined) return err.message ?? String(e)
+  return `[${code}] ${description} (${err.message ?? String(e)})`
+}
+
 function wrapSqliteError(e: unknown, sql: string): never {
   const err = e as { code?: string; message?: string }
   if (typeof err.code === 'string' && err.code.startsWith('SQLITE_CONSTRAINT'))
-    throw new IntegrityConstraintViolationException(`SQL [${sql}]; ${err.message}`, e)
-  throw new DataAccessException(`SQL [${sql}]; ${err.message ?? String(e)}`, e)
+    throw new IntegrityConstraintViolationException(`SQL [${sql}]; ${sqliteJdbcMessage(err, e)}`, e)
+  throw new DataAccessException(`SQL [${sql}]; ${sqliteJdbcMessage(err, e)}`, e)
 }
 
 export function runQuery(ex: Executor, sql: string, binds: SqlValue[]): number {
