@@ -39,7 +39,7 @@ Révision upstream portée : voir `UPSTREAM_REF` (Komga 1.27.1 au départ).
 | jOOQ + sqlite-jdbc | Kysely + better-sqlite3 |
 | Flyway (SQL + migrations Kotlin) | runner maison qui lit les mêmes fichiers SQL et écrit dans la même table `flyway_schema_history` |
 | Spring Security, sessions, OAuth2 | `@fastify/session`, `openid-client` |
-| Lucene | SQLite FTS5 (`// PORT:` sur chaque analyseur) |
+| Lucene 9.9.1 | `src/port/lucene/` : portage TS du sous-ensemble utilisé (analyseurs, index, QueryParser, BM25), identique à Lucene sur 7 148 recherches ; format disque propre (index reconstruit si absent, comme Komga) |
 | Thumbnailator / ImageIO / TwelveMonkeys | sharp (libvips) |
 | commons-compress / junrar | yauzl, node-unrar-js, libarchive.js |
 | PDFBox | mupdf (wasm) |
@@ -188,3 +188,5 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
 - Système de fichiers : API synchrones de `node:fs` quand le Kotlin est bloquant.
 - `async`/`await` uniquement quand une bibliothèque l'impose (traitement d'image, flux HTTP) ; la fonction Kotlin garde son nom, devient `async`, et ses appelants font `await` (`// PORT: async`).
 - Les tâches (scan, analyse, miniatures…), exécutées par Komga dans un pool de threads, s'exécuteront dans des `worker_threads` avec leur propre contexte et leurs connexions, pour ne pas bloquer le serveur HTTP.
+
+| Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; à surveiller : RAM de l'index en mémoire |
