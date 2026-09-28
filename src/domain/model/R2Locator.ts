@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/R2Locator.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { json } from '../../port/jackson.js'
-import { DataClass } from '../../port/kotlin.js'
+import { jsonProperties } from '../../port/jackson-mapper.js'
+import { DataClass, kFloat } from '../../port/kotlin.js'
 
 type R2LocatorParams = {
   href: string
@@ -104,9 +105,9 @@ export namespace R2Locator {
     constructor({ fragments = [], progression = null, position = null, totalProgression = null }: LocationParams = {}) {
       super()
       this.fragments = fragments
-      this.progression = progression
+      this.progression = kFloat(progression)
       this.position = position
-      this.totalProgression = totalProgression
+      this.totalProgression = kFloat(totalProgression)
     }
   }
 
@@ -139,3 +140,18 @@ export namespace R2Locator {
 json(R2Locator, { include: 'NON_EMPTY' })
 json(R2Locator.Location, { include: 'NON_EMPTY' })
 json(R2Locator.Text, { include: 'NON_EMPTY' })
+jsonProperties(R2Locator, {
+  href: 'String',
+  type: 'String',
+  title: { nullable: 'String' },
+  locations: { nullable: { class: R2Locator.Location } },
+  text: { nullable: { class: R2Locator.Text } },
+  koboSpan: { nullable: 'String' },
+}, [], { required: ['href', 'type'] })
+jsonProperties(R2Locator.Location, {
+  fragments: { list: 'String' },
+  progression: { nullable: 'Float' },
+  position: { nullable: 'Int' },
+  totalProgression: { nullable: 'Float' },
+})
+jsonProperties(R2Locator.Text, { after: { nullable: 'String' }, before: { nullable: 'String' }, highlight: { nullable: 'String' } })

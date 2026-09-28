@@ -1,8 +1,9 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/MediaExtension.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { classForName, qualifiedNameOf, registerClass } from '../../port/jackson.js'
+import { jsonProperties } from '../../port/jackson-mapper.js'
 import { DataClass } from '../../port/kotlin.js'
-import type { EpubTocEntry } from './EpubTocEntry.js'
-import type { R2Locator } from './R2Locator.js'
+import { EpubTocEntry } from './EpubTocEntry.js'
+import { R2Locator } from './R2Locator.js'
 
 // PORT: interface Kotlin représentée par une classe abstraite vide (sert aussi de MediaExtension::class) ;
 // les implémentations s'enregistrent dans mediaExtensionClasses pour reproduire isSubclassOf(MediaExtension::class)
@@ -57,3 +58,10 @@ registerClass('org.gotson.komga.domain.model.ProxyExtension', ProxyExtension as 
 registerClass('org.gotson.komga.domain.model.MediaExtensionEpub', MediaExtensionEpub)
 mediaExtensionClasses.add(ProxyExtension)
 mediaExtensionClasses.add(MediaExtensionEpub)
+jsonProperties(MediaExtensionEpub, {
+  toc: { list: { class: EpubTocEntry } },
+  landmarks: { list: { class: EpubTocEntry } },
+  pageList: { list: { class: EpubTocEntry } },
+  isFixedLayout: 'Boolean',
+  positions: { list: { class: R2Locator } },
+})

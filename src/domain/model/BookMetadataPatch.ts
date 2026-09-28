@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadataPatch.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import type { LocalDate } from '@js-joda/core'
-import { DataClass, KEnum } from '../../port/kotlin.js'
+import { DataClass, KEnum, kFloat } from '../../port/kotlin.js'
 import type { Author } from './Author.js'
 import type { WebLink } from './WebLink.js'
 
@@ -45,7 +45,7 @@ export class BookMetadataPatch extends DataClass<BookMetadataPatchParams> {
     this.title = title
     this.summary = summary
     this.number = number
-    this.numberSort = numberSort
+    this.numberSort = kFloat(numberSort)
     this.releaseDate = releaseDate
     this.authors = authors
     this.isbn = isbn

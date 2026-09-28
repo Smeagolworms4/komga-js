@@ -480,3 +480,58 @@ export function ifEmpty<T extends { length: number } | { size: number }>(v: T, f
 export function threadSleep(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
+
+// ---------------------------------------------------------------------------
+// sealed interface / data object
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyClass = abstract new (...args: any[]) => unknown
+
+/**
+ * Équivalent d'une `sealed interface` Kotlin : une valeur utilisable avec `instanceof`,
+ * qui connaît ses sous-types (classes ou instances de `data object`). Une classe peut en implémenter plusieurs.
+ */
+export type SealedInterface<T> = {
+  readonly name: string
+  subTypes(): readonly (AnyClass | object)[]
+  [Symbol.hasInstance](v: unknown): v is T
+}
+
+const sealedInterfaces: SealedInterface<unknown>[] = []
+
+export function sealedInterface<T>(name: string, subTypes: () => readonly (AnyClass | object)[]): SealedInterface<T> {
+  const s: SealedInterface<T> = {
+    name,
+    subTypes,
+    [Symbol.hasInstance](v: unknown): v is T {
+      return subTypes().some((it) => (typeof it === 'function' ? v instanceof it : v === it))
+    },
+  }
+  sealedInterfaces.push(s as SealedInterface<unknown>)
+  return s
+}
+
+export function sealedInterfaceList(): readonly SealedInterface<unknown>[] {
+  return sealedInterfaces
+}
+
+/** Base des `data object` Kotlin : `toString()` = nom, égalité par classe. */
+export abstract class DataObject implements Equatable {
+  equals(other: unknown): boolean {
+    return this === other || (other !== null && typeof other === 'object' && other.constructor === this.constructor)
+  }
+
+  hashCode(): number {
+    return hash(this.constructor.name)
+  }
+
+  toString(): string {
+    return this.constructor.name
+  }
+}
+
+/** Valeur `Float` Kotlin : arrondie en flottant 32 bits (à appliquer à chaque affectation d'un champ Float) */
+export function kFloat<T extends number | null | undefined>(v: T): T {
+  return (v === null || v === undefined ? v : Math.fround(v)) as T
+}

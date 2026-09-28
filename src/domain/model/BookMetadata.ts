@@ -1,8 +1,9 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadata.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { javaFloatToString } from '../../port/jackson-tree.js'
 import { type LocalDate, LocalDateTime } from '@js-joda/core'
 import { lowerNotBlank } from '../../language/LanguageUtils.js'
 import { trim } from '../../port/extra-metadata.js'
-import { distinctSet, str } from '../../port/kotlin.js'
+import { distinctSet, str, kFloat } from '../../port/kotlin.js'
 import type { Auditable } from './Auditable.js'
 import type { Author } from './Author.js'
 import type { WebLink } from './WebLink.js'
@@ -78,7 +79,7 @@ export class BookMetadata implements Auditable {
     createdDate = LocalDateTime.now(),
     lastModifiedDate = createdDate,
   }: BookMetadataParams) {
-    this.numberSort = numberSort
+    this.numberSort = kFloat(numberSort)
     this.releaseDate = releaseDate
     this.authors = authors
     this.isbn = isbn
@@ -150,8 +151,7 @@ export class BookMetadata implements Auditable {
     })
   }
 
-  // PORT: Float.toString() Kotlin affiche "1.0" là où JS affiche "1" (numberSort)
   toString(): string {
-    return `BookMetadata(numberSort=${this.numberSort}, releaseDate=${str(this.releaseDate)}, authors=${str(this.authors)}, isbn='${this.isbn}', links=${str(this.links)}, titleLock=${this.titleLock}, summaryLock=${this.summaryLock}, numberLock=${this.numberLock}, numberSortLock=${this.numberSortLock}, releaseDateLock=${this.releaseDateLock}, authorsLock=${this.authorsLock}, tagsLock=${this.tagsLock}, isbnLock=${this.isbnLock}, linksLock=${this.linksLock}, bookId='${this.bookId}', createdDate=${this.createdDate}, lastModifiedDate=${this.lastModifiedDate}, title='${this.title}', summary='${this.summary}', number='${this.number}', tags=${str(this.tags)})`
+    return `BookMetadata(numberSort=${javaFloatToString(this.numberSort)}, releaseDate=${str(this.releaseDate)}, authors=${str(this.authors)}, isbn='${this.isbn}', links=${str(this.links)}, titleLock=${this.titleLock}, summaryLock=${this.summaryLock}, numberLock=${this.numberLock}, numberSortLock=${this.numberSortLock}, releaseDateLock=${this.releaseDateLock}, authorsLock=${this.authorsLock}, tagsLock=${this.tagsLock}, isbnLock=${this.isbnLock}, linksLock=${this.linksLock}, bookId='${this.bookId}', createdDate=${this.createdDate}, lastModifiedDate=${this.lastModifiedDate}, title='${this.title}', summary='${this.summary}', number='${this.number}', tags=${str(this.tags)})`
   }
 }

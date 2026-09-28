@@ -95,7 +95,8 @@ Modèles de référence déjà portés : `src/domain/model/{Book,Media,Library,K
 | `x!!` | `nn(x)` |
 | `x?.let { }` / `?:` | `x !== null ? ... : ...` / `??` |
 | `when { }` | `if / else if` dans le même ordre (ou `switch` pour un `when (x)` sur enum) |
-| `Int`, `Long`, `Float`, `Double` | `number` (`// PORT: Long` si la valeur peut dépasser 2^53) |
+| `Int`, `Long`, `Double` | `number` (`// PORT: Long` si la valeur peut dépasser 2^53) |
+| `Float` | `number` arrondi en float32 à chaque affectation : `this.x = kFloat(x)` ; affichage `javaFloatToString(x)` |
 | `ByteArray` | `Uint8Array` |
 | `List<T>` / `Set<T>` / `Map<K,V>` | `T[]` / `Set<T>` / `Map<K,V>` (`ReadonlySet` en paramètre) |
 | `setOf(..)`, `emptySet()` | `new Set([..])`, `new Set()` |
@@ -161,3 +162,21 @@ Référence : `src/infrastructure/jooq/main/LibraryDao.ts` et `test/infrastructu
 | tests `@SpringBootTest` + `@Autowired` | `const ctx = springBootTest()` (`test/SpringBootTest.ts`), `ctx.getBean(XDao)`, `afterAll(() => closeContext(ctx))` ; importer le module du DAO testé et de ses dépendances |
 | `@AfterEach` / `@BeforeAll` / `@AfterAll` | `afterEach` / `beforeAll` / `afterAll` de Vitest, dans le `describe` |
 | `assertThat(date).isCloseTo(now, offset)` | `expectCloseTo(date, now)` (`test/infrastructure/jooq/TestUtils.ts`) |
+
+## Conventions : JSON (Jackson)
+
+`ObjectMapper` (`src/port/jackson-mapper.ts`) reproduit l'ObjectMapper de Spring Boot configuré par Komga
+(vérifié contre les vraies classes Komga, `test/port/jackson-mapper.test.ts`). La réflexion Kotlin est remplacée par
+des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jackson (DTO, blobs JSON en base) :
+
+| Kotlin / Jackson | TypeScript |
+|---|---|
+| types des propriétés du constructeur | `jsonProperties(X, { a: 'String', n: 'Int', f: 'Float', d: { nullable: JsonTypes.LocalDateTime }, l: { list: { class: Y } } }, [], { required: ['a'] })` |
+| paramètre non nul sans valeur par défaut | listé dans `required` (MissingKotlinParameterException si absent ou null) |
+| `T?` | `{ nullable: T }` |
+| `@JsonProperty("n")`, `@JsonIgnore`, `@JsonInclude` | `json(X, { rename: { a: 'n' }, ignore: ['b'], include: 'NON_NULL' })` |
+| `@JsonTypeInfo(use = NAME, property = "p")` + `@JsonTypeName("t")` | `json(Base, { typeInfo: { property: 'p' } })`, `json(Sub, { typeName: 't' })` |
+| `@JsonTypeInfo(use = DEDUCTION)` | `jsonTypeInfoDeduction(Base)` |
+| `sealed interface` / `sealed class` | `sealedInterface('Name', () => [Sub1, Sub2])` (`port/kotlin.ts`) |
+| getter calculé sérialisé (`val x get() = ...`) | `jsonProperties(..., { getters: ['x'] })` |
+| `mapper.readValue<T>(json)` | `mapper.readValue<T>(json, { class: T })` |
