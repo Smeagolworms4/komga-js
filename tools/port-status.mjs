@@ -6,7 +6,7 @@
 // Convention (portage à plat) :
 //   komga/src/main/kotlin/org/gotson/komga/<p>/X.kt  -> src/<p>/X.ts
 //   komga/src/flyway/kotlin/<p>/X.kt                 -> src/flyway/<p>/X.ts
-//   komga/src/test/kotlin/org/gotson/komga/<p>/X.kt  -> test/<p>/X.test.ts
+//   komga/src/test/kotlin/org/gotson/komga/<p>/XTest.kt  -> test/<p>/XTest.test.ts  (autres fichiers de test -> .ts)
 // Chaque fichier TS commence par :  // @port-of <chemin kotlin>@<sha>
 //
 // Usage : node tools/port-status.mjs [--all] [--json]
@@ -54,14 +54,14 @@ function kotlinTests(src) {
   let pendingNested = false
   for (const raw of src.split('\n')) {
     const line = raw.trim()
-    if (/^@(Test|ParameterizedTest)\b/.test(line)) pendingTest = true
+    if (/^@(Test|ParameterizedTest|ArchTest)\b/.test(line)) pendingTest = true
     if (/^@Nested\b/.test(line)) pendingNested = true
     const cls = line.match(/\bclass\s+(\w+)/)
     if (pendingNested && cls) {
       stack.push({ name: cls[1], depth })
       pendingNested = false
     }
-    const fn = line.match(/\bfun\s+(?:`([^`]+)`|(\w+))\s*\(/)
+    const fn = line.match(/\bfun\s+(?:`([^`]+)`|(\w+))\s*\(/) ?? line.match(/\bval\s+(?:`([^`]+)`|(\w+))\s*[:=]/)
     if (pendingTest && fn) {
       tests.push({ path: stack.map((s) => s.name), name: fn[1] ?? fn[2] })
       pendingTest = false
@@ -102,7 +102,7 @@ const rows = []
 for (const m of MAPPINGS) {
   for (const abs of walk(join(UPSTREAM, m.from)).filter((f) => f.endsWith('.kt'))) {
     const kt = relative(UPSTREAM, abs)
-    const ts = m.to + kt.slice(m.from.length).replace(/\.kt$/, m.ext)
+    const ts = m.to + kt.slice(m.from.length).replace(/\.kt$/, m.kind === 'test' && !/Tests?\.kt$/.test(kt) ? '.ts' : m.ext)
     const ktSrc = readFileSync(abs, 'utf8')
     const row = { kind: m.kind, kt, ts, ktLines: ktSrc.split('\n').length, status: 'missing' }
     const tsAbs = join(ROOT, ts)

@@ -27,7 +27,8 @@ const MAPPINGS = [
   ['komga/src/test/kotlin/org/gotson/komga/', 'test/', '.test.ts'],
 ]
 const twin = (p) => {
-  for (const [from, to, ext] of MAPPINGS) if (p.startsWith(from)) return to + p.slice(from.length).replace(/\.kt$/, ext)
+  for (const [from, to, ext] of MAPPINGS)
+    if (p.startsWith(from)) return to + p.slice(from.length).replace(/\.kt$/, ext === '.test.ts' && !/Tests?\.kt$/.test(p) ? '.ts' : ext)
   if (p.startsWith('komga/src/flyway/resources/')) return 'resources/' + p.slice('komga/src/flyway/resources/'.length)
   if (p.startsWith('komga/src/main/resources/')) return 'resources/' + p.slice('komga/src/main/resources/'.length)
   if (p.startsWith('komga/src/test/resources/')) return 'test/resources/' + p.slice('komga/src/test/resources/'.length)

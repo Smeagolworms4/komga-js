@@ -71,3 +71,49 @@ node tools/upstream-diff.mjs 1.28.0          # diffs complets à reporter
 echo <sha> > UPSTREAM_REF
 node tools/port-status.mjs                   # doit indiquer 0 fichier périmé
 ```
+
+## Conventions de traduction Kotlin → TypeScript
+
+Le support commun est dans `src/port/` (sans jumeau Kotlin) :
+`kotlin.ts` (data class, enum, exceptions, collections), `tsid.ts`, `java.ts` (URL/Path),
+`jackson.ts` (annotations JSON, `Class.forName`), `validation.ts` (annotations jakarta).
+Modèles de référence déjà portés : `src/domain/model/{Book,Media,Library,KomgaUser,MediaExtension,R2Locator}.ts`.
+
+| Kotlin | TypeScript |
+|---|---|
+| `data class X(val a: T, val b: U = d)` | `class X extends DataClass<XParams>` : champs `readonly` dans le même ordre, constructeur `({ a, b = d }: XParams)` (défauts de déstructuration = sémantique Kotlin, une valeur par défaut peut référencer un paramètre précédent) |
+| Appel `X(a, b)` ou `X(a = .., b = ..)` | `new X({ a: .., b: .. })` (toujours nommé) |
+| `x.copy(a = ..)` | `x.copy({ a: .. })` |
+| `==` / `!=` sur objets | `eq(a, b)` ; sur primitives et enums : `===` |
+| classe non-data avec `equals`/`hashCode` | `implements Equatable`, méthodes portées telles quelles |
+| `enum class E { A, B }` | `class E extends KEnum { static readonly A = new E('A') ... }` ; `E.entries()`, `E.valueOf(s)`, `e.name`, `e.ordinal` |
+| enum avec propriétés | constructeur privé `(name, ...props)` appelant `super(name)` |
+| type imbriqué `X.Y` | `export namespace X { export class Y ... }` après la classe |
+| `companion object` | membres `static` |
+| `val p by lazy { }` | `get p() { return lazy(this, 'p', () => ...) }` |
+| `T?` | `T \| null` (jamais `undefined` dans le modèle) |
+| `x!!` | `nn(x)` |
+| `x?.let { }` / `?:` | `x !== null ? ... : ...` / `??` |
+| `when { }` | `if / else if` dans le même ordre (ou `switch` pour un `when (x)` sur enum) |
+| `Int`, `Long`, `Float`, `Double` | `number` (`// PORT: Long` si la valeur peut dépasser 2^53) |
+| `ByteArray` | `Uint8Array` |
+| `List<T>` / `Set<T>` / `Map<K,V>` | `T[]` / `Set<T>` / `Map<K,V>` (`ReadonlySet` en paramètre) |
+| `setOf(..)`, `emptySet()` | `new Set([..])`, `new Set()` |
+| `listOf(..)`, `emptyList()` | `[..]`, `[]` |
+| fonctions d'extension `fun A.f()` | fonction exportée `f(self: A, ...)` dans le fichier jumeau |
+| fonctions d'extension de collection de la stdlib | helpers de `port/kotlin.ts` (`mapNotNull`, `associateBy`, `groupBy`, `sortedBy`, `intersect`, `distinct`…) |
+| paramètres nommés / par défaut d'une fonction | les paramètres obligatoires en position, les paramètres par défaut dans un objet final `{ a = d }: {...} = {}` |
+| surcharges | une seule fonction avec union de types, marquée `// PORT:` |
+| `LocalDateTime`, `LocalDate`, `ZonedDateTime`, `Duration` | `@js-joda/core` (API identique) |
+| `URL` | `URL` global ; `Path` = `string` ; `url.toURI().toPath()` = `urlToPath(url)` |
+| `TsidCreator.getTsid256().toString()` | identique, depuis `port/tsid.ts` |
+| exceptions | classes étendant `Exception`/`RuntimeException` de `port/kotlin.ts`, même hiérarchie |
+| `require` / `check` / `error` | idem depuis `port/kotlin.ts` |
+| annotations jakarta (`@NotBlank`…) | `constraints(Classe, { prop: [NotBlank()] })` en fin de fichier |
+| annotations Jackson (`@JsonInclude`…) | `json(Classe, { include: 'NON_EMPTY' })` en fin de fichier |
+| nom qualifié stocké en base (`Class.forName`) | `registerClass('org.gotson.komga...X', X)` |
+| KDoc et commentaires | recopiés tels quels |
+
+Tests : `describe('<ClasseDeTest>')`, `describe('<Nested>')`, `it('<nom exact>')`.
+AssertJ → `expect` de Vitest ; `.as("msg")` → `expect(x, 'msg')` ; `containsExactlyInAnyOrder` → comparaison après tri ;
+MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
