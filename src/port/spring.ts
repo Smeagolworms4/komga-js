@@ -288,7 +288,7 @@ function beanName(cls: Token): string {
   return cls.name.charAt(0).toLowerCase() + cls.name.slice(1)
 }
 
-type ComponentOptions = {
+export type ComponentOptions = {
   inject?: Dependency[]
   name?: string
   primary?: boolean
