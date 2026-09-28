@@ -1,0 +1,203 @@
+# KomgaJS
+
+[![Build](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml/badge.svg)](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml)
+[![Image](https://img.shields.io/badge/ghcr.io-komga--js%3Amain-0b7285)](https://github.com/Smeagolworms4/komga-js/pkgs/container/komga-js)
+[![Komga](https://img.shields.io/badge/port%20of-Komga%201.27.1-005ed3)](https://github.com/gotson/komga)
+[![Licence](https://img.shields.io/badge/licence-MIT-3d7a3d)](LICENSE)
+
+[Komga](https://komga.org), le serveur multimédia pour vos BD, mangas, comics, magazines et
+livres numériques — avec son backend porté ligne à ligne de Kotlin vers TypeScript. Même
+serveur, même API, même base de données, même interface web, **quatre à six fois moins de
+mémoire**.
+
+*[English version](README.md)*
+
+Komga est écrit en Kotlin sur la JVM, et une JVM est généreuse en mémoire : un Komga au
+repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et passe largement le gigaoctet
+une fois une bibliothèque scannée et servie. KomgaJS fait tourner le même programme sur
+Node.js. Ce n'est ni une réécriture ni un clone : chacun des 442 fichiers du backend de Komga
+a son jumeau TypeScript, du même nom, au même endroit, avec les mêmes fonctions dans le même
+ordre — pour que les évolutions de Komga puissent être reportées en lisant le diff.
+
+## Mémoire
+
+La même bibliothèque de 60 BD (645 Mo), le même scénario, chaque serveur partant d'une
+configuration vierge avec ses réglages par défaut. Mémoire résidente du processus :
+
+| | Komga (JVM) | KomgaJS | |
+|---|---|---|---|
+| Au repos, après le démarrage | 641 Mo | **166 Mo** | ÷ 3,9 |
+| Après scan et analyse de la bibliothèque | 1 125 Mo | **245 Mo** | ÷ 4,6 |
+| Après lecture (miniatures, pages) | 1 321 Mo | **221 Mo** | ÷ 6 |
+| Démarrage | 22,5 s | **1,4 s** | |
+| Scan des 60 livres | **55 s** | 134 s | 2,4 × plus lent |
+
+Le scan est plus lent volontairement pour l'instant : le traitement d'image tourne sur un
+seul thread pour garder la mémoire basse, et les tâches de fond partagent le processus avec
+le serveur web. Ce sont les deux prochaines améliorations. Le banc d'essai est
+`tools/mem-bench.mjs` ; lancez-le sur votre propre bibliothèque.
+
+## Fonctionnalités
+
+Tout ce que fait Komga, puisque c'est le code de Komga :
+
+- Parcourir bibliothèques, séries et livres dans une interface web qui s'adapte à l'ordinateur, la tablette et le téléphone
+- Organiser la bibliothèque en collections et listes de lecture
+- Modifier les métadonnées des séries et des livres
+- Importer automatiquement les métadonnées intégrées (ComicInfo, EPUB, Mylar, codes-barres ISBN, illustrations locales)
+- Liseuse web avec plusieurs modes de lecture
+- Plusieurs utilisateurs, avec accès par bibliothèque, restrictions d'âge et de libellés
+- Une API REST, utilisée par de nombreux outils et scripts de la communauté
+- OPDS v1 et v2
+- Synchronisation Kobo avec votre liseuse
+- Synchronisation KOReader
+- Téléchargement des livres, des séries entières ou des listes de lecture
+- Détection des fichiers en double
+- Détection et suppression des pages en double
+- Import de livres extérieurs directement dans le dossier de leur série
+- Import des listes de lecture ComicRack `cbl`
+
+Les interfaces web sont celles de Komga (`komga-webui` et `next-ui`), construites depuis le
+commit même que suit ce portage.
+
+## Installation
+
+```yaml
+# compose.yaml
+services:
+  komga:
+    image: ghcr.io/smeagolworms4/komga-js:main
+    container_name: komga
+    volumes:
+      - ./config:/config
+      - /chemin/vers/vos/livres:/data:ro
+    ports:
+      - 25600:25600
+    restart: unless-stopped
+```
+
+Elle s'utilise exactement comme [l'image de Komga](https://komga.org/docs/installation/docker) :
+la configuration et la base de données sont dans `/config`, le serveur écoute sur `25600`,
+et les mêmes réglages `application.yml` et variables d'environnement `KOMGA_*` s'appliquent.
+
+`:main` est un tag mobile, republié à chaque push sur `main` : l'image pour essayer la
+dernière version. Ce qui doit rester stable doit pointer vers un tag de version.
+
+### Depuis les sources
+
+Node.js 24, un compilateur C, les fichiers de développement d'ICU et `zip` (pour les tests) :
+
+```sh
+sudo apt install build-essential libicu-dev zip
+npm ci
+npm run build:native   # collations ICU pour SQLite, codec JPEG identique au JDK
+npm run build
+bin/komgajs --server.port=25600 --komga.config-dir=$HOME/.komga
+```
+
+L'interface web est facultative depuis les sources : construisez `komga-webui` et `next-ui`
+de Komga puis installez-les avec
+`node tools/install-webui.mjs <komga-webui/dist> <next-ui/dist>`. Sans elle, l'API, l'OPDS
+et les points d'accès Kobo et KOReader fonctionnent normalement.
+
+### Reprendre un Komga existant
+
+La base de données est la même, table pour table et octet pour octet : KomgaJS ouvre le
+`/config` d'un Komga tel quel, et Komga le rouvre ensuite. Le seul fichier non partagé est
+l'index de recherche, reconstruit automatiquement au premier démarrage, comme le fait Komga
+quand son index manque.
+
+Passez de l'un à l'autre, mais ne faites jamais tourner les deux en même temps sur la même
+base : chacun scannerait, exécuterait des tâches et tiendrait son propre index, sans voir les
+modifications de l'autre. Pour les comparer côte à côte, donnez à chacun sa propre copie de
+`/config` et les mêmes livres, en lecture seule.
+
+## État
+
+Tout le backend est porté, et tous les tests Kotlin de Komga l'ont été avec lui.
+
+- **Porté** : 442 fichiers sur 442, 775 tests Kotlin sur 775. 1 485 tests passent à chaque push.
+- **Vérifié contre le vrai Komga** : le schéma de la base et chaque checksum Flyway ; le
+  document OpenAPI (174 opérations sur 174 et 170 schémas sur 170 identiques) ; environ un
+  millier de réponses d'API réelles ; le XML OPDS v1 octet pour octet ; les hash des pages
+  JPEG octet pour octet ; la recherche, la lecture des archives, l'import des métadonnées,
+  l'authentification — chacun contre la bibliothèque Java qu'utilise Komga, exécutée comme
+  référence.
+- **Pas encore éprouvé en conditions réelles** : une grosse bibliothèque sur plusieurs jours,
+  de vraies liseuses Kobo et KOReader, Mihon et les autres clients, OAuth2 avec un vrai
+  fournisseur.
+
+Les écarts connus, tous listés dans [`PORTING.md`](PORTING.md) : l'index de recherche a son
+propre format de fichier ; les miniatures et les pages PDF sont encodées par d'autres
+bibliothèques, leurs pixels diffèrent donc légèrement (jamais leurs dimensions ni leurs
+formats) ; un scan est plus lent ; les erreurs de validation sortent dans un ordre fixe là où
+l'ordre de Komga est aléatoire.
+
+## Comment le portage est construit
+
+Les règles sont dans [`PORTING.md`](PORTING.md). En bref :
+
+- **Un fichier Kotlin, un fichier TypeScript**, même chemin, mêmes noms, même ordre. Chaque
+  fichier commence par `// @port-of <fichier kotlin>@<commit>`. Aucun refactoring : un bug de
+  Komga est reproduit et marqué `// UPSTREAM-BUG:`, et chaque écart inévitable est marqué
+  `// PORT:`.
+- **Les bibliothèques Java sont réimplémentées derrière la même API** — Spring (conteneur,
+  MVC, Security, Session, Data), jOOQ, Flyway, Jackson, Lucene, Tika, ImageIO — pour que le
+  code Kotlin se traduise ligne à ligne. Elles sont dans `src/port`.
+- **Le comportement est prouvé, pas supposé.** `tools/jshell-komga.sh` exécute du code Java
+  avec le classpath complet de Komga ; les valeurs produites sont enregistrées comme
+  fixtures, et les tests comparent le portage à elles.
+- **Suivre Komga.** `UPSTREAM_REF` indique le commit de Komga porté ;
+  `node tools/upstream-diff.mjs <nouvelle version>` liste chaque fichier Kotlin modifié avec
+  son jumeau TypeScript et le diff à reporter, et `node tools/port-status.mjs` échoue tant
+  que chaque fichier et chaque test ne sont pas à jour.
+
+## Développement
+
+```sh
+npm test                    # toute la suite
+npx vitest run test/domain  # une partie
+npm run typecheck
+node tools/port-status.mjs  # couverture du portage, fichier par fichier et test par test
+node tools/progress-page.mjs build/progress.html
+```
+
+```
+src/                 le backend porté, à l'image de komga/src/main/kotlin/org/gotson/komga
+  port/              les bibliothèques Java/Kotlin, réimplémentées (sans jumeau Kotlin)
+  flyway/            les migrations de base écrites en Kotlin
+test/                les tests portés, à l'image de komga/src/test, plus les comparaisons avec les références
+resources/           application.yml, migrations de base, polices (repris de Komga)
+native/              extension ICU pour SQLite, libjpeg 6b + LittleCMS (JPEG identique au JDK)
+tools/               état du portage, diff avec Komga, référence Java, banc d'essai, installation de l'interface web
+```
+
+## Intégration continue
+
+Chaque push vérifie les types, compile les modules natifs, contrôle que chaque fichier et
+chaque test Kotlin ont leur jumeau, exécute toute la suite et compile. Ce n'est que si tout
+cela passe que l'image est construite puis publiée. Rien dans la chaîne n'a besoin de Java
+ni d'un Komga en fonctionnement.
+
+## Crédits
+
+**Komga** est l'œuvre de [Gauthier Roebroeck](https://github.com/gotson) et de ses
+contributeurs : chaque fonctionnalité, chaque choix de conception et chaque ligne de
+l'interface web de ce projet sont les leurs. Si vous utilisez KomgaJS, soutenez l'original :
+
+[![Open Collective backers and sponsors](https://img.shields.io/opencollective/all/komga?label=OpenCollective%20Sponsors&color=success)](https://opencollective.com/komga)
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/gotson?label=Github%20Sponsors&color=success)](https://github.com/sponsors/gotson)
+[![Discord](https://img.shields.io/discord/678794935368941569?label=Discord&color=blue)](https://discord.gg/TdRpkDu)
+
+Les questions sur Komga lui-même ont leur place sur [le Discord](https://discord.gg/TdRpkDu)
+et [le site](https://komga.org) de Komga ; les problèmes propres à ce portage,
+[ici](https://github.com/Smeagolworms4/komga-js/issues).
+
+Le portage TypeScript est l'œuvre de [SmeagolWorms4](https://github.com/Smeagolworms4),
+auteur aussi de [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync).
+
+## Licence
+
+MIT, comme Komga — les deux copyrights sont conservés dans [`LICENSE`](LICENSE). Quelques
+fichiers de support sont dérivés d'autres projets et gardent leur propre licence : voir
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
