@@ -37,7 +37,9 @@ même charge, avec le code actuel (`tools/mem-bench.mjs`). Mémoire résidente d
 vraie bibliothèque de 6 594 livres, KomgaJS était à 564 Mo au repos après avoir reconstruit son
 index de recherche, contre 583 Mo pour Komga juste après son démarrage. C'est en cours
 (mémoire de la reconstruction de l'index, mémoire gardée par l'allocateur après les grosses
-tâches).
+tâches). L'index de recherche est désormais hors du tas V8 : sur une bibliothèque générée de
+7 000 livres, la mémoire au repos après la reconstruction passe de 797 Mo (avec le tas de 1 Go qu'exigeait l'ancien index) à environ 300 Mo
+(banc x86-64).
 
 Le scan est plus lent : le traitement d'image tourne sur un seul thread pour garder la mémoire
 basse. Les tâches de fond (scan, analyse, empreintes, miniatures) tournent dans un worker
@@ -45,8 +47,8 @@ thread, comme le pool de tâches de Komga : le serveur web continue de répondre
 (10 ms en médiane, 45 ms au 99ᵉ centile, mesuré pendant un scan) ; le worker ajoute 60 à
 100 Mo pendant qu'il tourne et s'arrête après 60 s sans tâche. Les bancs d'essai sont
 `tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ; lancez-les sur votre propre
-bibliothèque. Dans un conteneur, le tas V8 de chaque thread est limité à 40 % de la mémoire
-allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS` fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de mémoire ; 2 à 4 accélèrent miniatures et conversions ; 0 laisse libvips utiliser tous les cœurs) ; `KOMGAJS_TASK_WORKER=false`
+bibliothèque. Dans un conteneur, le tas V8 de chaque thread est limité au quart de la
+mémoire allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS` fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de mémoire ; 2 à 4 accélèrent miniatures et conversions ; 0 laisse libvips utiliser tous les cœurs) ; `KOMGAJS_TASK_WORKER=false`
 exécute les tâches dans le thread principal.
 
 ## Fonctionnalités

@@ -36,15 +36,17 @@ same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the
 **On a large library, the gain is not there yet.** On a Raspberry Pi 4 with a real library of
 6,594 books, KomgaJS sat at 564 MB when idle after rebuilding its search index, against
 583 MB for Komga right after its start. This is being worked on (memory of the index rebuild,
-memory kept by the allocator after large tasks).
+memory kept by the allocator after large tasks). The search index now lives off the V8 heap:
+on a generated library of 7,000 books, the idle memory after the rebuild went from 797 MB (with the 1 GB heap the old index needed) to
+about 300 MB (x86-64 bench).
 
 The scan is slower: image processing runs on a single thread to keep memory low. Background
 tasks (scan, analysis, hashing, thumbnails) run in a worker thread, like Komga's task pool, so
 the web server keeps answering during a scan (10 ms median, 45 ms at the 99th percentile,
 measured during a scan); the worker adds about 60–100 MB while it runs and stops after 60 s
 without tasks. The benchmarks are `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`;
-run them on your own library. In a container, each thread's V8 heap is capped at 40 % of the
-memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_IMAGE_THREADS` sets the number of native
+run them on your own library. In a container, each thread's V8 heap is capped at a quarter of
+the memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_IMAGE_THREADS` sets the number of native
 libvips threads per image operation (default 1, the lowest memory; 2–4 make thumbnails and
 conversions faster; 0 lets libvips use every core);
 `KOMGAJS_TASK_WORKER=false` runs the tasks on the main thread.
