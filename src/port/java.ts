@@ -8,7 +8,7 @@ import { isMainThread, threadId } from 'node:worker_threads'
 import { gzipSync } from 'node:zlib'
 
 // URL / URI Java et conversions Path <-> URL : voir java-net.ts
-export { URI, URL, pathToUri, pathToUrl, urlToPath } from './java-net.js'
+export { URI, URL, pathToUri, pathToUrl, uriToFilePath, urlToPath } from './java-net.js'
 
 /** `Files.exists(path)` */
 export function filesExists(path: string): boolean {

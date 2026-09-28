@@ -28,7 +28,7 @@ import { SeriesMetadataRepository } from '../persistence/SeriesMetadataRepositor
 import { SeriesRepository } from '../persistence/SeriesRepository.js'
 import { ThumbnailSeriesRepository } from '../persistence/ThumbnailSeriesRepository.js'
 import { stripAccents } from '../../language/LanguageUtils.js'
-import { filesDeleteIfExists, filesIsWritable, listDirectoryEntries, urlToPath } from '../../port/java.js'
+import { filesDeleteIfExists, filesIsWritable, listDirectoryEntries, uriToFilePath, urlToPath } from '../../port/java.js'
 import { check, eq, first, mapNotNull, nn, require, str, trim } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { CaseInsensitiveSimpleNaturalComparator } from '../../port/natsort.js'

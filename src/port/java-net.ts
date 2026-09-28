@@ -4,7 +4,7 @@
 // Comportements relevés sur Java 21 (jshell), voir test/port/java-net.test.ts. Ce fichier n'a pas de jumeau Kotlin.
 import { existsSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { type Equatable, Exception, IllegalArgumentException, hash } from './kotlin.js'
+import { type Equatable, Exception, IllegalArgumentException, RuntimeException, hash } from './kotlin.js'
 
 export class MalformedURLException extends Exception {}
 export class URISyntaxException extends Exception {}
@@ -184,8 +184,19 @@ export function pathToUrl(path: string): URL {
   return pathToUri(path).toURL()
 }
 
-/** `url.toURI().toPath()` / `Paths.get(url.toURI())` */
+/** `java.nio.file.FileSystemNotFoundException` */
+export class FileSystemNotFoundException extends RuntimeException {}
+
+/** `url.toURI().toPath()` / `Paths.get(url.toURI())` (Path.of(URI) : fournisseur choisi par le schéma) */
 export function urlToPath(url: URL | URI): string {
+  const u = url instanceof URL ? url.toURI() : url
+  if (u.scheme === null) throw new IllegalArgumentException('Missing scheme')
+  if (u.scheme.toLowerCase() !== 'file') throw new FileSystemNotFoundException(`Provider "${u.scheme}" not installed`)
+  return uriToFilePath(u)
+}
+
+/** `File(url.toURI())` (constructeur java.io.File(URI)) */
+export function uriToFilePath(url: URL | URI): string {
   const u = url instanceof URL ? url.toURI() : url
   if (u.scheme === null) throw new IllegalArgumentException('URI is not absolute')
   if (u.scheme.toLowerCase() !== 'file') throw new IllegalArgumentException("URI scheme is not \"file\"")

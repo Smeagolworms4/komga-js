@@ -1,5 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Exceptions.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { Exception } from '../../port/kotlin.js'
+import { Exception, registerJavaExceptionNames, throwableToString } from '../../port/kotlin.js'
 
 export class CodedException extends Exception {
   readonly code: string
@@ -7,8 +7,8 @@ export class CodedException extends Exception {
   // PORT: deux constructeurs Kotlin (cause, code) / (message, code) fusionnés
   constructor(causeOrMessage: Error | string, code: string) {
     if (typeof causeOrMessage === 'string') super(causeOrMessage)
-    // comme Throwable(cause) : message = cause.toString()
-    else super(causeOrMessage.toString(), causeOrMessage)
+    // comme Throwable(cause) : message = cause.toString() (nom de classe Java qualifié)
+    else super(throwableToString(causeOrMessage), causeOrMessage)
     this.code = code
   }
 }
@@ -82,3 +82,21 @@ export class ConfigurationException extends Exception {
 }
 
 export class EntityNotFoundException extends Exception {}
+
+registerJavaExceptionNames(
+  'org.gotson.komga.domain.model',
+  'CodedException',
+  'MediaNotReadyException',
+  'NoThumbnailFoundException',
+  'MediaUnsupportedException',
+  'ImageConversionException',
+  'DirectoryNotFoundException',
+  'DuplicateNameException',
+  'PathContainedInPath',
+  'UserEmailAlreadyExistsException',
+  'BookConversionException',
+  'ComicRackListException',
+  'EntryNotFoundException',
+  'ConfigurationException',
+  'EntityNotFoundException',
+)

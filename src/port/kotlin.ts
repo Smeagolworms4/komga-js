@@ -217,6 +217,45 @@ export class UnsupportedOperationException extends RuntimeException {}
 export class IndexOutOfBoundsException extends RuntimeException {}
 export class NumberFormatException extends IllegalArgumentException {}
 
+/** Noms de classe Java des exceptions (`getClass().getName()`), par nom simple ; enrichi par `registerJavaExceptionNames` */
+const javaExceptionNames = new Map<string, string>()
+/** Déclare le nom Java qualifié de classes d'exception (`paquet`.`nom simple`) */
+export function registerJavaExceptionNames(pkg: string, ...simpleNames: string[]): void {
+  for (const n of simpleNames) javaExceptionNames.set(n, `${pkg}.${n}`)
+}
+registerJavaExceptionNames(
+  'java.lang',
+  'Exception',
+  'RuntimeException',
+  'IllegalArgumentException',
+  'IllegalStateException',
+  'UnsupportedOperationException',
+  'IndexOutOfBoundsException',
+  'NumberFormatException',
+  'NullPointerException',
+  'ClassNotFoundException',
+)
+registerJavaExceptionNames('java.util', 'NoSuchElementException')
+registerJavaExceptionNames('kotlin', 'NoWhenBranchMatchedException')
+registerJavaExceptionNames('java.io', 'IOException', 'EOFException', 'FileNotFoundException')
+registerJavaExceptionNames(
+  'java.nio.file',
+  'FileSystemException',
+  'NoSuchFileException',
+  'FileAlreadyExistsException',
+  'DirectoryNotEmptyException',
+  'AccessDeniedException',
+  'NotDirectoryException',
+  'FileSystemLoopException',
+  'FileSystemNotFoundException',
+)
+
+/** `Throwable.toString()` : nom de classe Java qualifié, puis `: message` si le message n'est pas vide */
+export function throwableToString(e: Error): string {
+  const name = javaExceptionNames.get(e.constructor.name) ?? e.constructor.name
+  return e.message === '' ? name : `${name}: ${e.message}`
+}
+
 /** `require(cond) { msg }` */
 export function require(cond: boolean, msg: () => string = () => 'Failed requirement.'): asserts cond {
   if (!cond) throw new IllegalArgumentException(msg())
