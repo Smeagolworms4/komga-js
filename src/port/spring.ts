@@ -438,6 +438,18 @@ export class ApplicationContext implements ApplicationEventPublisher {
 
   /** Publication synchrone aux `@EventListener`, dans l'ordre d'enregistrement des beans */
   publishEvent(event: unknown): void {
+    // bean `applicationEventMulticaster` (ex. AsynchronousSpringEventsConfig hors profil test) : diffusion déléguée
+    const multicaster = this.active.find((d) => d.name === 'applicationEventMulticaster')
+    if (multicaster) {
+      const m = this.instantiate(multicaster) as { multicastEvent(event: unknown, invokeListeners: (e: unknown) => void): void }
+      m.multicastEvent(event, (e) => this.invokeListeners(e))
+      return
+    }
+    this.invokeListeners(event)
+  }
+
+  /** Appel synchrone des `@EventListener` correspondant à l'événement */
+  invokeListeners(event: unknown): void {
     for (const d of this.active)
       for (const l of d.eventListeners)
         if (l.events.some((e) => event instanceof e)) {
