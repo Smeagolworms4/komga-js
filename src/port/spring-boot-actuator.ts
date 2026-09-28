@@ -4,9 +4,11 @@
 // port/spring-security-web.ts) ne sont pas encore portés.
 // Réponses relevées sur Komga 1.27.1 (`application/vnd.spring-boot.actuator.v3+json`, ou `application/json` demandé).
 // Ce fichier n'a pas de jumeau Kotlin.
-import { statfsSync } from 'node:fs'
+import { existsSync, readFileSync, statfsSync } from 'node:fs'
+import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import type { HttpServletRequest } from './servlet.js'
+import { resourcesDir } from './resources.js'
 import { ApplicationContext } from './spring.js'
 import { AuthenticationTrustResolver, SecurityContextHolder } from './spring-security.js'
 import { request, restController } from './spring-web.js'
@@ -87,10 +89,23 @@ export class ActuatorEndpoints {
     return { contexts: { application: { beans } } }
   }
 
-  /** `/actuator/info` : build-info de Komga (groupe = nom du projet Gradle racine, « komga » dans les builds officiels) */
+  /**
+   * `/actuator/info` : GitInfoContributor (mode simple : branche, commit abrégé, date) lu dans git.properties, comme le
+   * jar de Komga, puis build-info (groupe = nom du projet Gradle racine, « komga » dans les builds officiels).
+   * komga-webui affiche `v{build.version}-{git.branch}` : sans `git`, le rendu du menu latéral échoue.
+   */
   info(): unknown {
+    const out: Record<string, unknown> = {}
+    const git = readGitProperties()
+    if (git !== null && git['git.branch'] !== undefined) {
+      const commit: Record<string, unknown> = {}
+      if (git['git.commit.id.abbrev'] !== undefined) commit.id = git['git.commit.id.abbrev']
+      if (git['git.commit.time'] !== undefined) commit.time = gitTimeToInstant(git['git.commit.time'])
+      out.git = { branch: git['git.branch'], commit }
+    }
     const version = this.ctx.environment.getProperty('application.version')
-    return version !== null ? { build: { artifact: 'komga', name: 'komga', version, group: 'komga' } } : {}
+    if (version !== null) out.build = { artifact: 'komga', name: 'komga', version, group: 'komga' }
+    return out
   }
 }
 
@@ -105,3 +120,23 @@ restController(ActuatorEndpoints, {
     info: { mapping: { method: 'GET', path: ['info'] } },
   },
 })
+
+/** git.properties (format java.util.Properties simple : `clé=valeur`, `\:` échappé, commentaires `#`) */
+function readGitProperties(): Record<string, string> | null {
+  const file = join(resourcesDir(), 'git.properties')
+  if (!existsSync(file)) return null
+  const out: Record<string, string> = {}
+  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    if (line.trim() === '' || line.startsWith('#') || line.startsWith('!')) continue
+    const i = line.indexOf('=')
+    if (i < 0) continue
+    out[line.slice(0, i).trim()] = line.slice(i + 1).trim().replace(/\\(.)/g, '$1')
+  }
+  return out
+}
+
+/** GitProperties.getCommitTime() : Instant sérialisé par Jackson (ISO, UTC, `Z`) */
+function gitTimeToInstant(v: string): string {
+  const d = new Date(v.replace(/([+-]\d{2})(\d{2})$/, '$1:$2'))
+  return Number.isNaN(d.getTime()) ? v : d.toISOString().replace('.000Z', 'Z')
+}
