@@ -80,6 +80,23 @@ Rapides : pas de contexte Spring (ni côté Kotlin ni côté TS), SQLite en mém
   Aides partagées : `oracleBytes(n)` / `tempDir()` / `exceptionType { }` (mêmes noms des deux côtés).
 - **Écart** : un cas qui diffère est un bug de portage, corrigé dans `src/`. Seul un écart assumé (bibliothèque,
   voir tableau ci-dessous) est déclaré par `deviation('description', 'raison')`.
+- **Base de données** (DAO, services) : `OracleDb` (`oracle/OracleDb.kt`) et son miroir `test/unit/db.ts`, sans Spring.
+  Base principale SQLite `:memory:` sur `SqliteUdfDataSource` (REGEXP, UDF, collations), clés étrangères actives,
+  migrée par Flyway comme au démarrage de Komga (SQL + migrations code, placeholders par défaut) ; base des tâches
+  (paresseuse) ; `dsl` / `tasksDsl` construits comme `KomgaJooqConfiguration` (le même contexte sert de RW et RO) ;
+  chaque DAO en propriété paresseuse au même nom des deux côtés (`db.libraryDao`, `db.bookDtoDao`, `db.tasksDao`...),
+  avec `batchSize` par défaut, l'ObjectMapper de Spring Boot (`db.mapper`) et un index Lucene en mémoire (`db.lucene`) ;
+  `db.rawQuery(sql)` lit les valeurs stockées. Une base par fichier de test (`private val db = OracleDb()` /
+  `const db = new OracleDb()`), partagée par ses cas qui s'exécutent dans l'ordre : toute écriture se fait *dans* un
+  `case` / `kase` (jamais au niveau de `func`), pour que l'état soit le même aux deux endroits. `@Transactional` n'est
+  appliqué d'aucun côté. Côté TS, l'extension `build/komgasqlite.so` est nécessaire (`npm run build:native:sqlite`).
+- **Ids et dates générés** : les cas fixent eux-mêmes ids et dates (`id = "L1"`, dates fixes loin d'aujourd'hui).
+  Ce que le code testé génère (TSID, `LocalDateTime.now()`, dates par défaut de la base) est neutralisé par
+  `stable(valeur)` (même aide des deux côtés, appliquée à la forme canonique) : chaque TSID devient `"@id:<n>"`
+  (numéroté par ordre d'apparition dans la valeur) et chaque `{"@time"}` à un jour près d'aujourd'hui devient
+  `{"@time": "@now"}`. Les messages des erreurs SQL (qui contiennent la requête) ne sont pas comparés : `exceptionType { }`.
+- **Collaborateurs** des services / contrôleurs : de préférence les vrais DAO sur `OracleDb` ; un faux (mock) n'est
+  admis que s'il est écrit de façon identique des deux côtés (même classe, mêmes réponses), dans le fichier de test.
 - Fuseau `Europe/Paris` et locale `en_US` des deux côtés (propriété Gradle `oracleOut`, `vitest.unit.config.ts`).
   Les valeurs dépendant de la machine (chemins temporaires, messages d'erreur du système) ne sont pas enregistrées.
 

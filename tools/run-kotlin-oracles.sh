@@ -42,6 +42,6 @@ start=$(date +%s)
 ./gradlew :komga:test "${filters[@]}" --rerun \
   -PoracleOut="$OUT" \
   -x runKtlintCheckOverMainSourceSet -x runKtlintCheckOverTestSourceSet \
-  -Dorg.gradle.jvmargs="-Xmx2G -Djava.io.tmpdir=$TMPDIR" \
+  -Dorg.gradle.jvmargs="-Xmx1G -Djava.io.tmpdir=$TMPDIR" \
   --console=plain -q
 echo "Kotlin oracles written to $OUT in $(($(date +%s) - start)) s"

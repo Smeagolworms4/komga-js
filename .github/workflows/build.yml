@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   # Kotlin oracle unit tests (test/unit/, see PORTING.md): the fixtures are committed, produced by the oracle tests
-  # of the Komga fork (branch unit-oracles), whose own workflow checks they are still identical. Fast, no native build.
+  # of the Komga fork (branch unit-oracles), whose own workflow checks they are still identical. Fast: only the SQLite extension is built.
   unit:
     name: Unit tests (Kotlin oracles)
     runs-on: ubuntu-24.04
@@ -37,7 +37,13 @@ jobs:
           node-version: 24.20.0
           cache: npm
 
+      # ICU for the SQLite collation extension (in-memory Komga databases of the DAO oracles, test/unit/db.ts)
+      - name: System libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
+
       - run: npm ci
+
+      - run: npm run build:native:sqlite
 
       - run: npm run test:unit
 

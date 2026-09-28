@@ -12,7 +12,7 @@
 // - DataObject : {"@object": nom de classe} ; PageImpl : {"@page": {content, totalElements, number, size}}
 // - autre objet : {"@class": nom de classe, <propriétés propres dans l'ordre de déclaration>}
 // - exception : {"@throws": nom de classe, "message": message} (message vide -> null, comme côté Kotlin)
-import { Temporal, TemporalAmount, Instant, ZonedDateTime } from '@js-joda/core'
+import { Temporal, TemporalAmount, Instant, LocalDate, ZonedDateTime } from '@js-joda/core'
 import { DataObject, KEnum } from '../../src/port/kotlin.js'
 import { URI, URL } from '../../src/port/java-net.js'
 import { PageImpl } from '../../src/port/spring-data.js'
@@ -39,8 +39,48 @@ export function canonThrowable(e: unknown): Canon {
   return { '@throws': typeof e, message: String(e) }
 }
 
+/** Valeur déjà sous forme canonique (enregistrée telle quelle), `Canonical` côté Kotlin */
+export class Canonical {
+  constructor(readonly value: Canon) {}
+}
+
+const TSID = /^[0-9A-HJKMNP-TV-Z]{13}$/
+
+/**
+ * Neutralise, dans une valeur canonique, ce que le code testé génère à l'exécution (`Canon.stable` côté Kotlin) :
+ * - une chaîne TSID (13 caractères Crockford base32, `TsidCreator.getTsid256()`) devient `"@id:<n>"`,
+ *   n numérotant les ids distincts dans l'ordre de première apparition ;
+ * - un `{"@time": ...}` commençant par une date à un jour près d'aujourd'hui devient `{"@time": "@now"}`.
+ * Les clés d'objet sont conservées.
+ */
+export function stableCanon(v: Canon): Canon {
+  const ids = new Map<string, string>()
+  const today = LocalDate.now()
+  const near = new Set([today.minusDays(1), today, today.plusDays(1)].map((d) => d.toString()))
+  const walk = (x: Canon): Canon => {
+    if (typeof x === 'string') {
+      if (!TSID.test(x)) return x
+      let id = ids.get(x)
+      if (id === undefined) ids.set(x, (id = `@id:${ids.size + 1}`))
+      return id
+    }
+    if (Array.isArray(x)) return x.map(walk)
+    if (x !== null && typeof x === 'object') {
+      const keys = Object.keys(x)
+      const t = x['@time']
+      if (keys.length === 1 && typeof t === 'string' && t.length >= 10 && near.has(t.slice(0, 10))) return { '@time': '@now' }
+      const out: { [k: string]: Canon } = {}
+      for (const k of keys) out[k] = walk(x[k] as Canon)
+      return out
+    }
+    return x
+  }
+  return walk(v)
+}
+
 export function canon(v: unknown): Canon {
   if (v === null) return null
+  if (v instanceof Canonical) return v.value
   if (v === undefined) return { '@unit': true }
   switch (typeof v) {
     case 'string':

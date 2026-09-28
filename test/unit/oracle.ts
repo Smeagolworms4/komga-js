@@ -15,7 +15,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { type Canon, canon, canonThrowable } from './canon.js'
+import { type Canon, Canonical, canon, canonThrowable, stableCanon } from './canon.js'
 
 const FIXTURES = new URL('./fixtures/', import.meta.url)
 
@@ -101,4 +101,12 @@ export async function exceptionType(block: () => unknown): Promise<string | null
   } catch (e) {
     return e instanceof Error ? e.name : typeof e
   }
+}
+
+/**
+ * Forme canonique de `v` où les ids (TSID) et les dates « maintenant » générés par le code testé sont neutralisés
+ * (voir `stableCanon`), comme `stable` côté Kotlin.
+ */
+export function stable(v: unknown): Canonical {
+  return new Canonical(stableCanon(canon(v)))
 }
