@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/SeriesSearch.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../port/jackson.js'
 import { json } from '../../port/jackson.js'
 import { DataClass } from '../../port/kotlin.js'
 import { jsonProperties } from '../../port/extra-search.js'
@@ -29,3 +30,5 @@ export class SeriesSearch extends DataClass<SeriesSearchParams> {
 json(SeriesSearch, { include: 'NON_NULL', ignore: ['regexSearch'] })
 // PORT: types des propriétés (réflexion Kotlin utilisée par Jackson) ; regexSearch est @JsonIgnore
 jsonProperties(SeriesSearch, { condition: { nullable: { class: SearchCondition.Series } }, fullTextSearch: { nullable: 'String' } })
+
+registerClass('org.gotson.komga.domain.model.SeriesSearch', SeriesSearch)

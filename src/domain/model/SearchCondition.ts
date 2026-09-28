@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/SearchCondition.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { qualifiedNameOf, registerClass } from '../../port/jackson.js'
 import { json } from '../../port/jackson.js'
 import { DataClass, KEnum } from '../../port/kotlin.js'
 import { jsonProperties, jsonTypeInfoDeduction, sealedInterface } from '../../port/extra-search.js'
@@ -452,3 +453,10 @@ openApiSchema(SearchCondition.SeriesStatus, { name: 'SearchConditionSeriesStatus
 openApiSchema(SearchCondition.MediaProfile, { name: 'SearchConditionMediaProfile' })
 openApiSchema(SearchCondition.Author, { name: 'SearchConditionAuthor' })
 openApiSchema(SearchCondition.Poster, { name: 'SearchConditionPoster' })
+
+// Class.forName / noms qualifiés Java (messages d'erreur Jackson)
+for (const [name, value] of Object.entries(SearchCondition))
+  if (value !== null && (typeof value === 'object' || typeof value === 'function') && qualifiedNameOf(value) === null)
+    registerClass(`org.gotson.komga.domain.model.SearchCondition$${name}`, value as never)
+if (qualifiedNameOf(SearchCondition.PosterMatch.Type) === null)
+  registerClass('org.gotson.komga.domain.model.SearchCondition$PosterMatch$Type', SearchCondition.PosterMatch.Type as never)
