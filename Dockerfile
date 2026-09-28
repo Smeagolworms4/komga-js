@@ -3,19 +3,20 @@
 # Même usage que l'image de Komga : volume /config, port 25600, bibliothèques montées où l'on veut.
 
 # --- Sources de Komga, au commit porté -------------------------------------------------------
-FROM alpine/git:2.47.2 AS komga-src
+FROM --platform=$BUILDPLATFORM alpine/git:2.47.2 AS komga-src
 ARG KOMGA_REF
 RUN test -n "$KOMGA_REF" && \
     git clone --filter=blob:none --no-checkout https://github.com/gotson/komga.git /komga && \
     git -C /komga checkout "$KOMGA_REF"
 
 # --- Interfaces web (versions de Node de leurs .nvmrc) ---------------------------------------
-FROM node:22-bookworm AS webui
+# Fichiers statiques, identiques pour toutes les architectures : construits sur la plateforme de build.
+FROM --platform=$BUILDPLATFORM node:22-bookworm AS webui
 COPY --from=komga-src /komga/komga-webui /webui
 WORKDIR /webui
 RUN npm ci --no-audit --no-fund && npm run build
 
-FROM node:24-bookworm AS nextui
+FROM --platform=$BUILDPLATFORM node:24-bookworm AS nextui
 COPY --from=komga-src /komga/next-ui /nextui
 WORKDIR /nextui
 RUN npm ci --no-audit --no-fund && npm run build

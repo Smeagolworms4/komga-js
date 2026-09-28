@@ -73,7 +73,7 @@ jobs:
     needs: verify
     # Published only from main and version tags; pull requests only build it.
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     permissions:
       contents: read
       packages: write
@@ -83,6 +83,8 @@ jobs:
       - name: Komga commit ported by this revision
         id: upstream
         run: echo "ref=$(cat UPSTREAM_REF)" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
 
       - uses: docker/setup-buildx-action@v3
 
@@ -107,7 +109,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           build-args: KOMGA_REF=${{ steps.upstream.outputs.ref }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
