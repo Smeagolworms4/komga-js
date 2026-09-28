@@ -4,6 +4,8 @@
 //   node tools/scan-bench.mjs gen <bibliothèque> [3131,2724,165]   génère des cbz minuscules valides
 //   node tools/scan-bench.mjs run <bibliothèque> <dossier-config>   premier scan + analyse, rescan à vide,
 //                                                                   rescan après modification de 10 fichiers
+//   Variables : BENCH_DIST (dist/ à charger), BENCH_SCAN_ONLY=1 (tâche ScanLibrary seule), BENCH_REUSE=1 (base
+//   existante : seulement les rescans)
 // Profil CPU : node --cpu-prof --cpu-prof-dir=build/prof tools/scan-bench.mjs run ...
 // Affiche une ligne JSON par phase : durée (s), tâches traitées (par type, durée cumulée), pic de RSS (Mo).
 import { mkdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
@@ -132,7 +134,9 @@ const resetHwm = () => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 async function run(library, configDir) {
-  rmSync(configDir, { recursive: true, force: true })
+  // BENCH_REUSE=1 : base existante (bibliothèque déjà scannée et analysée), seulement les rescans
+  const reuse = process.env.BENCH_REUSE === '1'
+  if (!reuse) rmSync(configDir, { recursive: true, force: true })
   mkdirSync(configDir, { recursive: true })
   const dist = resolve(process.env.BENCH_DIST ?? join(ROOT, 'dist'), 'src')
   // BENCH_SCAN_ONLY=1 : tâches non traitées, seule la tâche ScanLibrary est exécutée (directement) à chaque phase
@@ -194,10 +198,12 @@ async function run(library, configDir) {
     console.log(JSON.stringify({ phase: name, s: Number(s), rssPeakMb: Math.max(peak, hwmMb()), tasks: byTask }))
   }
 
-  let library0
-  await phase('first scan + analysis', async () => {
-    library0 = ctx.getBean(LibraryLifecycle).addLibrary(new Library({ name: 'Bench', root: pathToUrl(resolve(library)) }))
-  })
+  const { LibraryRepository } = await imp('domain/persistence/LibraryRepository.js')
+  let library0 = reuse ? ctx.getBean(LibraryRepository).findAll()[0] : undefined
+  if (!reuse)
+    await phase('first scan + analysis', async () => {
+      library0 = ctx.getBean(LibraryLifecycle).addLibrary(new Library({ name: 'Bench', root: pathToUrl(resolve(library)) }))
+    })
   const books = ctx.getBean(BookRepository).findAll()
   console.log(JSON.stringify({ books: books.length }))
   await phase('rescan, nothing changed', async () => ctx.getBean(TaskEmitter).scanLibrary(library0.id))
