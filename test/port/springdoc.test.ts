@@ -43,7 +43,7 @@ import { toJsonValue } from '../../src/port/swagger-models.js'
 import { ConstraintViolationException } from '../../src/port/validation-engine.js'
 import { Email, NotBlank } from '../../src/port/validation.js'
 
-const REFERENCE = '../komga-src/komga/docs/openapi.json'
+const REFERENCE = 'test/port/fixtures/komga-openapi.json'
 const TagNames = OpenApiConfiguration.TagNames
 
 // Les @Schema des interfaces scellées de recherche (domain/model/SearchCondition.ts, SearchOperator.ts) et les types

@@ -6,7 +6,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { afterAll, describe, expect, it } from 'vitest'
 import { MockMvc, closeContext, mockMvcTest } from '../support/mockmvc.js'
 
-const REFERENCE = '../komga-src/komga/docs/openapi.json'
+const REFERENCE = 'test/port/fixtures/komga-openapi.json'
 const hasReference = existsSync(REFERENCE)
 
 /**
