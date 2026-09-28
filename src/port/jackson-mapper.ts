@@ -11,6 +11,7 @@ import { DateTimeFormatter, Duration, Instant, LocalDate, LocalDateTime, ZoneOff
 import { type JsonIncludeValue, jsonMetaOf } from './jackson.js'
 import { JsonNumber, type JsonNode, javaDoubleToString, javaFloatToString, readTree, writeTree } from './jackson-tree.js'
 import { URI, URL } from './java-net.js'
+import { PageImpl, type Pageable, type Sort } from './spring-data.js'
 import { DataObject, Exception, KEnum, type SealedInterface, sealedInterfaceList } from './kotlin.js'
 
 // ---------------------------------------------------------------------------
@@ -211,6 +212,7 @@ export function toTree(v: unknown, declared?: JsonType, bindings: Map<string, Js
   if (v instanceof URL || v instanceof URI) return v.toString()
   if (v instanceof Uint8Array) return JsonTypes.ByteArray.write(v)
   if (v instanceof JsonNumber) return v
+  if (v instanceof PageImpl) return pageToTree(v, type, bindings)
   if (Array.isArray(v) || v instanceof Set) {
     const el = type !== undefined && typeof type === 'object' ? ('list' in type ? type.list : 'set' in type ? type.set : undefined) : undefined
     return [...v].map((x) => toTree(x, el, bindings))
@@ -251,6 +253,44 @@ export function toTree(v: unknown, declared?: JsonType, bindings: Map<string, Js
   throw new JsonMappingException(`Cannot serialize ${String(v)}`)
 }
 
+// Sérialisation de PageImpl par Jackson (mode Spring Data par défaut, relevé sur Komga) :
+// content, pageable, last, totalElements, totalPages, size, number, sort, first, numberOfElements, empty
+function sortToTree(sort: Sort): JsonNode {
+  return new Map<string, JsonNode>([
+    ['empty', sort.isEmpty()],
+    ['sorted', sort.isSorted],
+    ['unsorted', sort.isUnsorted],
+  ])
+}
+
+function pageToTree(page: PageImpl<unknown>, type: JsonType | undefined, bindings: Map<string, JsonType>): JsonNode {
+  const el = type !== undefined && typeof type === 'object' && 'class' in type ? (type.args?.[0] as JsonType | undefined) : undefined
+  const p: Pageable = page.pageable
+  const pageable: JsonNode = p.isPaged
+    ? new Map<string, JsonNode>([
+        ['pageNumber', new JsonNumber('int', p.pageNumber)],
+        ['pageSize', new JsonNumber('int', p.pageSize)],
+        ['sort', sortToTree(p.sort)],
+        ['offset', new JsonNumber('int', p.offset)],
+        ['paged', true],
+        ['unpaged', false],
+      ])
+    : 'INSTANCE'
+  return new Map<string, JsonNode>([
+    ['content', page.content.map((x) => toTree(x, el, bindings))],
+    ['pageable', pageable],
+    ['last', page.isLast],
+    ['totalElements', new JsonNumber('int', page.totalElements)],
+    ['totalPages', new JsonNumber('int', page.totalPages)],
+    ['size', new JsonNumber('int', page.size)],
+    ['number', new JsonNumber('int', page.number)],
+    ['sort', sortToTree(page.sort)],
+    ['first', page.isFirst],
+    ['numberOfElements', new JsonNumber('int', page.numberOfElements)],
+    ['empty', page.isEmpty()],
+  ])
+}
+
 // PrettyPrinter par défaut de Jackson : `"a" : 1`, tableaux `[ 1, 2 ]`, indentation de 2 espaces
 function writePretty(n: JsonNode, indent: string): string {
   if (n instanceof Map) {
@@ -280,7 +320,8 @@ function jsonNamesOf(cls: object): Map<string, string> {
   return new Map(
     Object.keys(props)
       .filter((k) => !meta.ignore?.includes(k))
-      .map((k) => [meta.rename?.[k] ?? k, k]),
+      // @JsonAlias : noms supplémentaires acceptés en lecture
+      .flatMap((k) => [[meta.rename?.[k] ?? k, k] as [string, string], ...(meta.alias?.[k] ?? []).map((a) => [a, k] as [string, string])]),
   )
 }
 
@@ -327,7 +368,11 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
   if (type === 'Int' || type === 'Long' || type === 'Float' || type === 'Double' || type === 'Number') {
     let n: number
     if (node instanceof JsonNumber) n = Number(node.value)
-    else if (typeof node === 'string' && /^\s*[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/.test(node)) n = Number(node)
+    // Int/Long depuis une chaîne : Integer.parseInt / Long.parseLong après trim (pas de décimale ni d'exposant)
+    else if (typeof node === 'string' && (type === 'Int' || type === 'Long')) {
+      if (!/^[\x00-\x20]*[+-]?[0-9]+[\x00-\x20]*$/.test(node)) throw new InvalidFormatException(`Cannot deserialize value of type \`${type}\` from String "${node}": not a valid \`${type}\` value`)
+      n = Number(node.trim())
+    } else if (typeof node === 'string' && /^\s*[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/.test(node)) n = Number(node)
     else throw new InvalidFormatException(`Cannot deserialize value of type \`${type}\` from ${nodeKind(node)} at ${path || '$'}`)
     if (type === 'Int' || type === 'Long') {
       if (!Number.isInteger(n)) n = Math.trunc(n)
@@ -361,6 +406,12 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     return new Map([...node].map(([k, x]) => [type.key ? fromTree(k, type.key, bindings, path) : k, fromTree(x, type.map, bindings, `${path}.${k}`)]))
   }
   if ('enum' in type) {
+    // FAIL_ON_NUMBERS_FOR_ENUMS désactivé : un entier est l'ordinal de la constante
+    if (node instanceof JsonNumber && Number.isInteger(Number(node.value))) {
+      const byIndex = type.enum.entries()[Number(node.value)]
+      if (byIndex === undefined) throw new InvalidFormatException(`Cannot deserialize value of type enum from number ${String(node.value)}: index value outside legal index range`)
+      return byIndex
+    }
     // accept-case-insensitive-values ne s'applique pas aux enums (il faudrait ACCEPT_CASE_INSENSITIVE_ENUMS) : casse exacte
     const name = scalarText(node) ?? ''
     const e = type.enum.entries().find((it) => (it as KEnum & { toJSON(): string }).toJSON() === name)
@@ -460,7 +511,8 @@ export type JavaType = JsonType
 function parse(src: string | Uint8Array): JsonNode {
   const text = typeof src === 'string' ? src : Buffer.from(src).toString('utf8')
   try {
-    return readTree(text)
+    // FAIL_ON_TRAILING_TOKENS désactivé : le contenu qui suit la valeur racine n'est pas lu
+    return readTree(text, { allowTrailing: true })
   } catch (e) {
     throw new JsonParseException(`Unexpected character: ${(e as Error).message}`, e)
   }

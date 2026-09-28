@@ -78,3 +78,14 @@ describe('javaHashSet', () => {
     )
   })
 })
+
+describe('PageImpl', () => {
+  it('serializes like Spring Data (reference Komga /api/v1/series)', async () => {
+    const { PageImpl, PageRequest, Sort, Pageable } = await import('../../src/port/spring-data.js')
+    const m2 = new ObjectMapper()
+    expect(m2.writeValueAsString(new PageImpl([], PageRequest.of(0, 2, Sort.by('metadata.titleSort').descending()), 0))).toBe(
+      '{"content":[],"pageable":{"pageNumber":0,"pageSize":2,"sort":{"empty":false,"sorted":true,"unsorted":false},"offset":0,"paged":true,"unpaged":false},"last":true,"totalElements":0,"totalPages":0,"size":2,"number":0,"sort":{"empty":false,"sorted":true,"unsorted":false},"first":true,"numberOfElements":0,"empty":true}',
+    )
+    expect(m2.writeValueAsString(new PageImpl([1], Pageable.unpaged(), 1))).toContain('"pageable":"INSTANCE"')
+  })
+})
