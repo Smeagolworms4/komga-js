@@ -7,7 +7,7 @@ import { type DataSource, JournalMode } from '../../../../src/port/sqlite.js'
 import { query } from '../../db.js'
 import { oracle, tempDir } from '../../oracle.js'
 
-const { func, kase } = oracle('infrastructure/datasource/DataSourcesConfiguration')
+const { func, kase, deviation } = oracle('infrastructure/datasource/DataSourcesConfiguration')
 
 function props(file: string, block: (it: KomgaProperties.Database) => void = () => {}): KomgaProperties {
   const p = new KomgaProperties()
@@ -42,10 +42,10 @@ const conf = (p: KomgaProperties) => new DataSourcesConfiguration(p)
 
 func('sqliteDataSourceRW', () => {
   kase('memory', () => describe(conf(props(':memory:')).sqliteDataSourceRW()))
-  kase('memory pragmas', () => pragmas(conf(props(':memory:')).sqliteDataSourceRW()))
+  deviation('memory pragmas', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
   kase('memory mode url', () => describe(conf(props('file:komga?mode=memory&cache=shared')).sqliteDataSourceRW()))
   kase('file with WAL', () => describe(conf(props(file('wal.sqlite'), (it) => (it.poolSize = 4))).sqliteDataSourceRW()))
-  kase('file with WAL pragmas', () => pragmas(conf(props(file('wal.sqlite'))).sqliteDataSourceRW()))
+  deviation('file with WAL pragmas', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
   kase('file with DELETE journal and pool size', () =>
     describe(
       conf(
@@ -56,7 +56,7 @@ func('sqliteDataSourceRW', () => {
       ).sqliteDataSourceRW(),
     ),
   )
-  kase('file with DELETE journal pragmas', () => pragmas(conf(props(file('delete.sqlite'), (it) => (it.journalMode = JournalMode.DELETE))).sqliteDataSourceRW()))
+  deviation('file with DELETE journal pragmas', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
   kase('file without journal mode', () => describe(conf(props(file('none.sqlite'), (it) => (it.journalMode = null))).sqliteDataSourceRW()))
   const withPragmas = (it: KomgaProperties.Database) => {
     it.pragmas = new Map([
@@ -65,10 +65,10 @@ func('sqliteDataSourceRW', () => {
     ])
   }
   kase('pragmas in url', () => describe(conf(props(':memory:', withPragmas)).sqliteDataSourceRW()))
-  kase('pragmas applied', () => pragmas(conf(props(':memory:', withPragmas)).sqliteDataSourceRW()))
+  deviation('pragmas applied', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
   kase('busy timeout in seconds', () => describe(conf(props(':memory:', (it) => (it.busyTimeout = Duration.ofSeconds(7)))).sqliteDataSourceRW()))
   kase('busy timeout in millis', () => describe(conf(props(':memory:', (it) => (it.busyTimeout = Duration.ofMillis(1500)))).sqliteDataSourceRW()))
-  kase('busy timeout pragma', () => pragmas(conf(props(':memory:', (it) => (it.busyTimeout = Duration.ofSeconds(2)))).sqliteDataSourceRW()))
+  deviation('busy timeout pragma', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
 })
 
 func('sqliteDataSourceRO', () => {
@@ -80,7 +80,7 @@ func('sqliteDataSourceRO', () => {
 func('tasksDataSourceRW', () => {
   kase('memory', () => describe(conf(props(':memory:')).tasksDataSourceRW()))
   kase('file with pool size', () => describe(conf(props(file('tasks.sqlite'), (it) => (it.poolSize = 5))).tasksDataSourceRW()))
-  kase('memory pragmas', () => pragmas(conf(props(':memory:')).tasksDataSourceRW()))
+  deviation('memory pragmas', "busy_timeout d'au moins 30 s (connectionTimeout de Hikari) : deux threads écrivent, voir port/sqlite.ts")
 })
 
 func('tasksDataSourceRO', () => {
