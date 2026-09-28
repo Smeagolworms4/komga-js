@@ -33,14 +33,14 @@ beforeAll(() => {
 
 describe('jooq port', () => {
   it('renders conditions like jOOQ', () => {
-    expect(sqlOf(l.NAME.eq(null))).toContain('"LIBRARY"."NAME" = ?')
-    expect(sqlOf(l.NAME.in([]))).toContain('"LIBRARY"."NAME" in ()')
-    expect(sqlOf(l.NAME.notIn([]))).toContain('"LIBRARY"."NAME" not in ()')
-    expect(sqlOf(DSL.noCondition().and(l.NAME.eq('x')))).toMatch(/where "LIBRARY"."NAME" = \?$/)
+    expect(sqlOf(l.NAME.eq(null))).toContain('LIBRARY.NAME = ?')
+    expect(sqlOf(l.NAME.in([]))).toContain('LIBRARY.NAME in ()')
+    expect(sqlOf(l.NAME.notIn([]))).toContain('LIBRARY.NAME not in ()')
+    expect(sqlOf(DSL.noCondition().and(l.NAME.eq('x')))).toMatch(/where LIBRARY.NAME = \?$/)
     expect(sqlOf(DSL.noCondition())).not.toContain('where')
-    expect(sqlOf(DSL.falseCondition().or(l.NAME.eq('x')))).toContain('(1 = 0 or "LIBRARY"."NAME" = ?)')
+    expect(sqlOf(DSL.falseCondition().or(l.NAME.eq('x')))).toContain('(1 = 0 or LIBRARY.NAME = ?)')
     expect(sqlOf(l.NAME.contains('a'))).toContain(`like (('%' || "replace"("replace"("replace"(?, '!', '!!'), '%', '!%'), '_', '!_')) || '%') escape '!'`)
-    expect(dsl.select(l.NAME).from(l).orderBy(l.NAME, l.ID).seek('x', 'y').limit(10).getSQL()).toContain('("LIBRARY"."NAME", "LIBRARY"."ID") > (?, ?)')
+    expect(dsl.select(l.NAME).from(l).orderBy(l.NAME, l.ID).seek('x', 'y').limit(10).getSQL()).toContain('(LIBRARY.NAME, LIBRARY.ID) > (?, ?)')
   })
 
   it('stores values like jOOQ + sqlite-jdbc and reads them back', () => {

@@ -4,7 +4,7 @@ import { BookPageNumbered } from '../../domain/model/BookPageNumbered.js'
 import { CopyMode } from '../../domain/model/CopyMode.js'
 import { LuceneEntity } from '../../infrastructure/search/LuceneEntity.js'
 import { registerClass } from '../../port/jackson.js'
-import { jsonProperties } from '../../port/jackson-mapper.js'
+import { jsonFields, jsonProperties } from '../../port/jackson-mapper.js'
 import { str } from '../../port/kotlin.js'
 
 export const HIGHEST_PRIORITY = 8
@@ -479,7 +479,7 @@ export namespace Task {
   export class UpgradeIndex extends Task {
     readonly uniqueId: string
 
-    constructor({ priority = DEFAULT_PRIORITY }: UpgradeIndexParams) {
+    constructor({ priority = DEFAULT_PRIORITY }: UpgradeIndexParams = {}) {
       super({ priority: priority })
       this.uniqueId = 'UPGRADE_INDEX'
     }
@@ -562,6 +562,8 @@ registerClass('org.gotson.komga.application.tasks.Task$DeleteSeries', Task.Delet
 registerClass('org.gotson.komga.application.tasks.Task$FindBookThumbnailsToRegenerate', Task.FindBookThumbnailsToRegenerate)
 
 // PORT: réflexion Kotlin (paramètres des constructeurs, lus et écrits par Jackson)
+// champs `val` hors constructeur (groupId, uniqueId) : Jackson les renseigne aussi en lecture
+jsonFields(Task, { groupId: { nullable: 'String' }, uniqueId: { nullable: 'String' } })
 jsonProperties(Task.ScanLibrary, { libraryId: 'String', scanDeep: 'Boolean', priority: 'Int' }, [], { required: ['libraryId', 'scanDeep'] })
 jsonProperties(Task.FindBooksToConvert, { libraryId: 'String', priority: 'Int' }, [], { required: ['libraryId'] })
 jsonProperties(Task.FindBooksWithMissingPageHash, { libraryId: 'String', priority: 'Int' }, [], { required: ['libraryId'] })

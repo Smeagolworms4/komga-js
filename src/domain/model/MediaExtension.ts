@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/MediaExtension.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { classForName, qualifiedNameOf, registerClass } from '../../port/jackson.js'
-import { jsonProperties } from '../../port/jackson-mapper.js'
+import { jsonAbstract, jsonProperties } from '../../port/jackson-mapper.js'
 import { DataClass } from '../../port/kotlin.js'
 import { EpubTocEntry } from './EpubTocEntry.js'
 import { R2Locator } from './R2Locator.js'
@@ -8,6 +8,8 @@ import { R2Locator } from './R2Locator.js'
 // PORT: interface Kotlin représentée par une classe abstraite vide (sert aussi de MediaExtension::class) ;
 // les implémentations s'enregistrent dans mediaExtensionClasses pour reproduire isSubclassOf(MediaExtension::class)
 export abstract class MediaExtension {}
+// PORT: interface Kotlin, que Jackson ne peut pas instancier (readValue(..., MediaExtension::class.java) échoue)
+jsonAbstract(MediaExtension)
 const mediaExtensionClasses = new Set<object>()
 const MEDIA_EXTENSION_QUALIFIED_NAME = 'org.gotson.komga.domain.model.MediaExtension'
 

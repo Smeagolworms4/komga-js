@@ -7,6 +7,14 @@ import { SQLiteDataSource } from '../../port/sqlite.js'
 
 const log = KotlinLogging.logger('org.gotson.komga.infrastructure.datasource.SqliteUdfDataSource')
 
+function javaRegex(pattern: string): RegExp {
+  try {
+    return new RegExp(pattern, 'iu')
+  } catch {
+    return new RegExp(pattern, 'i')
+  }
+}
+
 export class SqliteUdfDataSource extends SQLiteDataSource {
   static readonly UDF_STRIP_ACCENTS = 'UDF_STRIP_ACCENTS'
   static readonly COLLATION_UNICODE_1 = 'COLLATION_UNICODE_1'
@@ -27,19 +35,22 @@ export class SqliteUdfDataSource extends SQLiteDataSource {
 
   private createUdfRegexp(connection: Database.Database): void {
     log.debug(() => 'Adding custom REGEXP function')
-    connection.function('REGEXP', { deterministic: true }, (pattern: unknown, value: unknown) => {
-      // PORT: Kotlin toRegex(IGNORE_CASE) = java.util.regex ; approché par RegExp JS avec le drapeau 'i'
-      const regexp = new RegExp(pattern === null ? '' : String(pattern), 'i')
-      const text = value === null ? '' : String(value)
+    // PORT: Function.create de sqlite-jdbc enregistre la fonction avec un nombre d'arguments variable (narg -1)
+    connection.function('REGEXP', { deterministic: true, varargs: true }, (pattern: unknown, value: unknown) => {
+      // PORT: Kotlin toRegex(IGNORE_CASE) = java.util.regex, CASE_INSENSITIVE | UNICODE_CASE, par points de code ;
+      // approché par RegExp JS avec les drapeaux 'iu' (repli sur 'i' pour une syntaxe refusée en mode unicode)
+      const regexp = javaRegex(pattern === null || pattern === undefined ? '' : String(pattern))
+      const text = value === null || value === undefined ? '' : String(value)
 
-      return regexp.test(text) ? 1 : 0
+      // PORT: result(Int) -> entier SQLite (un nombre JS serait rendu en REAL)
+      return regexp.test(text) ? 1n : 0n
     })
   }
 
   private createUdfStripAccents(connection: Database.Database): void {
     log.debug(() => `Adding custom ${SqliteUdfDataSource.UDF_STRIP_ACCENTS} function`)
-    connection.function(SqliteUdfDataSource.UDF_STRIP_ACCENTS, { deterministic: true }, (text: unknown) => {
-      if (text === null) return error('Argument must not be null')
+    connection.function(SqliteUdfDataSource.UDF_STRIP_ACCENTS, { deterministic: true, varargs: true }, (text: unknown) => {
+      if (text === null || text === undefined) return error('Argument must not be null')
       else return stripAccents(String(text))
     })
   }

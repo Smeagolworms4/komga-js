@@ -193,6 +193,10 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | `INTEGER`, `BIGINT` | entier | `number` (`bigint` au-delà de 2^53) |
 | `BLOB` | octets | `Uint8Array` |
 
+SQL rendu par jOOQ 3.19 (dialecte SQLite), relevé par les oracles de `infrastructure/jooq` et reproduit par `port/jooq` :
+noms sans guillemets sauf besoin (`SERIES.ID`, `"RLB_a""b c"`, mots-clés SQLite), `isTrue()` / `isFalse()` en ligne (`= 1`),
+messages d'erreur de sqlite-jdbc (`[SQLITE_ERROR] SQL error or missing database (...)`, `[SQLITE_CONSTRAINT_NOTNULL] ...`).
+
 ## Conventions : couche d'accès aux données (DAO)
 
 Référence : `src/infrastructure/jooq/main/LibraryDao.ts` et `test/infrastructure/jooq/main/LibraryDaoTest.test.ts`.

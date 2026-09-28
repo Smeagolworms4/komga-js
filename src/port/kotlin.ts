@@ -454,6 +454,8 @@ export function partition<T>(a: Iterable<T>, p: (t: T) => boolean): [T[], T[]] {
 }
 /** `chunked(n)` */
 export function chunked<T>(a: readonly T[], n: number): T[][] {
+  // checkWindowSizeStep de Kotlin (sinon boucle infinie pour n <= 0)
+  if (n <= 0) throw new IllegalArgumentException(`size ${n} must be greater than zero.`)
   const out: T[][] = []
   for (let i = 0; i < a.length; i += n) out.push(a.slice(i, i + n))
   return out
