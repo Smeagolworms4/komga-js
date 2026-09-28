@@ -1,0 +1,1 @@
+{"migrate: empty media":[[0]],"migrate: copies thumbnails":[["@id:1",{"@bytes":"AQL/"},1,"GENERATED","B1",null],["@id:2",null,1,"GENERATED","B2",null],["@id:3",{"@bytes":""},1,"GENERATED","B3",null]],"migrate: ids are distinct":[[3,3]]}

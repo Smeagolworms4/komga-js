@@ -11,6 +11,7 @@
 //
 // Les cas d'un fichier partagent sa base et s'exécutent dans l'ordre de déclaration (comme en Kotlin) ;
 // les ids et dates « maintenant » générés par Komga sont neutralisés par `stable` (oracle.ts).
+import type Database from 'better-sqlite3'
 import { join } from 'node:path'
 import { afterAll } from 'vitest'
 import { KomgaProperties } from '../../src/infrastructure/configuration/KomgaProperties.js'
@@ -63,8 +64,10 @@ import { resourcesDir } from '../../src/port/resources.js'
 import { HikariDataSource, SQLiteDataSource } from '../../src/port/sqlite.js'
 
 const open: OracleDb[] = []
+const opened: HikariDataSource[] = []
 afterAll(() => {
   for (const db of open.splice(0)) db.close()
+  for (const ds of opened.splice(0)) ds.close()
 })
 
 function openDataSource(ds: SQLiteDataSource): HikariDataSource {
@@ -72,6 +75,39 @@ function openDataSource(ds: SQLiteDataSource): HikariDataSource {
   ds.setEnforceForeignKeys(true)
   ds.setGetGeneratedKeys(false)
   return new HikariDataSource(ds)
+}
+
+/** Nouvelle base principale en mémoire (SqliteUdfDataSource) migrée jusqu'à la version `target` incluse */
+export function mainConnectionAt(target: string): Database.Database {
+  const ds = openDataSource(new SqliteUdfDataSource())
+  const db = ds.getConnection()
+  new Flyway(db, { ...mainFlywayConfig(), target }).migrate()
+  opened.push(ds)
+  return db
+}
+
+/** Lignes d'une requête SQL brute (valeurs SQLite : chaîne, nombre, octets, null) */
+export function query(db: Database.Database, sql: string): unknown[][] {
+  return db.prepare(sql).raw().all() as unknown[][]
+}
+
+/** Exécute les instructions SQL une à une */
+export function exec(db: Database.Database, ...statements: string[]): void {
+  for (const s of statements) db.prepare(s).run()
+}
+
+function mainFlywayConfig() {
+  return {
+    sqlLocations: [join(resourcesDir(), 'db/migration/sqlite')],
+    codeMigrations: MAIN_CODE_MIGRATIONS,
+    codePackage: 'db.migration.sqlite',
+    placeholders: {
+      'library-file-hashing': 'true',
+      'library-scan-startup': 'false',
+      'delete-empty-collections': 'true',
+      'delete-empty-read-lists': 'true',
+    },
+  }
 }
 
 export class OracleDb {
@@ -90,17 +126,7 @@ export class OracleDb {
 
   constructor() {
     this.dataSource = openDataSource(new SqliteUdfDataSource())
-    new Flyway(this.dataSource.getConnection(), {
-      sqlLocations: [join(resourcesDir(), 'db/migration/sqlite')],
-      codeMigrations: MAIN_CODE_MIGRATIONS,
-      codePackage: 'db.migration.sqlite',
-      placeholders: {
-        'library-file-hashing': 'true',
-        'library-scan-startup': 'false',
-        'delete-empty-collections': 'true',
-        'delete-empty-read-lists': 'true',
-      },
-    }).migrate()
+    new Flyway(this.dataSource.getConnection(), mainFlywayConfig()).migrate()
     this.dsl = new KomgaJooqConfiguration().mainDslContextRW(this.dataSource)
     open.push(this)
   }
@@ -266,7 +292,7 @@ export class OracleDb {
 
   /** Lignes d'une requête SQL brute sur la base principale (valeurs SQLite : chaîne, nombre, octets, null) */
   rawQuery(sql: string): unknown[][] {
-    return this.dataSource.getConnection().prepare(sql).raw().all() as unknown[][]
+    return query(this.dataSource.getConnection(), sql)
   }
 
   close(): void {
