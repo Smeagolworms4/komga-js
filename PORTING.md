@@ -180,3 +180,11 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
 | `sealed interface` / `sealed class` | `sealedInterface('Name', () => [Sub1, Sub2])` (`port/kotlin.ts`) |
 | getter calculé sérialisé (`val x get() = ...`) | `jsonProperties(..., { getters: ['x'] })` |
 | `mapper.readValue<T>(json)` | `mapper.readValue<T>(json, { class: T })` |
+
+## Architecture d'exécution (bloquant Kotlin → Node)
+
+- Accès base et transactions **synchrones** (better-sqlite3), comme le code Kotlin bloquant ; `transactional()` refuse une fonction asynchrone.
+  Vérifié : les blocs `@Transactional` / `transactionTemplate` de Komga ne font que des accès base (et des suppressions de fichiers, faites en synchrone).
+- Système de fichiers : API synchrones de `node:fs` quand le Kotlin est bloquant.
+- `async`/`await` uniquement quand une bibliothèque l'impose (traitement d'image, flux HTTP) ; la fonction Kotlin garde son nom, devient `async`, et ses appelants font `await` (`// PORT: async`).
+- Les tâches (scan, analyse, miniatures…), exécutées par Komga dans un pool de threads, s'exécuteront dans des `worker_threads` avec leur propre contexte et leurs connexions, pour ne pas bloquer le serveur HTTP.
