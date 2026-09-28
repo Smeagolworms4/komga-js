@@ -87,7 +87,7 @@ import { toIndexedMap } from '../../../src/language/LanguageUtils.js'
 import { FileAlreadyExistsException, FileNotFoundException } from '../../../src/port/java-nio-file.js'
 import { pathToUrl } from '../../../src/port/java-net.js'
 import { nn, sortedBy } from '../../../src/port/kotlin.js'
-import { KepubConverter } from '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/kobo/KepubConverter.js'
 import { closeContext, springBootTest } from '../../SpringBootTest.js'
 import { any, clearMocks, every, mockk, verify } from '../../support/mockk.js'
 import { makeBook, makeLibrary, makeSeries } from '../model/Utils.js'
@@ -131,8 +131,6 @@ describe('BookImporterTest', () => {
 
   const ctx = springBootTest({}, [
     { type: TaskEmitter, instance: mockTackReceiver },
-    // TEMPORAIRE : KepubConverter n'est pas encore un bean (bouchon de l'agent mediacontainer)
-    { type: KepubConverter, instance: new KepubConverter() },
   ])
   const bookImporter = ctx.getBean(BookImporter)
   const bookRepository = ctx.getBean(BookRepository)

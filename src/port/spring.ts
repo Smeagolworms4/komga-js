@@ -395,6 +395,9 @@ export abstract class ApplicationEventPublisher {
 /** `org.springframework.boot.context.event.ApplicationReadyEvent` */
 export class ApplicationReadyEvent {}
 
+/** `org.springframework.context.event.ContextRefreshedEvent` : publié à la fin de `refresh()` */
+export class ContextRefreshedEvent {}
+
 export class NoSuchBeanDefinitionException extends IllegalStateException {}
 export class NoUniqueBeanDefinitionException extends IllegalStateException {}
 
@@ -434,6 +437,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
   /** Instancie tous les beans non paresseux (démarrage de l'application) */
   refresh(): this {
     for (const d of this.active) if (!d.lazy) this.instantiate(d)
+    this.publishEvent(new ContextRefreshedEvent())
     return this
   }
 

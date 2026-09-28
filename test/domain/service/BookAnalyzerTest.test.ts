@@ -18,7 +18,8 @@ import { Media } from '../../../src/domain/model/Media.js'
 import { MediaExtensionEpub } from '../../../src/domain/model/MediaExtension.js'
 import { BookAnalyzer } from '../../../src/domain/service/BookAnalyzer.js'
 import { KomgaProperties } from '../../../src/infrastructure/configuration/KomgaProperties.js'
-import { KepubConverter } from '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/jooq/main/BookProjectionDao.js'
 import { EpubExtractor } from '../../../src/infrastructure/mediacontainer/epub/EpubExtractor.js'
 import { Exception, nn } from '../../../src/port/kotlin.js'
 import { extension, listDirectoryEntries } from '../../../src/port/kotlin-io-path.js'
@@ -37,8 +38,6 @@ describe('BookAnalyzerTest', () => {
   const ctx = springBootTest({}, [
     { type: BookAnalyzer, spyk: true },
     { type: EpubExtractor, spyk: true },
-    // TEMPORAIRE : KepubConverter n'est pas encore un bean (bouchon de l'agent mediacontainer)
-    { type: KepubConverter, instance: new KepubConverter() },
   ])
   const komgaProperties = ctx.getBean(KomgaProperties)
   const bookAnalyzer = ctx.getBean(BookAnalyzer)

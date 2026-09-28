@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/KomgaSyncToken.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { jsonProperties } from '../../port/jackson-mapper.js'
 import { DataClass } from '../../port/kotlin.js'
 
 type KomgaSyncTokenParams = {
@@ -33,3 +34,5 @@ export class KomgaSyncToken extends DataClass<KomgaSyncTokenParams> {
     this.lastSuccessfulSyncPointId = lastSuccessfulSyncPointId
   }
 }
+
+jsonProperties(KomgaSyncToken, { version: 'Int', rawKoboSyncToken: 'String', ongoingSyncPointId: { nullable: 'String' }, lastSuccessfulSyncPointId: { nullable: 'String' } })

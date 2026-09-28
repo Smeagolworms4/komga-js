@@ -2,6 +2,7 @@
 // Ce fichier n'a pas de jumeau Kotlin.
 // Un `java.nio.file.Path` est représenté par une chaîne de chemin absolu ou relatif (module node:path).
 import { accessSync, constants as fsConstants, existsSync, lstatSync, readdirSync, rmdirSync, statSync, unlinkSync } from 'node:fs'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { join } from 'node:path'
 import { isMainThread, threadId } from 'node:worker_threads'
 import { gzipSync } from 'node:zlib'
@@ -71,11 +72,47 @@ export function javaGzip(data: Uint8Array): Buffer {
   return gzipSync(data)
 }
 
+/** Nom du « thread » logique courant (tâche exécutée par un exécuteur en processus, voir port/spring-scheduling.ts) */
+const currentThreadName = new AsyncLocalStorage<string>()
+
+/** Exécute `fn` comme si elle tournait dans le thread nommé `name` (`Thread.currentThread().name`) */
+export function runInThread<T>(name: string, fn: () => T): T {
+  return currentThreadName.run(name, fn)
+}
+
 /**
- * `Thread.currentThread()` : `name` vaut `main` pour le thread principal, `Thread-<threadId>` dans un worker.
+ * `Thread.currentThread()` : `name` vaut `main` pour le thread principal, `Thread-<threadId>` dans un worker,
+ * ou le nom du thread logique de l'exécuteur (`taskProcessor-1`…) pendant l'exécution d'une tâche (runInThread).
  */
 export const Thread = {
   currentThread(): { readonly name: string } {
+    const logical = currentThreadName.getStore()
+    if (logical !== undefined) return { name: logical }
     return { name: isMainThread ? 'main' : `Thread-${threadId}` }
   },
+}
+
+/** `java.util.concurrent.atomic.AtomicLong` */
+export class AtomicLong {
+  constructor(private value: number = 0) {}
+
+  get(): number {
+    return this.value
+  }
+
+  set(newValue: number): void {
+    this.value = newValue
+  }
+
+  incrementAndGet(): number {
+    return ++this.value
+  }
+
+  decrementAndGet(): number {
+    return --this.value
+  }
+
+  toString(): string {
+    return String(this.value)
+  }
 }

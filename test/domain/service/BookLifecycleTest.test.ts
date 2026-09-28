@@ -60,7 +60,8 @@ import { ThumbnailBookRepository } from '../../../src/domain/persistence/Thumbna
 import { BookAnalyzer } from '../../../src/domain/service/BookAnalyzer.js'
 import { BookLifecycle } from '../../../src/domain/service/BookLifecycle.js'
 import { SeriesLifecycle } from '../../../src/domain/service/SeriesLifecycle.js'
-import { KepubConverter } from '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/jooq/tasks/TasksDao.js'
 import { pathToUrl } from '../../../src/port/java.js'
 import { IllegalArgumentException, IllegalStateException, eq, kFloat, nn } from '../../../src/port/kotlin.js'
 import { closeContext, springBootTest } from '../../SpringBootTest.js'
@@ -102,8 +103,6 @@ describe('BookLifecycleTest', () => {
   const ctx = springBootTest({}, [
     { type: BookLifecycle, spyk: true },
     { type: BookAnalyzer, instance: mockAnalyzerInstance },
-    // TEMPORAIRE : KepubConverter n'est pas encore un bean (bouchon de l'agent mediacontainer)
-    { type: KepubConverter, instance: new KepubConverter() },
   ])
   const bookRepository = ctx.getBean(BookRepository)
   const libraryRepository = ctx.getBean(LibraryRepository)

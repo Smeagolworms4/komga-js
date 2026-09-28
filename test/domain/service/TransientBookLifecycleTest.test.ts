@@ -46,13 +46,13 @@ import { SeriesLifecycle } from '../../../src/domain/service/SeriesLifecycle.js'
 import { TransientBookLifecycle } from '../../../src/domain/service/TransientBookLifecycle.js'
 import { BookMetadataProvider } from '../../../src/infrastructure/metadata/BookMetadataProvider.js'
 import { ComicInfoProvider } from '../../../src/infrastructure/metadata/comicrack/ComicInfoProvider.js'
-import { KepubConverter } from '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/jooq/tasks/TasksDao.js'
 import { closeContext, springBootTest } from '../../SpringBootTest.js'
 import { makeBook, makeLibrary, makeSeries } from '../model/Utils.js'
 
 describe('TransientBookLifecycleTest', () => {
-  // TEMPORAIRE : KepubConverter n'est pas encore un bean (bouchon de l'agent mediacontainer)
-  const ctx = springBootTest({}, [{ type: KepubConverter, instance: new KepubConverter() }])
+  const ctx = springBootTest()
   const seriesLifecycle = ctx.getBean(SeriesLifecycle)
   const seriesRepository = ctx.getBean(SeriesRepository)
   const libraryRepository = ctx.getBean(LibraryRepository)

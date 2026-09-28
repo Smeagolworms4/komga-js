@@ -68,9 +68,20 @@ export class HttpStatus extends KEnum {
   static readonly UNSUPPORTED_MEDIA_TYPE = new HttpStatus('UNSUPPORTED_MEDIA_TYPE', 415, 'Unsupported Media Type')
   static readonly REQUESTED_RANGE_NOT_SATISFIABLE = new HttpStatus('REQUESTED_RANGE_NOT_SATISFIABLE', 416, 'Requested Range Not Satisfiable')
   static readonly UNPROCESSABLE_ENTITY = new HttpStatus('UNPROCESSABLE_ENTITY', 422, 'Unprocessable Entity')
+  static readonly PAYMENT_REQUIRED = new HttpStatus('PAYMENT_REQUIRED', 402, 'Payment Required')
+  static readonly REQUEST_TIMEOUT = new HttpStatus('REQUEST_TIMEOUT', 408, 'Request Timeout')
+  static readonly LENGTH_REQUIRED = new HttpStatus('LENGTH_REQUIRED', 411, 'Length Required')
+  static readonly PRECONDITION_FAILED = new HttpStatus('PRECONDITION_FAILED', 412, 'Precondition Failed')
+  static readonly URI_TOO_LONG = new HttpStatus('URI_TOO_LONG', 414, 'URI Too Long')
+  static readonly EXPECTATION_FAILED = new HttpStatus('EXPECTATION_FAILED', 417, 'Expectation Failed')
+  static readonly I_AM_A_TEAPOT = new HttpStatus('I_AM_A_TEAPOT', 418, "I'm a teapot")
+  static readonly LOCKED = new HttpStatus('LOCKED', 423, 'Locked')
+  static readonly TOO_MANY_REQUESTS = new HttpStatus('TOO_MANY_REQUESTS', 429, 'Too Many Requests')
   static readonly INTERNAL_SERVER_ERROR = new HttpStatus('INTERNAL_SERVER_ERROR', 500, 'Internal Server Error')
   static readonly NOT_IMPLEMENTED = new HttpStatus('NOT_IMPLEMENTED', 501, 'Not Implemented')
+  static readonly BAD_GATEWAY = new HttpStatus('BAD_GATEWAY', 502, 'Bad Gateway')
   static readonly SERVICE_UNAVAILABLE = new HttpStatus('SERVICE_UNAVAILABLE', 503, 'Service Unavailable')
+  static readonly GATEWAY_TIMEOUT = new HttpStatus('GATEWAY_TIMEOUT', 504, 'Gateway Timeout')
 
   private constructor(
     name: string,
@@ -208,11 +219,15 @@ export class HttpHeaders {
 export function contentDisposition(type: string, filename?: string, utf8 = false): string {
   if (filename === undefined) return type
   if (!utf8) return `${type}; filename="${filename.replace(/(["\\])/g, '\\$1')}"`
-  // RFC 5987 : Spring encode aussi un filename= ASCII (non-ASCII remplacés)
-  const encoded = Array.from(Buffer.from(filename, 'utf8'))
-    .map((b) => (/[A-Za-z0-9!#$&+.^_`|~-]/.test(String.fromCharCode(b)) ? String.fromCharCode(b) : `%${b.toString(16).toUpperCase().padStart(2, '0')}`))
+  // Spring 6.2 : filename="=?UTF-8?Q?...?=" (RFC 2047, encodeQuotedPrintableFilename) puis filename*= (RFC 5987)
+  // (relevé sur Komga : `attachment; filename="=?UTF-8?Q?pdf.zip?="; filename*=UTF-8''pdf.zip`)
+  const bytes = Array.from(Buffer.from(filename, 'utf8'))
+  const hex = (b: number): string => `${b.toString(16).toUpperCase().padStart(2, '0')}`
+  const quoted = bytes
+    .map((b) => (b === 32 ? '_' : b >= 33 && b <= 126 && b !== 34 && b !== 61 && b !== 63 && b !== 95 ? String.fromCharCode(b) : `=${hex(b)}`))
     .join('')
-  return `${type}; filename*=UTF-8''${encoded}`
+  const encoded = bytes.map((b) => (/[A-Za-z0-9!#$&+.^_`|~-]/.test(String.fromCharCode(b)) ? String.fromCharCode(b) : `%${hex(b)}`)).join('')
+  return `${type}; filename="=?UTF-8?Q?${quoted}?="; filename*=UTF-8''${encoded}`
 }
 
 /** `org.springframework.http.ResponseEntity` */

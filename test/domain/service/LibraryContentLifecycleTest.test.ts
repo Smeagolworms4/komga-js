@@ -96,7 +96,7 @@ import { URL, urlToPath } from '../../../src/port/java-net.js'
 import { pathNameWithoutExtension } from '../../../src/port/java-nio-file.js'
 import { first, isBlank, nn, partition, sortedBy } from '../../../src/port/kotlin.js'
 import { Pageable } from '../../../src/port/spring-data.js'
-import { KepubConverter } from '../../../src/infrastructure/kobo/KepubConverter.js'
+import '../../../src/infrastructure/kobo/KepubConverter.js'
 import { closeContext, springBootTest } from '../../SpringBootTest.js'
 import { any, capture, clearMocks, every, match, mockk, slot, verify } from '../../support/mockk.js'
 import { toScanResult } from '../../Utils.js'
@@ -132,8 +132,6 @@ describe('LibraryContentLifecycleTest', () => {
     { type: BookAnalyzer, instance: mockAnalyzer },
     { type: Hasher, instance: mockHasher },
     { type: TaskEmitter, instance: mockTaskEmitter },
-    // TEMPORAIRE : KepubConverter n'est pas encore un bean (bouchon de l'agent mediacontainer)
-    { type: KepubConverter, instance: new KepubConverter() },
   ])
   const seriesRepository = ctx.getBean(SeriesRepository)
   const libraryRepository = ctx.getBean(LibraryRepository)
