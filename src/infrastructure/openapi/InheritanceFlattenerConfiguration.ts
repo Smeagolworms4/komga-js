@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/openapi/InheritanceFlattenerConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { NullPointerException } from '../../port/kotlin.js'
 import { configuration } from '../../port/spring.js'
 import { OpenApiCustomizer, openApiCustomizer } from '../../port/springdoc.js'
 
@@ -12,7 +13,12 @@ export class InheritanceFlattenerConfiguration {
   flattenInheritedSchemasCustomizer(): OpenApiCustomizer {
     return openApiCustomizer((openApi) => {
       ;[...(openApi.getComponents()?.getSchemas()?.values() ?? [])]
-        .filter((schema) => this.schemaPrefix.some((prefix) => (schema.getName() ?? '').startsWith(prefix)))
+        .filter((schema) => {
+          // PORT: schema.name (plateforme Java, non nul attendu) : un schéma sans nom lève NullPointerException
+          const name = schema.getName()
+          if (name === null) throw new NullPointerException()
+          return this.schemaPrefix.some((prefix) => name.startsWith(prefix))
+        })
         .forEach((schema) => {
           // Swagger models inheritance as an allOf list with exactly two items:
           // 1. The $ref to the parent interface

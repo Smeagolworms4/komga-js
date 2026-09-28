@@ -3,7 +3,7 @@ import sharp from 'sharp'
 import { BufferedImage, ByteArrayOutputStream, drawableRgba, ImageIO } from '../../port/imageio-codecs.js'
 import { Thumbnails, type ThumbnailsBuilder } from '../../port/thumbnailator.js'
 import { ByteArrayInputStream } from '../../port/java-io.js'
-import { lazy, NullPointerException } from '../../port/kotlin.js'
+import { IllegalArgumentException, lazy, NullPointerException } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 import { ContentDetector } from '../mediacontainer/ContentDetector.js'
@@ -61,8 +61,12 @@ export class ImageConverter {
     try {
       const image = await ImageIO.read(new ByteArrayInputStream(imageBytes))
 
-      // PORT: image!!.colorModel -> NullPointerException si aucun lecteur (ImageIO.read renvoie null)
-      if (image === null) throw new NullPointerException()
+      // PORT: ImageIO.read renvoie null si aucun lecteur : image.colorModel -> NullPointerException quand le canal alpha
+      // est testé, sinon ImageIO.write(null, ...) -> IllegalArgumentException("im == null!")
+      if (image === null) {
+        if (!this.supportsTransparency.includes(format)) throw new NullPointerException()
+        throw new IllegalArgumentException('im == null!')
+      }
       // UPSTREAM-BUG: supportsTransparency contient "png" en minuscules alors que les appelants passent ImageType.imageIOFormat
       // ("PNG") : la transparence est aussi aplatie sur fond blanc pour une conversion en PNG (reproduit)
       const result =
