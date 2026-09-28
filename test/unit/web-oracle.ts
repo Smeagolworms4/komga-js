@@ -123,12 +123,12 @@ export function describeAuthentication(a: Authentication | null | undefined): un
 const NOW_TIME = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?/g
 
 /**
- * Remplace dans un document sérialisé les dates-heures ISO à un jour près d'aujourd'hui (générées par `now()`) par
+ * Remplace dans un document sérialisé les dates-heures ISO à deux jours près d'aujourd'hui (générées par `now()`) par
  * `@now`, comme `stable` le fait pour les dates canoniques.
  */
 export function stableText(s: string): string {
   const today = LocalDate.now()
-  const near = new Set([today.minusDays(1), today, today.plusDays(1)].map((d) => d.toString()))
+  const near = new Set([today.minusDays(2), today.minusDays(1), today, today.plusDays(1), today.plusDays(2)].map((d) => d.toString()))
   return s.replace(NOW_TIME, (m) => (near.has(m.slice(0, 10)) ? '@now' : m))
 }
 

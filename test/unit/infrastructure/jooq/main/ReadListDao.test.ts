@@ -83,6 +83,8 @@ func('insert', () => {
       ]),
     )
     dao.insert(rl('reading order 2', 'RL7'))
+    // dates fixes (CURRENT_TIMESTAMP à la seconde) : « sorted by dates » ne dépend pas d'un changement de seconde entre deux cas
+    db.dsl.execute("update READLIST set CREATED_DATE = '2021-01-01 00:00:00', LAST_MODIFIED_DATE = '2021-01-01 00:00:00' where ID in ('RL4', 'RL5', 'RL6', 'RL7')")
     return dao.count()
   })
   kase('stored values', () => db.rawQuery('select ID, NAME, SUMMARY, ORDERED, BOOK_COUNT from READLIST order by ID'))

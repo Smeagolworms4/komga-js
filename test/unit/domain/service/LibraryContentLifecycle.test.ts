@@ -113,7 +113,11 @@ const state = () =>
         .takeTasks()
         .map((it) => it.split('(')[0])
         .sort(),
-      graph.takeEvents().map((e) => (e as object).constructor.name),
+      // triés : séries et livres sont traités dans l'ordre brut de readdir, qui dépend du système de fichiers (graine de hachage ext4)
+      graph
+        .takeEvents()
+        .map((e) => (e as object).constructor.name)
+        .sort(),
       lib().unavailableDate !== null,
     ]
   })

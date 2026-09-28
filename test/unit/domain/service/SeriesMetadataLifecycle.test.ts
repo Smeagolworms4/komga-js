@@ -174,6 +174,11 @@ func('aggregateMetadata', () => {
         tags: new Set(['y']),
       }),
     )
+    // findAllByIds groupe sur toutes les colonnes de BOOK_METADATA (CREATED_DATE, LAST_MODIFIED_DATE d'abord) : dates fixes
+    // pour un ordre B1, B2 déterministe (LocalDateTime.now() à la milliseconde côté JS, ex æquo possibles)
+    db.dsl.execute("update BOOK_METADATA set CREATED_DATE = '2020-01-02 03:04:05', LAST_MODIFIED_DATE = '2020-01-02 03:04:05'")
+    db.dsl.execute("update BOOK_METADATA set LAST_MODIFIED_DATE = '2020-01-02 03:04:06' where BOOK_ID = 'B1'")
+    db.dsl.execute("update BOOK_METADATA set LAST_MODIFIED_DATE = '2020-01-02 03:04:07' where BOOK_ID = 'B2'")
     lifecycle.aggregateMetadata(s('S1'))
     return stable([db.bookMetadataAggregationDao.findById('S1'), names()])
   })
