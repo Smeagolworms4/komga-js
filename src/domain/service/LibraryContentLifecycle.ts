@@ -11,7 +11,7 @@ import { SearchCondition } from '../model/SearchCondition.js'
 import { SearchContext } from '../model/SearchContext.js'
 import { SearchOperator } from '../model/SearchOperator.js'
 import type { Series } from '../model/Series.js'
-import { Sidecar } from '../model/Sidecar.js'
+import { Sidecar, type SidecarStored } from '../model/Sidecar.js'
 import { ThumbnailBook } from '../model/ThumbnailBook.js'
 import { ThumbnailSeries } from '../model/ThumbnailSeries.js'
 import { BookMetadataRepository } from '../persistence/BookMetadataRepository.js'
@@ -29,8 +29,8 @@ import { ThumbnailSeriesRepository } from '../persistence/ThumbnailSeriesReposit
 import { KomgaSettingsProvider } from '../../infrastructure/configuration/KomgaSettingsProvider.js'
 import { Hasher } from '../../infrastructure/hash/Hasher.js'
 import { notEquals, toIndexedMap } from '../../language/LanguageUtils.js'
-import { urlToPath } from '../../port/java-net.js'
-import { contains, distinct, distinctBy, eq, firstOrNull, isNotBlank, mapNotNull, nn, str } from '../../port/kotlin.js'
+import { type URL, urlToPath } from '../../port/java-net.js'
+import { contains, distinct, distinctBy, isNotBlank, LinkedHashMap, LinkedHashSet, mapNotNull, nn, str } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { ApplicationEventPublisher, component } from '../../port/spring.js'
 import { Pageable } from '../../port/spring-data.js'
@@ -169,9 +169,13 @@ export class LibraryContentLifecycle {
             logger.debug(() => `Existing books: ${str(existingBooks)}`)
 
             // update existing books
+            // PORT: existingBooks.find { it.url == newBook.url && it.deletedDate == null } -> index par url (LinkedHashMap,
+            // premier livre non supprimé de chaque url, comme find) : même résultat, sans parcours quadratique
+            const existingBooksByUrl = new LinkedHashMap<URL, Book>()
+            for (const it of existingBooks) if (it.deletedDate === null && !existingBooksByUrl.has(it.url)) existingBooksByUrl.set(it.url, it)
             newBooks.forEach((newBook) => {
               logger.debug(() => `Trying to match scanned book by url: ${str(newBook)}`)
-              const existingBook = existingBooks.find((it) => eq(it.url, newBook.url) && it.deletedDate === null)
+              const existingBook = existingBooksByUrl.get(newBook.url)
               if (existingBook !== undefined) {
                 logger.debug(() => `Matched existing book: ${str(existingBook)}`)
                 if (notEquals(newBook.fileLastModified, existingBook.fileLastModified)) {
@@ -202,8 +206,9 @@ export class LibraryContentLifecycle {
             })
 
             // add new books
-            const existingBooksUrls = existingBooks.filter((it) => !(it.deletedDate !== null)).map((it) => it.url)
-            const booksToAdd = newBooks.filter((newBook) => !contains(existingBooksUrls, newBook.url))
+            // PORT: existingBooksUrls.contains(..) -> LinkedHashSet (appartenance par equals, sans parcours quadratique)
+            const existingBooksUrls = new LinkedHashSet(existingBooks.filter((it) => !(it.deletedDate !== null)).map((it) => it.url))
+            const booksToAdd = newBooks.filter((newBook) => !existingBooksUrls.has(newBook.url))
             logger.info(() => `Adding new books: ${str(booksToAdd)}`)
             this.seriesLifecycle.addBooks(existingSeries, booksToAdd)
             this.tryRestoreBooks(booksToAdd)
@@ -219,8 +224,11 @@ export class LibraryContentLifecycle {
       })
 
       const existingSidecars = this.sidecarRepository.findAll()
+      // PORT: existingSidecars.firstOrNull { it.url == newSidecar.url } -> index par url (premier de chaque url)
+      const existingSidecarsByUrl = new LinkedHashMap<URL, SidecarStored>()
+      for (const it of existingSidecars) if (!existingSidecarsByUrl.has(it.url)) existingSidecarsByUrl.set(it.url, it)
       scanResult.sidecars.forEach((newSidecar) => {
-        const existingSidecar = firstOrNull(existingSidecars, (it) => eq(it.url, newSidecar.url))
+        const existingSidecar = existingSidecarsByUrl.get(newSidecar.url) ?? null
         if (existingSidecar === null || notEquals(existingSidecar.lastModifiedTime, newSidecar.lastModifiedTime)) {
           switch (newSidecar.source) {
             case Sidecar.Source.SERIES: {
@@ -261,8 +269,9 @@ export class LibraryContentLifecycle {
 
       // cleanup sidecars that don't exist anymore
       {
-        const newSidecarsUrls = scanResult.sidecars.map((it) => it.url)
-        const sidecars = existingSidecars.filter((existing) => !contains(newSidecarsUrls, existing.url))
+        // PORT: newSidecarsUrls.contains(..) -> LinkedHashSet (appartenance par equals)
+        const newSidecarsUrls = new LinkedHashSet(scanResult.sidecars.map((it) => it.url))
+        const sidecars = existingSidecars.filter((existing) => !newSidecarsUrls.has(existing.url))
         this.sidecarRepository.deleteByLibraryIdAndUrls(
           library.id,
           sidecars.map((it) => it.url),

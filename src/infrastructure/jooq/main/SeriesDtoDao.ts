@@ -23,7 +23,7 @@ import { DSL, DSLContext, count, countDistinct, lower, substring } from '../../.
 import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
 import { URL } from '../../../port/java-net.js'
-import { NoWhenBranchMatchedException, firstOrNull, mapNotNull, nn, require } from '../../../port/kotlin.js'
+import { LinkedHashMap, NoWhenBranchMatchedException, firstOrNull, mapNotNull, nn, require } from '../../../port/kotlin.js'
 
 export const BOOKS_UNREAD_COUNT = 'booksUnreadCount'
 export const BOOKS_IN_PROGRESS_COUNT = 'booksInProgressCount'
@@ -484,7 +484,7 @@ export class SeriesDtoDao extends SplitDslDaoBase implements SeriesDtoRepository
 
 // PORT: Iterable.groupBy(keySelector, valueTransform) de Kotlin
 function groupByValues<T, K, V>(a: Iterable<T>, key: (t: T) => K, value: (t: T) => V): Map<K, V[]> {
-  const m = new Map<K, V[]>()
+  const m = new LinkedHashMap<K, V[]>()
   for (const x of a) {
     const k = key(x)
     const l = m.get(k)

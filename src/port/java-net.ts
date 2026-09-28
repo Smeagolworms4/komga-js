@@ -101,8 +101,11 @@ export class URL implements Equatable {
     )
   }
 
+  // hash mémorisé : les champs sont immuables (clé fréquente des LinkedHashMap/LinkedHashSet du scan)
+  #hash: number | undefined
+
   hashCode(): number {
-    return hash(this.toExternalForm())
+    return (this.#hash ??= hash(this.toExternalForm()))
   }
 }
 

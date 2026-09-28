@@ -71,9 +71,13 @@ export class SeriesLifecycle {
     logger.debug(() => `Existing metadata: ${str(metadatas)}`)
 
     const sortKey = (it: Book) => stripAccents(trim(it.name)).replace(this.whitespacePattern, ' ')
+    // PORT: metadatas.first { it.bookId == book.id } -> index par bookId (premier de chaque id, NoSuchElementException
+    // si absent, comme first) : même résultat, sans parcours quadratique sur les grosses séries
+    const metadataByBookId = new Map<string, BookMetadata>()
+    for (const it of metadatas) if (!metadataByBookId.has(it.bookId)) metadataByBookId.set(it.bookId, it)
     const sorted = [...books]
       .sort((a, b) => natSortComparator(sortKey(a), sortKey(b)))
-      .map((book): [Book, BookMetadata] => [book, first(metadatas, (it) => it.bookId === book.id)])
+      .map((book): [Book, BookMetadata] => [book, metadataByBookId.get(book.id) ?? first([] as BookMetadata[])])
     logger.debug(() => `Sorted books: ${str(sorted.map(([b, m]) => `(${b}, ${m})`))}`)
 
     this.bookRepository.update(sorted.map(([book], index) => book.copy({ number: index + 1 })))

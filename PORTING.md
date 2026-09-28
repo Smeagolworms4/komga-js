@@ -149,10 +149,11 @@ Modèles de référence déjà portés : `src/domain/model/{Book,Media,Library,K
 | `Float` | `number` arrondi en float32 à chaque affectation : `this.x = kFloat(x)` ; affichage `javaFloatToString(x)` |
 | `ByteArray` | `Uint8Array` |
 | `List<T>` / `Set<T>` / `Map<K,V>` | `T[]` / `Set<T>` / `Map<K,V>` (`ReadonlySet` en paramètre) |
-| `setOf(..)`, `emptySet()` | `new Set([..])`, `new Set()` |
+| `setOf(..)`, `emptySet()` | `new Set([..])`, `new Set()` (éléments primitifs, enums) |
+| `mutableSetOf` / `toSet()` / `mutableMapOf` / `toMap()` / `HashMap` avec éléments ou clés objets (data class, URL, java.time…) | `new LinkedHashSet(..)` / `new LinkedHashMap(..)` de `port/kotlin.ts` : sous-classes de `Set` / `Map` natifs, appartenance par `equals`/`hashCode` (seaux par `hash()`), ordre d'insertion ; `HashSet` / `HashMap` idem (ordre Java des seaux non reproduit, voir `javaHashSet`). Jamais de recherche linéaire par `eq` dans une boucle |
 | `listOf(..)`, `emptyList()` | `[..]`, `[]` |
 | fonctions d'extension `fun A.f()` | fonction exportée `f(self: A, ...)` dans le fichier jumeau |
-| fonctions d'extension de collection de la stdlib | helpers de `port/kotlin.ts` (`mapNotNull`, `associateBy`, `groupBy`, `sortedBy`, `intersect`, `distinct`…) |
+| fonctions d'extension de collection de la stdlib | helpers de `port/kotlin.ts` (`mapNotNull`, `associateBy`, `groupBy`, `sortedBy`, `intersect`, `distinct`…) ; ceux qui rendent un Set ou une Map rendent un `LinkedHashSet` / `LinkedHashMap` (clés structurelles, comme Kotlin) |
 | paramètres nommés / par défaut d'une fonction | les paramètres obligatoires en position, les paramètres par défaut dans un objet final `{ a = d }: {...} = {}` |
 | surcharges | une seule fonction avec union de types, marquée `// PORT:` |
 | `LocalDateTime`, `LocalDate`, `ZonedDateTime`, `Duration` | `@js-joda/core` (API identique) |

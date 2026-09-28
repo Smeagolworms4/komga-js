@@ -7,8 +7,16 @@ const UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']
  * `new DecimalFormat("#,##0.#")` : séparateurs de la locale par défaut de la JVM (`Locale.getDefault(FORMAT)`),
  * arrondi HALF_EVEN. PORT: la locale par défaut de Node (Intl) remplace celle de la JVM.
  */
+// formateurs mis en cache par locale : construire un Intl.NumberFormat coûte bien plus que formater (un par BookDto)
+const formats = new Map<string | undefined, Intl.NumberFormat>()
+
 function decimalFormat(value: number, locale: string | undefined): string {
-  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0, useGrouping: true, roundingMode: 'halfEven' }).format(value)
+  let f = formats.get(locale)
+  if (f === undefined) {
+    f = new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0, useGrouping: true, roundingMode: 'halfEven' })
+    formats.set(locale, f)
+  }
+  return f.format(value)
 }
 
 export const BinaryByteUnit = {

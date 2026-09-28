@@ -375,7 +375,6 @@ class MagicDetector {
     if (data.length < begin) return false
     const bufLen = this.length + (this.offsetRangeEnd - begin)
     const read = Math.min(data.length - begin, bufLen)
-    const at = (k: number): number => (k < read ? ((data[begin + k] as number) << 24) >> 24 : 0)
     if (this.isRegex) {
       if (this.regex === null) {
         const src = new TextDecoder('utf-8').decode(new Uint8Array(this.pattern.buffer))
@@ -393,12 +392,19 @@ class MagicDetector {
       return false
     }
     if (begin + read < begin + this.length) return false
-    for (let i = 0; i <= this.offsetRangeEnd - begin; i++) {
+    // boucle chaude de la détection (chaque magic, chaque décalage) : accès aux octets en ligne, sans fermeture
+    const length = this.length
+    const mask = this.mask
+    const pattern = this.pattern
+    const ignoreCase = this.isStringIgnoreCase
+    const lastOffset = this.offsetRangeEnd - begin
+    for (let i = 0; i <= lastOffset; i++) {
       let match = true
-      for (let j = 0; match && j < this.length; j++) {
-        let masked = at(i + j) & (this.mask[j] as number)
-        if (this.isStringIgnoreCase && masked >= 65 && masked <= 90) masked += 32
-        match = masked === this.pattern[j]
+      for (let j = 0; match && j < length; j++) {
+        const k = i + j
+        let masked = (k < read ? ((data[begin + k] as number) << 24) >> 24 : 0) & (mask[j] as number)
+        if (ignoreCase && masked >= 65 && masked <= 90) masked += 32
+        match = masked === pattern[j]
       }
       if (match) return true
     }

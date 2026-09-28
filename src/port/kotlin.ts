@@ -30,14 +30,27 @@ export function eq(a: unknown, b: unknown): boolean {
   }
   if (a instanceof Set) {
     if (!(b instanceof Set) || a.size !== b.size) return false
-    for (const x of a) if (!setHas(b, x)) return false
+    // index structurel de b construit au premier élément structurel absent par identité (linéaire, pas quadratique)
+    let bs: ReadonlySet<unknown> | null = null
+    for (const x of a) {
+      if (b.has(x)) continue
+      if (!isStructural(x)) return false
+      bs ??= structuralSet(b)
+      if (!bs.has(x)) return false
+    }
     return true
   }
   if (a instanceof Map) {
     if (!(b instanceof Map) || a.size !== b.size) return false
+    let bm: ReadonlyMap<unknown, unknown> | null = null
     for (const [k, v] of a) {
-      const e = [...b].find(([k2]) => eq(k, k2))
-      if (!e || !eq(v, e[1])) return false
+      if (b.has(k)) {
+        if (!eq(v, b.get(k))) return false
+        continue
+      }
+      if (!isStructural(k)) return false
+      bm ??= b instanceof LinkedHashMap ? b : new LinkedHashMap(b)
+      if (!bm.has(k) || !eq(v, bm.get(k))) return false
     }
     return true
   }
@@ -68,7 +81,8 @@ export function hash(v: unknown): number {
     case 'bigint':
       return strHash(v.toString())
   }
-  if (isEquatable(v)) return v.hashCode()
+  // equals sans hashCode (classes internes) : seau commun, cohérent avec eq
+  if (isEquatable(v)) return typeof v.hashCode === 'function' ? v.hashCode() | 0 : 0
   if (v instanceof URL) return strHash(v.href)
   if (Array.isArray(v)) return v.reduce((h: number, x) => (31 * h + hash(x)) | 0, 1)
   if (v instanceof Set) {
@@ -88,9 +102,176 @@ export function hash(v: unknown): number {
 
 function setHas<T>(s: ReadonlySet<T>, x: T): boolean {
   if (s.has(x)) return true
-  if (typeof x !== 'object' || x === null) return false
+  if (s instanceof LinkedHashSet || !isStructural(x)) return false
   for (const y of s) if (eq(x, y)) return true
   return false
+}
+
+// ---------------------------------------------------------------------------
+// Collections Java à égalité structurelle (java.util.LinkedHashSet / LinkedHashMap / HashSet / HashMap)
+// ---------------------------------------------------------------------------
+
+/**
+ * Valeur dont l'égalité `eq` n'est pas l'identité : `Equatable` (data class, java.time, URL du port…), URL,
+ * tableau, Set, Map, objet littéral. Les primitives et les autres objets (enums, Uint8Array, instances sans
+ * `equals`) sont comparés par `===` (SameValueZero), donc directement par la Map / le Set natif.
+ */
+export function isStructural(v: unknown): v is object {
+  if (typeof v !== 'object' || v === null) return false
+  if (isEquatable(v) || v instanceof URL || Array.isArray(v) || v instanceof Set || v instanceof Map) return true
+  return Object.getPrototypeOf(v) === Object.prototype
+}
+
+/**
+ * `java.util.LinkedHashSet` : `Set` natif (ordre d'insertion) dont l'appartenance suit `equals`/`hashCode`
+ * (`eq`/`hash`). Les éléments structurels sont indexés par `hash()` (seaux), puis comparés par `eq` dans le seau,
+ * comme HashMap ; les autres passent directement par le Set natif.
+ * Comme Java : un élément égal à un élément présent n'est pas ajouté (le premier reste, à sa place) ;
+ * modifier un élément présent de façon à changer son hash le rend introuvable.
+ */
+export class LinkedHashSet<T> extends Set<T> {
+  #buckets: Map<number, T[]> | null = null
+
+  constructor(items?: Iterable<T> | null) {
+    super()
+    if (items !== null && items !== undefined) for (const x of items) this.add(x)
+  }
+
+  /** Élément présent égal à `x` (le premier ajouté), ou `undefined` */
+  private stored(x: T): T | undefined {
+    if (super.has(x)) return x
+    if (this.#buckets === null || !isStructural(x)) return undefined
+    const bucket = this.#buckets.get(hash(x))
+    if (bucket !== undefined) for (const y of bucket) if (eq(x, y)) return y
+    return undefined
+  }
+
+  override has(x: T): boolean {
+    return super.has(x) || this.stored(x) !== undefined
+  }
+
+  override add(x: T): this {
+    if (super.has(x)) return this
+    if (isStructural(x)) {
+      const h = hash(x)
+      if (this.#buckets === null) this.#buckets = new Map()
+      const bucket = this.#buckets.get(h)
+      if (bucket === undefined) this.#buckets.set(h, [x])
+      else {
+        for (const y of bucket) if (eq(x, y)) return this
+        bucket.push(x)
+      }
+    }
+    return super.add(x)
+  }
+
+  override delete(x: T): boolean {
+    if (!isStructural(x)) return super.delete(x)
+    if (this.#buckets === null) return false
+    const h = hash(x)
+    const bucket = this.#buckets.get(h)
+    if (bucket === undefined) return false
+    const i = bucket.findIndex((y) => y === x || eq(x, y))
+    if (i < 0) return false
+    const y = bucket[i] as T
+    if (bucket.length === 1) this.#buckets.delete(h)
+    else bucket.splice(i, 1)
+    return super.delete(y)
+  }
+
+  override clear(): void {
+    this.#buckets = null
+    super.clear()
+  }
+}
+
+/**
+ * `java.util.LinkedHashMap` (ordre d'insertion) : clés comparées par `eq`/`hash` comme `LinkedHashSet`.
+ * Comme Java : `set` d'une clé égale à une clé présente garde la clé d'origine et sa place, et remplace la valeur.
+ */
+export class LinkedHashMap<K, V> extends Map<K, V> {
+  #buckets: Map<number, K[]> | null = null
+
+  constructor(entries?: Iterable<readonly [K, V]> | null) {
+    super()
+    if (entries !== null && entries !== undefined) for (const [k, v] of entries) this.set(k, v)
+  }
+
+  /** Clé présente égale à `k`, ou `undefined` */
+  private storedKey(k: K): K | undefined {
+    if (super.has(k)) return k
+    if (this.#buckets === null || !isStructural(k)) return undefined
+    const bucket = this.#buckets.get(hash(k))
+    if (bucket !== undefined) for (const y of bucket) if (eq(k, y)) return y
+    return undefined
+  }
+
+  override has(k: K): boolean {
+    return super.has(k) || this.storedKey(k) !== undefined
+  }
+
+  override get(k: K): V | undefined {
+    if (super.has(k)) return super.get(k)
+    const s = this.storedKey(k)
+    return s === undefined ? undefined : super.get(s)
+  }
+
+  override set(k: K, v: V): this {
+    if (super.has(k)) return super.set(k, v)
+    if (isStructural(k)) {
+      const h = hash(k)
+      if (this.#buckets === null) this.#buckets = new Map()
+      const bucket = this.#buckets.get(h)
+      if (bucket === undefined) this.#buckets.set(h, [k])
+      else {
+        for (const y of bucket) if (eq(k, y)) return super.set(y, v)
+        bucket.push(k)
+      }
+    }
+    return super.set(k, v)
+  }
+
+  override delete(k: K): boolean {
+    if (!isStructural(k)) return super.delete(k)
+    if (this.#buckets === null) return false
+    const h = hash(k)
+    const bucket = this.#buckets.get(h)
+    if (bucket === undefined) return false
+    const i = bucket.findIndex((y) => y === k || eq(k, y))
+    if (i < 0) return false
+    const y = bucket[i] as K
+    if (bucket.length === 1) this.#buckets.delete(h)
+    else bucket.splice(i, 1)
+    return super.delete(y)
+  }
+
+  override clear(): void {
+    this.#buckets = null
+    super.clear()
+  }
+}
+
+/**
+ * `java.util.HashSet` / `HashMap` : même appartenance que les versions Linked.
+ * PORT: itération dans l'ordre d'insertion (l'ordre des seaux de la JVM dépend de hashCode Java, que `hash()` ne
+ * reproduit que pour les chaînes) ; là où cet ordre est observable (JSON), utiliser `javaHashSet` (jackson-mapper).
+ */
+export class HashSet<T> extends LinkedHashSet<T> {}
+export class HashMap<K, V> extends LinkedHashMap<K, V> {}
+
+// Java : AbstractSet/AbstractMap.equals ne dépendent pas de la classe d'implémentation. Les assertions de Vitest
+// comparent `constructor` : ces collections se présentent comme Set / Map natifs (instanceof reste exact).
+for (const [C, N] of [
+  [LinkedHashSet, Set],
+  [HashSet, Set],
+  [LinkedHashMap, Map],
+  [HashMap, Map],
+] as const)
+  Object.defineProperty(C.prototype, 'constructor', { value: N, writable: true, configurable: true })
+
+/** Index structurel (LinkedHashSet) d'un Set, construit seulement s'il n'en est pas déjà un */
+function structuralSet<T>(s: ReadonlySet<T>): ReadonlySet<T> {
+  return s instanceof LinkedHashSet ? s : new LinkedHashSet(s)
 }
 
 // ---------------------------------------------------------------------------
@@ -367,57 +548,47 @@ export function equalsIgnoreCase(a: string | null | undefined, b: string | null 
 
 /** `intersect` : ensemble des éléments de `a` présents dans `b` (ordre de `a`). */
 export function intersect<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
-  const bs = b instanceof Set ? (b as Set<T>) : new Set(b)
-  const out = new Set<T>()
-  for (const x of a) if (setHas(bs, x) && !setHas(out, x)) out.add(x)
+  // Kotlin : toMutableSet().retainAll(other)
+  const bs = b instanceof LinkedHashSet ? (b as LinkedHashSet<T>) : new LinkedHashSet(b)
+  const out = new LinkedHashSet<T>()
+  for (const x of a) if (bs.has(x)) out.add(x)
   return out
 }
 /** `union` */
 export function union<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
-  return distinctSet([...a, ...b])
+  // Kotlin : toMutableSet().addAll(other)
+  const out = new LinkedHashSet(a)
+  for (const x of b) out.add(x)
+  return out
 }
 /** `subtract` / `a - b` pour des ensembles */
 export function subtract<T>(a: Iterable<T>, b: Iterable<T>): Set<T> {
-  const bs = b instanceof Set ? (b as Set<T>) : new Set(b)
-  return distinctSet([...a].filter((x) => !setHas(bs, x)))
-}
-/** `toSet()` : dédoublonne avec l'égalité structurelle, en conservant l'ordre. */
-export function distinctSet<T>(a: Iterable<T>): Set<T> {
-  // Comme LinkedHashSet : index par hashCode (cohérent avec eq), puis equals dans le seau.
-  // Une recherche linéaire rendait union/toSet quadratiques (merge du FileSystemScanner cubique).
-  const out = new Set<T>()
-  const buckets = new Map<number, T[]>()
-  for (const x of a) {
-    if (out.has(x)) continue
-    const h = hash(x)
-    const bucket = buckets.get(h)
-    if (bucket === undefined) buckets.set(h, [x])
-    else if (bucket.some((y) => eq(x, y))) continue
-    else bucket.push(x)
-    out.add(x)
-  }
+  // Kotlin : toMutableSet().removeAll(other)
+  const out = new LinkedHashSet(a)
+  for (const x of b) out.delete(x)
   return out
+}
+/** `toSet()` : dédoublonne avec l'égalité structurelle, en conservant l'ordre (LinkedHashSet). */
+export function distinctSet<T>(a: Iterable<T>): Set<T> {
+  return new LinkedHashSet(a)
 }
 /** `distinct()` */
 export function distinct<T>(a: Iterable<T>): T[] {
-  return [...distinctSet(a)]
+  return [...new LinkedHashSet(a)]
 }
 /** `distinctBy { }` */
 export function distinctBy<T, K>(a: Iterable<T>, sel: (t: T) => K): T[] {
-  const buckets = new Map<number, K[]>()
+  const keys = new HashSet<K>()
   const out: T[] = []
   for (const x of a) {
     const k = sel(x)
-    const h = hash(k)
-    const bucket = buckets.get(h)
-    if (bucket === undefined) buckets.set(h, [k])
-    else if (bucket.some((y) => eq(k, y))) continue
-    else bucket.push(k)
+    if (keys.has(k)) continue
+    keys.add(k)
     out.push(x)
   }
   return out
 }
-/** `contains` avec égalité structurelle */
+/** `contains` avec égalité structurelle (recherche linéaire sur une liste, comme Kotlin) */
 export function contains<T>(a: Iterable<T>, x: T): boolean {
   if (a instanceof Set) return setHas(a, x)
   for (const y of a) if (eq(x, y)) return true
@@ -439,17 +610,22 @@ export function filterNotNull<T>(a: Iterable<T | null | undefined>): T[] {
 }
 /** `associateBy { }` (la dernière valeur gagne, ordre d'insertion conservé) */
 export function associateBy<T, K>(a: Iterable<T>, key: (t: T) => K): Map<K, T> {
-  const m = new Map<K, T>()
+  const m = new LinkedHashMap<K, T>()
   for (const x of a) m.set(key(x), x)
   return m
 }
 /** `associate { k to v }` */
 export function associate<T, K, V>(a: Iterable<T>, f: (t: T) => [K, V]): Map<K, V> {
-  return new Map([...a].map(f))
+  const m = new LinkedHashMap<K, V>()
+  for (const x of a) {
+    const [k, v] = f(x)
+    m.set(k, v)
+  }
+  return m
 }
 /** `groupBy { }` */
 export function groupBy<T, K>(a: Iterable<T>, key: (t: T) => K): Map<K, T[]> {
-  const m = new Map<K, T[]>()
+  const m = new LinkedHashMap<K, T[]>()
   for (const x of a) {
     const k = key(x)
     const l = m.get(k)
@@ -571,7 +747,7 @@ export function sumOf<T>(a: Iterable<T>, f: (t: T) => number): number {
 }
 /** `plus` pour les Map (`a + b`) */
 export function mapPlus<K, V>(a: ReadonlyMap<K, V>, b: ReadonlyMap<K, V> | Iterable<[K, V]>): Map<K, V> {
-  return new Map([...a, ...b])
+  return new LinkedHashMap<K, V>([...a, ...b])
 }
 /** `takeIf { }` */
 export function takeIf<T>(v: T, p: (t: T) => boolean): T | null {
