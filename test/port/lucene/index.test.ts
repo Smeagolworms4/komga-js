@@ -4,9 +4,11 @@ import { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
+import { MultiLingualAnalyzer } from '../../../src/infrastructure/search/MultiLingualAnalyzer.js'
 import { MultiLingualNGramAnalyzer } from '../../../src/infrastructure/search/MultiLingualNGramAnalyzer.js'
 import { DateTools, Document, Field, StringField, Term, TextField } from '../../../src/port/lucene/document.js'
 import { DirectoryReader, IndexNotFoundException, IndexUpgrader, IndexWriter, IndexWriterConfig, SmallFloat } from '../../../src/port/lucene/index.js'
+import { QueryParser } from '../../../src/port/lucene/queryparser.js'
 import { SearcherFactory, SearcherManager, TermQuery } from '../../../src/port/lucene/search.js'
 import { ByteBuffersDirectory, FSDirectory, INDEX_FILE, LockObtainFailedException, SingleInstanceLockFactory } from '../../../src/port/lucene/store.js'
 
@@ -113,6 +115,73 @@ describe('Lucene index support', () => {
     expect(w.isOpen()).toBe(false)
     const sm = new SearcherManager(new IndexWriter(FSDirectory.open(path), new IndexWriterConfig(analyzer())))
     expect(ids(sm, new Term('type', 'book'))).toEqual(['1'])
+  })
+
+  // recherches (identifiant, score) sur des requêtes de termes, de phrases, de préfixes et floues
+  const QUERIES = ['batman', 'bat', 'robin', '"dark knight"', '"knight returns"~2', 'batm*', 'jokr~1', 'volume 7', 'volume', '1233']
+  function results(sm: SearcherManager): string[][] {
+    const s = sm.acquire()
+    return QUERIES.map((q) =>
+      s
+        .search(new QueryParser('title', new MultiLingualAnalyzer()).parse(q), 10_000)
+        .scoreDocs.map((sd) => `${s.storedFields().document(sd.doc).get('book_id')}:${sd.score}`),
+    )
+  }
+  const TITLES = ['batman returns', 'the dark knight returns', 'robin and batman', 'joker', 'dark knight rises']
+  const title = (i: number) => `${TITLES[i % TITLES.length]} volume ${i % 97} ${i}`
+
+  it('keeps many postings per term and compacts deleted documents', () => {
+    const path = tmp()
+    const w = new IndexWriter(FSDirectory.open(path), new IndexWriterConfig(analyzer()))
+    // 6 000 documents : longues listes de postings (tranches chaînées, plusieurs blocs) et un gros commit sur plusieurs lignes
+    w.addDocuments(Array.from({ length: 6000 }, (_, i) => doc(String(i), title(i))))
+    w.commit()
+    const lines = readFileSync(join(path, INDEX_FILE), 'utf8').split('\n')
+    expect(lines).toHaveLength(1 + 6 + 1)
+    expect(lines.slice(1, 6).every((l) => l.endsWith(',"more":true}'))).toBe(true)
+    // suppression des deux tiers : compactage au commit
+    for (let i = 0; i < 6000; i++) if (i % 3 !== 0) w.deleteDocuments(new Term('book_id', String(i)))
+    w.updateDocument(new Term('book_id', '3'), doc('3', 'batman begins'))
+    w.commit()
+    const sm = new SearcherManager(w)
+    const got = results(sm)
+    expect(got.map((r) => r.length)).toEqual([801, 801, 400, 800, 400, 801, 399, 1999, 1999, 1])
+    expect(got[0]?.length).toBe(Array.from({ length: 6000 }, (_, i) => i).filter((i) => i % 3 === 0 && (i === 3 || title(i).includes('batman'))).length)
+
+    // même index construit directement avec les seuls documents restants : mêmes résultats et scores
+    const fresh = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(analyzer()))
+    for (let i = 0; i < 6000; i += 3) if (i !== 3) fresh.addDocument(doc(String(i), title(i)))
+    fresh.addDocument(doc('3', 'batman begins'))
+    expect(got).toEqual(results(new SearcherManager(fresh)))
+    // index rouvert depuis le journal
+    expect(results(new SearcherManager(new IndexWriter(FSDirectory.open(path), new IndexWriterConfig(analyzer()))))).toEqual(got)
+  })
+
+  it('ignores a commit whose lines were not all written', () => {
+    const path = tmp()
+    const w = new IndexWriter(FSDirectory.open(path), new IndexWriterConfig(analyzer()))
+    w.addDocument(doc('a', 'batman'))
+    w.commit()
+    w.addDocuments(Array.from({ length: 2500 }, (_, i) => doc(String(i), title(i))))
+    w.commit()
+    // perte de la dernière ligne du commit
+    const lines = readFileSync(join(path, INDEX_FILE), 'utf8').split('\n')
+    writeFileSync(join(path, INDEX_FILE), `${lines.slice(0, -2).join('\n')}\n`)
+    const sm = new SearcherManager(new IndexWriter(FSDirectory.open(path), new IndexWriterConfig(analyzer())))
+    expect(ids(sm, new Term('type', 'book'))).toEqual(['a'])
+    expect(readFileSync(join(path, INDEX_FILE), 'utf8').split('\n')).toHaveLength(3)
+  })
+
+  it('adds a block of documents all or nothing', () => {
+    const w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(analyzer()))
+    w.addDocument(doc('1', 'batman'))
+    const immense = new Document()
+    immense.add(new StringField('book_id', 'x'.repeat(40_000), Field.Store.YES))
+    expect(() => w.addDocuments([doc('2', 'batman returns'), doc('3', 'batman begins'), immense])).toThrow(/immense term/)
+    const sm = new SearcherManager(w)
+    expect(ids(sm, new Term('title', 'batman'))).toEqual(['1'])
+    expect(sm.acquire().getIndexReader().numDocs()).toBe(1)
+    expect(sm.acquire().collectionStatistics('title')?.docCount).toBe(1)
   })
 
   it('encodes norms like SmallFloat', () => {

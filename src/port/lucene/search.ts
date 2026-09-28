@@ -13,7 +13,7 @@
 import { IllegalArgumentException, IllegalStateException, RuntimeException } from '../kotlin.js'
 import { compareTerms } from './analysis.js'
 import { Term } from './document.js'
-import { type CollectionStatistics, type DocRecord, type FieldData, type IndexReader, type IndexWriter, SmallFloat } from './index.js'
+import { type CollectionStatistics, type IndexReader, type IndexWriter, type Postings, SmallFloat } from './index.js'
 import { RegExp } from './RegExp.js'
 
 const f = Math.fround
@@ -328,12 +328,11 @@ export class TermQuery extends Query {
     return new (class extends Weight {
       scores(): Hits {
         const m: Hits = new Map()
-        for (const d of searcher.reader.postings(term.field, term.bytes)) {
-          const fd = d.fields.get(term.field) as FieldData
-          const freq = fd.indexOptions === 'DOCS' ? 1 : (fd.terms.get(term.bytes) as number[]).length
-          const norm = fd.norm === -1 ? 1 : fd.norm
-          m.set(d.id, simScorer === null ? 0 : simScorer.score(freq, norm))
-        }
+        const { docs, freqs } = searcher.reader.readPostings(term.field, term.bytes, false)
+        docs.forEach((d, i) => {
+          const norm = searcher.reader.norm(d, term.field)
+          m.set(d.id, simScorer === null ? 0 : simScorer.score(freqs[i] as number, norm === -1 ? 1 : norm))
+        })
         return m
       }
     })()
@@ -1111,17 +1110,18 @@ export class PhraseQuery extends Query {
         }
         // term doesnt exist in this segment
         if (states.some((s) => s.docFreq === 0)) return m
-        const lists = terms.map((t) => reader.postings(field, t.bytes))
-        let smallest = lists[0] as DocRecord[]
-        for (const l of lists) if (l.length < smallest.length) smallest = l
-        const sets = lists.map((l) => new Set(l.map((d) => d.id)))
+        const lists = terms.map((t) => reader.readPostings(field, t.bytes, true))
+        let smallest = (lists[0] as Postings).docs
+        for (const l of lists) if (l.docs.length < smallest.length) smallest = l.docs
+        // numéro de document -> positions du terme
+        const maps = lists.map((l) => new Map(l.docs.map((d, i) => [d.id, (l.positions as number[][])[i] as number[]])))
         for (const d of smallest) {
-          if (!sets.every((s) => s.has(d.id))) continue
-          const fd = d.fields.get(field) as FieldData
-          const pos = terms.map((t) => fd.terms.get(t.bytes) as number[])
+          if (!maps.every((s) => s.has(d.id))) continue
+          const pos = maps.map((s) => s.get(d.id) as number[])
           const freq = slop === 0 ? exactPhraseFreq(pos, positions) : sloppyPhraseFreq(pos, positions, terms, slop)
           if (freq === 0) continue
-          m.set(d.id, stats.score(freq, fd.norm === -1 ? 1 : fd.norm))
+          const norm = reader.norm(d, field)
+          m.set(d.id, stats.score(freq, norm === -1 ? 1 : norm))
         }
         return m
       }

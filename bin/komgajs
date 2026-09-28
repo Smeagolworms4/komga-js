@@ -10,9 +10,10 @@ if [ -z "$TZ" ] && [ -r /etc/timezone ]; then
   [ -n "$TZ" ] && export TZ
 fi
 # Limite du tas V8 de chaque thread (serveur HTTP, worker des tâches) quand la mémoire du conteneur est limitée
-# (cgroup v2 ou v1) : 40 % de la limite, au moins 256 Mo. 25 % (le MaxRAMPercentage de la JVM) ne suffisait pas à
-# reconstruire l'index de recherche d'une bibliothèque de 6 600 livres avec 700 Mo (heap out of memory au démarrage).
-# Le worker n'existe que pendant les tâches. KOMGAJS_MAX_HEAP_MB impose la valeur explicitement.
+# (cgroup v2 ou v1) : comme la JVM (MaxRAMPercentage = 25 %), un quart de la limite, au moins 256 Mo. Deux tas
+# (le worker n'existe que pendant les tâches) plus la mémoire native (SQLite, libvips, index de recherche hors tas)
+# doivent tenir dans le conteneur. 256 Mo suffisent à reconstruire l'index de 50 000 livres (192 Mo mesurés).
+# KOMGAJS_MAX_HEAP_MB impose la valeur explicitement.
 HEAP_MB="${KOMGAJS_MAX_HEAP_MB:-}"
 if [ -z "$HEAP_MB" ]; then
   LIMIT=""
@@ -20,7 +21,7 @@ if [ -z "$HEAP_MB" ]; then
   elif [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then LIMIT="$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)"; fi
   case "$LIMIT" in
     ''|max|*[!0-9]*) ;;
-    *) if [ "$LIMIT" -lt 1099511627776 ]; then HEAP_MB=$((LIMIT / 1048576 * 2 / 5)); [ "$HEAP_MB" -lt 256 ] && HEAP_MB=256; fi ;;
+    *) if [ "$LIMIT" -lt 1099511627776 ]; then HEAP_MB=$((LIMIT / 1048576 / 4)); [ "$HEAP_MB" -lt 256 ] && HEAP_MB=256; fi ;;
   esac
 fi
 HEAP_OPT=""

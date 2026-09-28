@@ -280,10 +280,17 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
   accumulait des centaines de Mo de mémoire native : les instructions sont réutilisées par connexion
   (`prepareCached`, `src/port/jooq/core.ts`), et les noms des tables temporaires (`TempTable`) sont réutilisés par
   connexion pour que leurs requêtes le soient aussi.
-- Mémoire : `bin/komgajs` limite le tas V8 de chaque thread à 40 % de la mémoire du conteneur (cgroup), au moins 256 Mo
-  (25 %, le `MaxRAMPercentage` de la JVM, ne suffisait pas à reconstruire l'index de 6 600 livres), ou à `KOMGAJS_MAX_HEAP_MB`.
+- Mémoire : `bin/komgajs` limite le tas V8 de chaque thread au quart de la mémoire du conteneur (cgroup), comme la JVM
+  (`MaxRAMPercentage` 25 %), au moins 256 Mo, ou à `KOMGAJS_MAX_HEAP_MB`.
+- Index de recherche (`src/port/lucene/index.ts`) : dictionnaire des termes, postings, champs des documents et documents
+  sérialisés dans des tableaux typés hors du tas V8 (comme les pools de l'IndexingChain de Lucene) ; il ne reste dans le
+  tas qu'un petit objet par document. Mesuré (livres avec titre, ISBN, 2 auteurs, 1 étiquette) : 7 000 livres = 21 Mo
+  hors tas + ~8 Mo de tas ; 48 000 livres = 112 Mo hors tas + ~40 Mo de tas. `RebuildIndex` passe avec un tas de 256 Mo
+  pour 50 000 livres (192 Mo aussi). Les gros commits (pages de 5 000 documents, reconstruction) sont écrits et relus
+  par lignes de 1 000 opérations. L'ancien index en objets JS prenait ~70 Ko de tas par livre (heap out of memory à
+  256 Mo avec 6 600 livres).
 
-| Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; à surveiller : RAM de l'index en mémoire |
+| Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; index en mémoire hors tas V8 (~2,3 Ko par livre) |
 | Images (miniatures, conversions) | pixels légèrement différents (sharp lanczos3 contre Thumbnailator bilinéaire progressif, encodeur PNG différent) ; dimensions, formats, décisions identiques (122 fichiers, oracle Komga) | visuel négligeable |
 | JPEG (lecture, écriture, `BookAnalyzer.hashPage`) | octets identiques à Komga sur Temurin 21 (JDK 23 vérifié identique sur 61 cas) (libjpeg 6b et LittleCMS 2.19 du JDK compilés dans `build/komgajpeg.node`, logique TwelveMonkeys dans `src/port/jpeg-jdk.ts` ; `test/port/jpeg-jdk.test.ts`, 208 cas). Non reproduits (sharp) : JPEG sans perte (SOF3), CMYK avec un profil ICC non CMYK. Le cache global de TwelveMonkeys (16 profils ICC) est reproduit par processus (un par worker). Un JDK de distribution lié à la libjpeg-turbo du système (OpenJDK Ubuntu) donne lui-même d'autres octets (4:4:0, progressifs tronqués) | empreintes de pages identiques à celles de l'image Docker de Komga |
 | Rendu PDF | mupdf au lieu de PDFBox : pixels différents | visuel |
@@ -291,4 +298,3 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
 ## À optimiser (mémoire)
 
 - Charger à la demande les modules lourds (sharp, mupdf wasm, libheif-js, @jsquash/jxl) : premier usage seulement.
-- Mesurer la RAM de l'index de recherche en mémoire sur une grosse bibliothèque.
