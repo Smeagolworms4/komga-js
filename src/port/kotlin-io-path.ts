@@ -9,20 +9,10 @@ import { FileInputStream, FileNotFoundException, IOException } from './java-io.j
 /** `java.io.FileNotFoundException` : une seule classe, celle de java-io.ts (sinon `instanceof` échoue d'un module à l'autre) */
 export { FileNotFoundException }
 
-/** `java.nio.file.FileSystemException` */
-export class FileSystemException extends IOException {}
-
-/** `java.nio.file.FileAlreadyExistsException` */
-export class FileAlreadyExistsException extends FileSystemException {}
-
-/** `java.nio.file.NoSuchFileException` */
-export class NoSuchFileException extends FileSystemException {}
-
-/** `java.nio.file.AccessDeniedException` */
-export class AccessDeniedException extends FileSystemException {}
-
-/** `java.nio.file.DirectoryNotEmptyException` */
-export class DirectoryNotEmptyException extends FileSystemException {}
+// PORT: une seule classe par exception java.nio.file, celles de java-nio-file.ts (sinon `instanceof` échoue d'un module
+// à l'autre : une NoSuchFileException levée par Files.newInputStream n'était pas reconnue par BookAnalyzer.analyze)
+export { AccessDeniedException, DirectoryNotEmptyException, FileAlreadyExistsException, FileSystemException, NoSuchFileException } from './java-nio-file.js'
+import { AccessDeniedException, DirectoryNotEmptyException, FileAlreadyExistsException, NoSuchFileException } from './java-nio-file.js'
 
 /**
  * Conversion d'une erreur système Node (code errno) en exception java.nio.file, comme le fait le
