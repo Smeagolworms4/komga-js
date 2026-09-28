@@ -516,12 +516,14 @@ function mappedHandlers(): MappedHandler[] {
     for (const [methodName, handler] of Object.entries(spec.handlers)) {
       if (handler.openapi?.operation?.hidden) continue
       const methodPaths = handler.mapping.path?.length ? handler.mapping.path : ['']
-      const paths: string[] = []
-      for (const c of classPaths) for (const m of methodPaths) paths.push(joinPath(c, m))
+      const rawPaths: string[] = []
+      for (const c of classPaths) for (const m of methodPaths) rawPaths.push(joinPath(c, m))
+      // springdoc : `{*var}` et `{var:regex}` écrits `{var}` dans le document
+      const paths = rawPaths.map((it) => it.replace(/\{\*?([^}:]+)(?::[^}]*)?\}/g, '{$1}'))
       const methods = asList(handler.mapping.method ?? spec.requestMapping?.method).map((m) => m.toLowerCase() as HttpMethodLower)
       const produces = handler.mapping.produces?.length ? handler.mapping.produces : (spec.requestMapping?.produces ?? [])
       const consumes = handler.mapping.consumes?.length ? handler.mapping.consumes : (spec.requestMapping?.consumes ?? [])
-      let info = `{${methods.length === 1 ? methods[0]?.toUpperCase() : `[${methods.map((m) => m.toUpperCase()).join(', ')}]`} [${paths.join(' || ')}]`
+      let info = `{${methods.length === 1 ? methods[0]?.toUpperCase() : `[${methods.map((m) => m.toUpperCase()).join(', ')}]`} [${rawPaths.join(' || ')}]`
       if (consumes.length) info += `, consumes [${consumes.join(' || ')}]`
       if (produces.length) info += `, produces [${produces.join(' || ')}]`
       info += '}'

@@ -18,17 +18,19 @@ let shared: ApplicationContext | null = null
  * `mocks` : équivalent de `@MockkBean` / `@SpykBean` : l'instance fournie remplace le bean du type donné.
  * `{ type, spyk: true }` (`@SpykBean`) : espion (test/support/mockk.ts) du vrai bean, injecté à sa place ;
  * `ctx.getBean(type)` renvoie l'espion.
- * Un contexte avec propriétés ou mocks n'est pas partagé.
+ * `options.profiles` : équivalent de `@ActiveProfiles(..)` (défaut : ["test"]).
+ * Un contexte avec propriétés, mocks ou profils n'est pas partagé.
  */
 export function springBootTest(
   properties: Record<string, unknown> = {},
   mocks: ({ type: Token; instance: unknown } | { type: Token; spyk: true })[] = [],
+  options: { profiles?: string[] } = {},
 ): ApplicationContext {
-  const isDefault = Object.keys(properties).length === 0 && mocks.length === 0
+  const isDefault = Object.keys(properties).length === 0 && mocks.length === 0 && options.profiles === undefined
   if (shared && isDefault) return shared
   const env = new Environment({
     resourcesDirs: ['test/resources', 'resources'],
-    profiles: ['test'],
+    profiles: options.profiles ?? ['test'],
     properties,
     buildProperties: { version: 'TESTING', rootDir: process.cwd() },
   })
