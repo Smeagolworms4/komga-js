@@ -1,0 +1,1 @@
+{"toDto: simple":{"@class":"AlternateTitleDto","label":"en","title":"Title"},"toDto: empty":{"@class":"AlternateTitleDto","label":"","title":""},"toDto: unicode json":"{\"label\":\"日本語\",\"title\":\"タイトル \\\"q\\\"\"}"}

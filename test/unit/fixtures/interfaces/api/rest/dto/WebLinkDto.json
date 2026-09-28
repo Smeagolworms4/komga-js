@@ -1,0 +1,1 @@
+{"toDto: https":{"@class":"WebLinkDto","label":"site","url":"https://example.org/a?b=c#d"},"toDto: encoded":{"@class":"WebLinkDto","label":"enc","url":"https://example.org/a%20b/%C3%A9"},"toDto: relative":{"@class":"WebLinkDto","label":"","url":"relative/path"},"toDto: json":"{\"label\":\"x\",\"url\":\"http://h/\"}"}

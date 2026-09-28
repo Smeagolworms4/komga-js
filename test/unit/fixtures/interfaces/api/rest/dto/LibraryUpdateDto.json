@@ -1,0 +1,1 @@
+{"isSet: empty body":[false,false,false,false,null,null,null,null,null],"isSet: set to null":[false,true,true,false,null,null,null,null,null],"isSet: set to values":[false,true,true,false,"n",{"@set":["a","b"]},"",{"@enum":"WEEKLY"},{"@enum":"LAST"}],"isSet: only one":[false,false,true,false,null,null,"os",null,null],"isSet: default instance":false}

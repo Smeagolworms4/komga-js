@@ -1,0 +1,1 @@
+{"toDto: DEFAULT":{"@enum":"DEFAULT"},"toDto: MEDIUM":{"@enum":"MEDIUM"},"toDto: LARGE":{"@enum":"LARGE"},"toDto: XLARGE":{"@enum":"XLARGE"},"toDomain: DEFAULT":{"@enum":"DEFAULT"},"toDomain: MEDIUM":{"@enum":"MEDIUM"},"toDomain: LARGE":{"@enum":"LARGE"},"toDomain: XLARGE":{"@enum":"XLARGE"}}
