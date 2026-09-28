@@ -30,6 +30,8 @@ export class InvalidFormatException extends MismatchedInputException {}
 export class MissingKotlinParameterException extends MismatchedInputException {}
 /** `JsonParseException` */
 export class JsonParseException extends JsonProcessingException {}
+/** `com.fasterxml.jackson.core.io.JsonEOFException` (fin d'entrée inattendue) */
+export class JsonEOFException extends JsonParseException {}
 /** `com.fasterxml.jackson.core.exc.InputCoercionException` (nombre hors limites) */
 export class InputCoercionException extends JsonProcessingException {}
 /** `com.fasterxml.jackson.databind.exc.InvalidTypeIdException` */
@@ -337,7 +339,9 @@ function isSealed(t: object): t is SealedInterface<unknown> {
 
 /** Erreur de syntaxe rencontrée au fil de la lecture (voir JsonPoison dans port/jackson-tree.ts) */
 function poisonException(p: JsonPoison): JsonProcessingException {
-  return p.mismatch ? new MismatchedInputException(p.message) : new JsonParseException(p.message)
+  if (p.mismatch) return new MismatchedInputException(p.message)
+  // ParserMinimalBase._reportInvalidEOF : JsonEOFException
+  return p.message.startsWith('Unexpected end-of-input') ? new JsonEOFException(p.message) : new JsonParseException(p.message)
 }
 
 function checkPoison(n: JsonNode): void {

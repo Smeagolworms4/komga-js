@@ -78,7 +78,8 @@ export class LoginListener {
       userAgent: this.getUserAgent(event),
       success: false,
       source: source,
-      error: event.exception.message || null,
+      // PORT: message d'exception tel quel (une chaîne vide reste vide, comme en Kotlin)
+      error: event.exception.message,
     })
 
     logger.debug(() => str(activity))

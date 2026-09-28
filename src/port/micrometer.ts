@@ -105,7 +105,8 @@ export namespace Timer {
       return this
     }
     register(registry: MeterRegistry): Timer {
-      return registry.registerMeter(new MeterId(this.name, this.tags, 'TIMER', this.desc), (id) => new Timer(id))
+      // unité de base des Timer : l'unité de temps du registre (SimpleMeterRegistry : secondes)
+      return registry.registerMeter(new MeterId(this.name, this.tags, 'TIMER', this.desc, 'seconds'), (id) => new Timer(id))
     }
   }
 }
@@ -290,7 +291,7 @@ export abstract class MeterRegistry {
 
   /** `timer(name, vararg tags)` */
   timer(name: string, ...tags: string[]): Timer {
-    return this.registerMeter(new MeterId(name, Tags.of(...tags), 'TIMER'), (id) => new Timer(id))
+    return this.registerMeter(new MeterId(name, Tags.of(...tags), 'TIMER', null, 'seconds'), (id) => new Timer(id))
   }
 
   /** `counter(name, vararg tags)` */

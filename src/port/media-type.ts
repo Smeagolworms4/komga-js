@@ -53,6 +53,16 @@ export class ParsedMediaType {
       if (eq < 0) continue
       const k = t.slice(0, eq).trim()
       const v = t.slice(eq + 1).trim()
+      // MimeType.checkParameters : attribut et valeur non vides, jetons valides (valeur entre guillemets admise),
+      // jeu de caractères connu (Charset.forName)
+      if (!k) throw new InvalidMediaTypeException(value, "'attribute' must not be empty")
+      if (!v) throw new InvalidMediaTypeException(value, "'value' must not be empty")
+      if (!TOKEN.test(k)) throw new InvalidMediaTypeException(value, `Invalid token character in parameter "${k}"`)
+      const quoted = v.length >= 2 && ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'")))
+      if (k.toLowerCase() === 'charset') {
+        const cs = quoted ? v.slice(1, -1) : v
+        if (!isKnownCharset(cs)) throw new InvalidMediaTypeException(value, `unsupported charset '${cs}'`)
+      } else if (!quoted && !TOKEN.test(v)) throw new InvalidMediaTypeException(value, `Invalid token character in parameter value "${v}"`)
       if (k.toLowerCase() === 'q') {
         const q = Number(v.replace(/^"|"$/g, ''))
         if (Number.isNaN(q) || q < 0 || q > 1) throw new InvalidMediaTypeException(value, `Invalid quality value "${v}": should be between 0.0 and 1.0`)
@@ -1252,4 +1262,15 @@ export function mediaTypeForFilename(filename: string | null): ParsedMediaType |
   if (dot < 0) return null
   const t = EXTENSIONS[filename.slice(dot + 1).toLowerCase()]
   return t ? ParsedMediaType.parse(t) : null
+}
+
+/** `Charset.forName(name)` réussit : nom connu (étiquettes WHATWG de TextDecoder, plus UTF-32 que le JDK connaît aussi) */
+function isKnownCharset(name: string): boolean {
+  if (/^utf-?32(be|le)?$/i.test(name)) return true
+  try {
+    new TextDecoder(name)
+    return true
+  } catch {
+    return false
+  }
 }
