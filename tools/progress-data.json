@@ -245,21 +245,21 @@
     {
       "lot": "Documentation OpenAPI identique à Komga",
       "who": "agent",
-      "start": "15:55",
-      "status": "running"
+      "status": "done",
+      "min": 13,
+      "check": "docs/openapi.json de Komga",
+      "result": "174/174 opérations, 170/170 schémas identiques"
     },
     {
       "lot": "Derniers tests Kotlin et petits écarts",
       "who": "agent",
-      "start": "15:55",
-      "status": "running"
+      "status": "done",
+      "min": 29,
+      "check": "Komga en marche",
+      "result": "775/775 tests portés, 1 485 tests passent"
     }
   ],
   "remaining": [
-    {
-      "step": "Documentation OpenAPI et derniers tests",
-      "estimate": "en cours"
-    },
     {
       "step": "Accélérer le scan (réglage mémoire / vitesse, worker threads)",
       "estimate": "environ 1 h"
@@ -267,12 +267,18 @@
     {
       "step": "Test sur une vraie base Komga et avec le vrai frontend",
       "estimate": "environ 1 h"
+    },
+    {
+      "step": "Image Docker KomgaJS",
+      "estimate": "environ 30 min"
     }
   ],
   "deviations": [
     "Index de recherche : format de fichier propre, reconstruit automatiquement s'il est absent",
     "Miniatures et rendu PDF : pixels légèrement différents, dimensions et formats identiques",
-    "Blobs gzip : octets différents, contenu identique"
+    "Blobs gzip : octets différents, contenu identique",
+    "Ordre des erreurs de validation : aléatoire chez Komga, fixe chez KomgaJS",
+    "Scan 2,4× plus lent (réglé pour économiser la mémoire)"
   ],
   "bench": {
     "java": {
