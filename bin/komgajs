@@ -3,4 +3,10 @@
 # MALLOC_ARENA_MAX=2 : limite la fragmentation de glibc avec les threads natifs (libvips), gros gain de RAM.
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
+# Fuseau horaire par défaut comme la JVM sous Linux : TZ, sinon /etc/timezone, sinon /etc/localtime.
+# Node ignore /etc/timezone ; Komga stocke des LocalDateTime dans ce fuseau (dates des fichiers comprises).
+if [ -z "$TZ" ] && [ -r /etc/timezone ]; then
+  TZ="$(tr -d ' \n' < /etc/timezone)"
+  [ -n "$TZ" ] && export TZ
+fi
 exec node --max-semi-space-size=4 "$DIR/dist/src/main.js" "$@"
