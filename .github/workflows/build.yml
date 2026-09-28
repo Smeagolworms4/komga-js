@@ -4,8 +4,8 @@ name: Build
 # comparisons against values recorded from the real Komga/JVM libraries).
 #
 # Nothing here needs Java or a running Komga: every reference value used by the tests is
-# committed as a fixture. The oracle scripts that produced them (tools/jshell-komga.sh) are
-# only run by hand, when a fixture has to be regenerated.
+# committed as a fixture. The oracle scripts that produced them (tools/jshell-komga.sh,
+# tools/run-kotlin-oracles.sh) are only run by hand, when a fixture has to be regenerated.
 
 on:
   push:
@@ -23,6 +23,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Kotlin oracle unit tests (test/unit/, see PORTING.md): the fixtures are committed, produced by the oracle tests
+  # of the Komga fork (branch unit-oracles), whose own workflow checks they are still identical. Fast, no native build.
+  unit:
+    name: Unit tests (Kotlin oracles)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run test:unit
+
+      - name: Kotlin functions covered by an oracle
+        run: |
+          npm run --silent test:unit:coverage | tee coverage.txt
+          { echo '```'; cat coverage.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
   verify:
     name: Types, native modules and tests
     runs-on: ubuntu-24.04
@@ -70,8 +93,10 @@ jobs:
 
   image:
     name: Docker image
-    needs: verify
+    needs: [verify, unit]
     # Published only from main and version tags; pull requests only build it.
+    # A manual run on another branch (workflow_dispatch) only runs the tests.
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
