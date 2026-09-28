@@ -16,6 +16,11 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import sharp, { type Sharp, type SharpOptions } from 'sharp'
+
+// Mémoire : pas de cache d'opérations libvips (Komga ne relit pas les mêmes images) et un seul thread libvips par
+// opération (Thumbnailator/ImageIO sont mono-thread par appel ; le parallélisme vient du pool de tâches).
+sharp.cache(false)
+sharp.concurrency(1)
 import { ByteArrayOutputStream, type InputStream, IOException } from './java-io.js'
 import { UnsupportedOperationException } from './kotlin.js'
 import { BufferedImage, IIOException, ImageInputStream, type ImageReader } from './imageio.js'

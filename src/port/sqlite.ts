@@ -65,9 +65,13 @@ export class SQLiteDataSource {
   /** Réglages appliqués par sqlite-jdbc à l'ouverture, puis getConnection() des sous-classes */
   protected configure(db: Database.Database): void {
     db.loadExtension(komgaSqliteExtensionPath())
+    // sqlite-jdbc est compilé avec SQLITE_DEFAULT_CACHE_SIZE=-2000 (2 Mo par connexion) et
+    // SQLITE_DEFAULT_WAL_SYNCHRONOUS=2 (FULL) ; better-sqlite3 avec -16000 (16 Mo) et 1 (NORMAL) : on aligne sur Komga
+    db.pragma('cache_size = -2000')
     db.pragma(`busy_timeout = ${this.config.busyTimeout}`)
     db.pragma(`foreign_keys = ${this.config.enforceForeignKeys ? 'ON' : 'OFF'}`)
     if (this.config.journalMode) db.pragma(`journal_mode = ${this.config.journalMode}`)
+    if (String(db.pragma('journal_mode', { simple: true })).toUpperCase() === 'WAL') db.pragma('synchronous = FULL')
   }
 }
 

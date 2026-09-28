@@ -57,3 +57,88 @@ export abstract class ApplicationRunner {
 export function callRunners(context: ApplicationContext, args: ApplicationArguments): void {
   for (const runner of context.getBeansOfType(ApplicationRunner)) runner.run(args)
 }
+
+// ---------------------------------------------------------------------------
+// SpringApplication.run
+// ---------------------------------------------------------------------------
+
+/**
+ * `runApplication<Application>(*args)` : environnement (arguments `--clé=valeur`, variables d'environnement,
+ * application.yml + imports), scan des composants (tous les modules de `src/`), rafraîchissement du contexte
+ * (migrations Flyway en premier), serveur web, ApplicationRunner, puis ApplicationReadyEvent.
+ * Arrêt propre sur SIGINT/SIGTERM (server.shutdown=graceful).
+ */
+export async function runApplication(argv: string[]): Promise<ApplicationContext> {
+  const { readdirSync, readFileSync, statSync } = await import('node:fs')
+  const { dirname, join } = await import('node:path')
+  const { fileURLToPath, pathToFileURL } = await import('node:url')
+  const { ApplicationContext, ApplicationReadyEvent, Environment } = await import('./spring.js')
+  const { resourcesDir } = await import('./resources.js')
+  const { startWebServer } = await import('./spring-boot-web.js')
+  const { KotlinLogging } = await import('./logging.js')
+  const logger = KotlinLogging.logger('org.gotson.komga.Application')
+  const started = Date.now()
+
+  const args = new ApplicationArguments(argv)
+  const properties: Record<string, string> = {}
+  for (const name of args.getOptionNames()) properties[name] = (args.getOptionValues(name) ?? []).join(',')
+  const here = dirname(fileURLToPath(import.meta.url))
+  const srcRoot = join(here, '..')
+  let version = 'unknown'
+  try {
+    version = (JSON.parse(readFileSync(join(srcRoot, '..', 'package.json'), 'utf8')) as { version: string }).version
+  } catch {
+    // version inconnue
+  }
+  const environment = new Environment({
+    resourcesDirs: [resourcesDir()],
+    properties: nestProperties(properties),
+    buildProperties: { version, rootDir: join(srcRoot, '..') },
+  })
+
+  // scan des composants : l'équivalent de @SpringBootApplication + auto-configuration
+  const ext = import.meta.url.endsWith('.ts') ? '.ts' : '.js'
+  const modules: string[] = []
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir).sort()) {
+      const f = join(dir, name)
+      if (statSync(f).isDirectory()) {
+        if (dir === srcRoot && name === 'flyway') continue
+        walk(f)
+      } else if (name.endsWith(ext) && !name.endsWith('.d.ts') && f !== join(srcRoot, `main${ext}`)) modules.push(f)
+    }
+  }
+  walk(srcRoot)
+  for (const f of modules) await import(pathToFileURL(f).href)
+
+  const ctx = new ApplicationContext(environment)
+  ctx.refresh()
+  const webServer = await startWebServer(ctx)
+  callRunners(ctx, args)
+  ctx.publishEvent(new ApplicationReadyEvent())
+  logger.info(() => `Started Application in ${((Date.now() - started) / 1000).toFixed(3)} seconds`)
+
+  let stopping = false
+  const stop = async () => {
+    if (stopping) return
+    stopping = true
+    await webServer.stop()
+    ctx.close()
+    process.exit(0)
+  }
+  process.once('SIGINT', () => void stop())
+  process.once('SIGTERM', () => void stop())
+  return ctx
+}
+
+/** `--komga.config-dir=/x` -> { komga: { 'config-dir': '/x' } } pour l'Environment */
+function nestProperties(flat: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(flat)) {
+    const parts = k.split('.')
+    let o = out
+    for (const p of parts.slice(0, -1)) o = (o[p] ??= {}) as Record<string, unknown>
+    o[parts[parts.length - 1] as string] = v
+  }
+  return out
+}

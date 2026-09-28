@@ -69,6 +69,39 @@ export class Environment {
     const dirs = opts.resourcesDirs ?? []
     for (const p of [...this.activeProfiles].reverse()) for (const dir of dirs) this.loadYaml(`${dir}/application-${p}.yml`, opts.buildProperties)
     for (const dir of dirs) this.loadYaml(`${dir}/application.yml`, opts.buildProperties)
+    // 5. spring.config.import (ex. "optional:file:${komga.config-dir}/application.yml") : priorité au-dessus du
+    // fichier qui importe, sous les variables d'environnement et les arguments
+    this.processConfigImports()
+  }
+
+  private processConfigImports(): void {
+    const raw = this.raw('spring.config.import')
+    const entries = raw === undefined || raw === null ? [] : Array.isArray(raw) ? raw.map(String) : String(raw).split(',')
+    const imported: Map<string, unknown>[] = []
+    for (const entry of entries) {
+      let spec = this.resolvePlaceholders(entry.trim())
+      const optional = spec.startsWith('optional:')
+      if (optional) spec = spec.slice('optional:'.length)
+      if (spec.startsWith('file:')) spec = spec.slice('file:'.length)
+      if (!existsSync(spec)) {
+        if (optional) continue
+        throw new IllegalStateException(`Config data resource '${spec}' does not exist`)
+      }
+      const m = new Map<string, unknown>()
+      const text = readFileSync(spec, 'utf8')
+      if (spec.endsWith('.properties')) {
+        for (const line of text.split(/\r?\n/)) {
+          const l = line.trim()
+          if (!l || l.startsWith('#') || l.startsWith('!')) continue
+          const i = l.search(/[=:]/)
+          if (i < 0) m.set(canonicalKey(l), '')
+          else m.set(canonicalKey(l.slice(0, i).trim()), l.slice(i + 1).trim())
+        }
+      } else flatten(parseYaml(text) ?? {}, '', m)
+      imported.push(m)
+    }
+    // le dernier import l'emporte sur les précédents
+    this.sources.splice(1, 0, ...imported.reverse())
   }
 
   private loadYaml(path: string, build: Record<string, string> = {}): void {
@@ -288,6 +321,7 @@ export type BeanDefinition = {
   preDestroy: string[]
   /** `@EventListener` : méthode appelée pour chaque événement instance d'un des types */
   eventListeners: { method: string; events: Token[] }[]
+  early: boolean
 }
 
 const definitions: BeanDefinition[] = []
@@ -311,6 +345,11 @@ export type ComponentOptions = {
   eventListeners?: { method: string; events: Token[] }[]
   /** `@DependsOn("bean")` : beans créés avant celui-ci */
   dependsOn?: string[]
+  /**
+   * Bean instancié avant tous les autres au rafraîchissement du contexte : équivalent des
+   * DependsOn post-processors de Spring Boot qui font passer les migrations Flyway avant jOOQ.
+   */
+  early?: boolean
 }
 
 function profileMatcher(p?: string | ((profiles: string[]) => boolean)): ((profiles: string[]) => boolean) | undefined {
@@ -333,6 +372,7 @@ export function component<T>(cls: Token<T>, opts: ComponentOptions = {}): void {
     postConstruct: opts.postConstruct ?? [],
     preDestroy: opts.preDestroy ?? [],
     eventListeners: opts.eventListeners ?? [],
+    early: opts.early ?? false,
     create: (ctx) => {
       for (const n of opts.dependsOn ?? []) ctx.getBean(n)
       const args = (opts.inject ?? []).map((d) => ctx.resolve(d))
@@ -369,6 +409,7 @@ export function configuration<T>(cls: Token<T>, opts: ComponentOptions & { beans
       postConstruct: [],
       preDestroy: [],
       eventListeners: [],
+      early: false,
       create: (ctx) => {
         const config = ctx.getBean(configName) as Record<string, (...a: unknown[]) => unknown>
         const args = (b.inject ?? []).map((d) => ctx.resolve(d))
@@ -397,6 +438,32 @@ export class ApplicationReadyEvent {}
 
 /** `org.springframework.context.event.ContextRefreshedEvent` : publié à la fin de `refresh()` */
 export class ContextRefreshedEvent {}
+
+/** `org.springframework.context.event.ContextClosedEvent` : publié au début de `close()` */
+export class ContextClosedEvent {}
+
+/**
+ * `org.springframework.context.SmartLifecycle` (phase d'arrêt) des exécuteurs et planificateurs
+ * (ExecutorConfigurationSupport) : `stop()` refuse les nouvelles tâches et abandonne celles en file,
+ * `awaitTermination()` se résout quand les tâches en cours sont terminées.
+ */
+export interface LifecycleResource {
+  stop(): void
+  awaitTermination(): Promise<void>
+}
+
+/** Contexte dont un bean est en cours de création (voir `registerLifecycleResource`) */
+let creatingContext: ApplicationContext | null = null
+
+/**
+ * Rattache un exécuteur / planificateur au contexte qui crée le bean courant, pour qu'il soit arrêté à la fermeture.
+ * PORT: dans Spring, un ThreadPoolTaskExecutor qui n'est pas un bean (ex. `TaskProcessor.executor`) n'est pas arrêté
+ * par la fermeture du contexte : ses threads meurent avec la JVM. Le processus Node survit au contexte (tests), ses
+ * tâches ne doivent pas continuer sur des bases fermées : il est arrêté avec le contexte.
+ */
+export function registerLifecycleResource(resource: LifecycleResource): void {
+  creatingContext?.registerLifecycleResource(resource)
+}
 
 export class NoSuchBeanDefinitionException extends IllegalStateException {}
 export class NoUniqueBeanDefinitionException extends IllegalStateException {}
@@ -427,6 +494,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
         postConstruct: [],
         preDestroy: [],
         eventListeners: [],
+        early: false,
         create: () => e.instance,
       }
       this.active.push(def)
@@ -436,6 +504,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
 
   /** Instancie tous les beans non paresseux (démarrage de l'application) */
   refresh(): this {
+    for (const d of this.active) if (d.early) this.instantiate(d)
     for (const d of this.active) if (!d.lazy) this.instantiate(d)
     this.publishEvent(new ContextRefreshedEvent())
     return this
@@ -495,7 +564,11 @@ export class ApplicationContext implements ApplicationEventPublisher {
   private instantiate(d: BeanDefinition): unknown {
     if (this.instances.has(d)) return this.instances.get(d)
     if (this.creating.has(d)) throw new IllegalStateException(`Requested bean is currently in creation: Is there an unresolvable circular reference? (${d.name})`)
+    // AbstractApplicationContext.assertBeanFactoryActive
+    if (this.closed) throw new IllegalStateException(`${this.displayName} has been closed already`)
     this.creating.add(d)
+    const previousCreatingContext = creatingContext
+    creatingContext = this
     try {
       const bean = d.create(this) as Record<string, unknown>
       if (d.configurationProperties) this.environment.bind(d.configurationProperties.prefix, bean, d.configurationProperties.types)
@@ -505,6 +578,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
       this.created.push(d)
       return bean
     } finally {
+      creatingContext = previousCreatingContext
       this.creating.delete(d)
     }
   }
@@ -546,8 +620,53 @@ export class ApplicationContext implements ApplicationEventPublisher {
     throw new IllegalArgumentException('Unknown dependency')
   }
 
-  /** Fermeture : @PreDestroy / DisposableBean.destroy dans l'ordre inverse de création */
+  private closed = false
+  private readonly displayName = 'org.springframework.context.annotation.AnnotationConfigApplicationContext'
+  private readonly lifecycleResources: LifecycleResource[] = []
+
+  /** Exécuteur / planificateur arrêté à la fermeture du contexte (voir `registerLifecycleResource`) */
+  registerLifecycleResource(resource: LifecycleResource): void {
+    this.lifecycleResources.push(resource)
+  }
+
+  /**
+   * Fermeture (AbstractApplicationContext.doClose) : ContextClosedEvent, arrêt des Lifecycle (exécuteurs et
+   * planificateurs : plus aucune tâche acceptée, file abandonnée), puis @PreDestroy / DisposableBean.destroy dans
+   * l'ordre inverse de création. Les tâches en cours ne sont pas attendues : voir `closeAndAwaitTermination`.
+   */
   close(): void {
+    if (this.closed) return
+    this.stopLifecycle()
+    this.destroyBeans()
+  }
+
+  /**
+   * PORT: `close()` qui attend la fin des tâches en cours des exécuteurs (au plus `timeoutMs`) avant de détruire les
+   * beans (et de fermer les bases). Sur la JVM, les threads de ces tâches sont interrompus (shutdownNow) ou meurent avec
+   * elle ; dans Node une tâche asynchrone en cours continuerait après la fermeture du contexte.
+   */
+  async closeAndAwaitTermination(timeoutMs = 30_000): Promise<void> {
+    if (this.closed) return
+    this.stopLifecycle()
+    let timer: NodeJS.Timeout | null = null
+    await Promise.race([
+      Promise.all(this.lifecycleResources.map((r) => r.awaitTermination())),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(resolve, timeoutMs)
+        timer.unref()
+      }),
+    ])
+    if (timer !== null) clearTimeout(timer)
+    this.destroyBeans()
+  }
+
+  private stopLifecycle(): void {
+    this.publishEvent(new ContextClosedEvent())
+    this.closed = true
+    for (const r of [...this.lifecycleResources].reverse()) r.stop()
+  }
+
+  private destroyBeans(): void {
     for (const d of [...this.created].reverse()) {
       const bean = this.instances.get(d) as Record<string, unknown>
       for (const m of d.preDestroy) (bean[m] as () => void).call(bean)

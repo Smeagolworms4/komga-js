@@ -18,4 +18,6 @@ export class FlywaySecondaryMigrationInitializer {
 
 component(FlywaySecondaryMigrationInitializer, {
   inject: [{ type: HikariDataSource, qualifier: 'tasksDataSourceRW' }],
+  // PORT: comme dans Spring Boot, les migrations passent avant les beans qui lisent la base
+  early: true,
 })

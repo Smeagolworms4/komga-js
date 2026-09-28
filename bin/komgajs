@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Lance KomgaJS (équivalent de `java -jar komga.jar`). Arguments Spring : --server.port=25600 --komga.config-dir=...
+# MALLOC_ARENA_MAX=2 : limite la fragmentation de glibc avec les threads natifs (libvips), gros gain de RAM.
+DIR="$(cd "$(dirname "$0")/.." && pwd)"
+export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
+exec node --max-semi-space-size=4 "$DIR/dist/src/main.js" "$@"

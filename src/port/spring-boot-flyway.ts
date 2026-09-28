@@ -35,4 +35,4 @@ export class FlywayMigrationInitializer {
   }
 }
 
-component(FlywayMigrationInitializer, { name: 'flywayInitializer', inject: [HikariDataSource, Environment] })
+component(FlywayMigrationInitializer, { name: 'flywayInitializer', inject: [HikariDataSource, Environment], early: true })
