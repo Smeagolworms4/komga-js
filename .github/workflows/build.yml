@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   # Kotlin oracle unit tests (test/unit/, see PORTING.md): the fixtures are committed, produced by the oracle tests
-  # of the Komga fork (branch unit-oracles), whose own workflow checks they are still identical. Fast: only the SQLite extension is built.
+  # of the Komga fork (branch unit-oracles), whose own workflow checks they are still identical. Fast: native modules only.
   unit:
     name: Unit tests (Kotlin oracles)
     runs-on: ubuntu-24.04
@@ -43,7 +43,8 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build:native:sqlite
+      # SQLite extension (test/unit/db.ts) and JDK-identical JPEG codec (image oracles)
+      - run: npm run build:native
 
       - run: npm run test:unit
 

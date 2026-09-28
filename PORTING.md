@@ -89,7 +89,7 @@ Rapides : pas de contexte Spring (ni côté Kotlin ni côté TS), SQLite en mém
   `db.rawQuery(sql)` lit les valeurs stockées. Une base par fichier de test (`private val db = OracleDb()` /
   `const db = new OracleDb()`), partagée par ses cas qui s'exécutent dans l'ordre : toute écriture se fait *dans* un
   `case` / `kase` (jamais au niveau de `func`), pour que l'état soit le même aux deux endroits. `@Transactional` n'est
-  appliqué d'aucun côté. Côté TS, l'extension `build/komgasqlite.so` est nécessaire (`npm run build:native:sqlite`).
+  appliqué d'aucun côté. Côté TS, les modules natifs sont nécessaires (`npm run build:native`).
 - **Ids et dates générés** : les cas fixent eux-mêmes ids et dates (`id = "L1"`, dates fixes loin d'aujourd'hui).
   Ce que le code testé génère (TSID, `LocalDateTime.now()`, dates par défaut de la base) est neutralisé par
   `stable(valeur)` (même aide des deux côtés, appliquée à la forme canonique) : chaque TSID devient `"@id:<n>"`
