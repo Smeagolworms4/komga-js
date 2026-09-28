@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/ReadProgressUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../../../port/jackson.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
 import { type Constraint, Positive, classConstraints, constraints } from '../../../../port/validation.js'
@@ -42,3 +43,6 @@ export class ReadProgressUpdateDtoValidator {
 classConstraints(ReadProgressUpdateDto, [ReadProgressUpdateDtoConstraint()])
 constraints(ReadProgressUpdateDto, { page: [Positive()] })
 jsonProperties(ReadProgressUpdateDto, { page: { nullable: 'Int' }, completed: { nullable: 'Boolean' } })
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.ReadProgressUpdateDto', ReadProgressUpdateDto)

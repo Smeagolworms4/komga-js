@@ -766,11 +766,21 @@ function defaultSavedRequestMatcher(): RequestMatcher {
 // Filtres
 // ---------------------------------------------------------------------------
 
+/**
+ * Support de test (spring-security-test) : contexte de sécurité posé sur la requête par MockMvc
+ * (`@WithMockUser`, `with(user(..))`…), rendu par `TestSecurityContextRepository`, que WebTestUtils substitue au
+ * dépôt du SecurityContextHolderFilter (test/support/mockmvc.ts). Jamais posé hors des tests.
+ */
+export const TEST_SECURITY_CONTEXT_ATTRIBUTE = 'org.springframework.security.test.web.support.TestSecurityContextRepository.CONTEXT'
+
 /** `SecurityContextHolderFilter` */
 export class SecurityContextHolderFilter implements Filter {
   constructor(private readonly securityContextRepository: SecurityContextRepository) {}
   async doFilter(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain): Promise<void> {
-    const deferred = this.securityContextRepository.loadDeferredContext(request)
+    // TestSecurityContextRepository (tests uniquement) : contexte de test s'il existe, sinon le dépôt délégué
+    const testContext = request.getAttribute(TEST_SECURITY_CONTEXT_ATTRIBUTE)
+    const deferred: DeferredSecurityContext =
+      testContext instanceof SecurityContext ? { get: () => testContext, isGenerated: () => false } : this.securityContextRepository.loadDeferredContext(request)
     try {
       SecurityContextHolder.getContextHolderStrategy().setDeferredContext(() => deferred.get())
       await chain.doFilter(request, response)

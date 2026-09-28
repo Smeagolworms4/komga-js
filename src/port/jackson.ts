@@ -26,6 +26,8 @@ export type JsonMeta = {
   creator?: (value: string) => unknown
   /** @JsonSetter(nulls = Nulls.AS_EMPTY) */
   nullsAsEmpty?: string[]
+  /** @JsonSerialize(`as` = X::class) sur la classe : sérialisée comme X (propriétés et annotations de X) ; appliqué par l'écriture XML */
+  serializeAs?: object
 }
 
 const meta = new WeakMap<object, JsonMeta>()

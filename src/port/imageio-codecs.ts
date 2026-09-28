@@ -2,14 +2,16 @@
 // encodage des pixels. Ce fichier n'a pas de jumeau Kotlin.
 //
 // Décodage (`ImageIO.read`, asynchrone : PORT: async) :
-// - JPEG, PNG, GIF, WebP, TIFF/BigTIFF, AVIF : sharp (libvips) ; GIF : rectangle de la première image (comme le lecteur du JDK)
+// - JPEG : port/jpeg-jdk.ts (libjpeg 6b et LittleCMS du JDK, logique de TwelveMonkeys) : pixels identiques à la JVM ;
+//   sharp pour les rares cas non reproduits
+// - PNG, GIF, WebP, TIFF/BigTIFF, AVIF : sharp (libvips) ; GIF : rectangle de la première image (comme le lecteur du JDK)
 // - HEIC (HEVC) : libheif-js (wasm) ; JPEG XL : @jsquash/jxl (wasm)
 // - BMP, PNM, JPEG 2000, JBIG2 : mupdf (wasm)
 // - PCX, WBMP : décodeurs ci-dessous
 // Les pixels peuvent différer légèrement de ceux de la JVM (décodeurs différents) ; dimensions, bandes et présence
 // d'alpha suivent le type d'image que produit le lecteur ImageIO correspondant (voir imageio-readers.ts).
-// Encodage (`ImageIO.write`) : JPEG (qualité 0,75, sous-échantillonnage 4:2:0 comme le JPEGImageWriter du JDK) et PNG
-// (palette pour les images indexées) via sharp ; GIF, TIFF et AVIF/HEIF via sharp ; les autres formats en écriture
+// Encodage (`ImageIO.write`) : JPEG gris ou RGB par port/jpeg-jdk.ts (octets identiques au JPEGImageWriter du JDK), autres
+// JPEG (CMYK) et PNG (palette pour les images indexées) via sharp ; GIF, TIFF et AVIF/HEIF via sharp ; les autres formats en écriture
 // (BMP, WBMP, PNM, PCX, JPEG 2000, RAW) ne sont pas portés (jamais utilisés par Komga) : UnsupportedOperationException.
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -36,6 +38,7 @@ import {
   WbmpImageReader,
   WebpImageReader,
 } from './imageio-readers.js'
+import { readJpegLikeJdk, writeJpegLikeJdk } from './jpeg-jdk.js'
 
 const require = createRequire(import.meta.url)
 
@@ -277,13 +280,22 @@ function wbmpRaw(b: Uint8Array, info: HeaderInfo): Raw {
   return { data: out, width, height, channels: 1 }
 }
 
+/** Profil ICC de l'espace de couleur d'une image lue (JPEG gris avec profil embarqué), réécrit par l'écrivain JPEG */
+const iccProfiles = new WeakMap<BufferedImage, Uint8Array>()
+
 /** `reader.read(0, param)` : décodage de la première image */
 export async function readImage(reader: ImageReader): Promise<BufferedImage> {
   if (!(reader instanceof HeaderImageReader)) throw new IIOException('Unsupported reader')
   const info = reader.headerInfo()
   const bytes = reader.sourceBytes()
   try {
-    if (reader instanceof JpegImageReader) return toBufferedImage(await sharpRaw(bytes), info)
+    if (reader instanceof JpegImageReader) {
+      const jpeg = readJpegLikeJdk(bytes)
+      if (jpeg === null) return toBufferedImage(await sharpRaw(bytes), info)
+      const image = BufferedImage.of(jpeg.width, jpeg.height, jpeg.data, jpeg.channels, jpeg.hasAlpha)
+      if (jpeg.iccProfile !== null) iccProfiles.set(image, jpeg.iccProfile)
+      return image
+    }
     if (reader instanceof PngImageReader) {
       try {
         return toBufferedImage(await sharpRaw(bytes, { failOn: 'error' }), info)
@@ -347,6 +359,8 @@ async function encode(image: BufferedImage, formatName: string, param: WritePara
   if (f === 'jpeg' || f === 'jpg') {
     // JPEGImageWriterSpi.canEncodeImage : pas d'alpha
     if (image.colorModel.hasAlpha()) return null
+    if ((image.channels === 1 || image.channels === 3) && image.info.cmyk !== true)
+      return writeJpegLikeJdk(image as BufferedImage & { channels: 1 | 3 }, iccProfiles.get(image) ?? null, param.compressionQuality)
     let img = sharpOf(image)
     if (image.channels === 2 || image.channels === 4) img = img.removeAlpha()
     if (image.channels <= 2) img = img.toColourspace('b-w')

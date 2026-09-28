@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/PageHashCreationDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../../../port/jackson.js'
 import { PageHashKnown } from '../../../../domain/model/PageHashKnown.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
@@ -25,3 +26,6 @@ export class PageHashCreationDto extends DataClass<PageHashCreationDtoParams> {
 
 constraints(PageHashCreationDto, { hash: [NotBlank()] })
 jsonProperties(PageHashCreationDto, { hash: 'String', size: { nullable: 'Long' }, action: { enum: PageHashKnown.Action } }, [], { required: ['hash', 'action'] })
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.PageHashCreationDto', PageHashCreationDto)

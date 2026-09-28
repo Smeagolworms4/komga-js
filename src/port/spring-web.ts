@@ -33,8 +33,18 @@
 // - messages d'erreur de Spring : `javaName` (ControllerSpec), `signature` (HandlerSpec, Method.toString()),
 //   noms qualifiés des enums convertis : `registerClass('org.gotson.komga...X$Y', X.Y)` (port/jackson.ts) ;
 // - `@AuthenticationPrincipal` : attribut de requête `komga.principal` (posé par la sécurité), sinon `request.userPrincipal`.
+//
+// Annotations OpenAPI (swagger / springdoc), utilisées seulement par /v3/api-docs (port/springdoc.ts), correspondance
+// détaillée dans port/swagger-annotations.ts :
+// - `@Tag` / `@SecurityRequirements` / `@Hidden` de classe : `openapi: { tags, securityRequirements, hidden }` dans ControllerSpec ;
+// - `@Operation`, `@Deprecated`, `@SecurityRequirements`, `@Throws`, `@Parameter(s)` de méthode (et @PageableAsQueryParam...
+//   de infrastructure/openapi), `@ApiResponse`, `@RequestBody` swagger : `openapi: { operation, deprecated, ... }` dans HandlerSpec ;
+// - `@Parameter(hidden = true)` / `@Parameter(description = ...)` sur un argument : `withParameter(argSpec, { hidden: true })` ;
+// - `returns` (type Kotlin de retour, corps de ResponseEntity<T>) est NÉCESSAIRE au document OpenAPI (absent = Unit) ;
+// - `@Schema` sur les DTO : `openApiSchema(Classe, {...})` (port/swagger-annotations.ts).
 import type { Readable, Writable } from 'node:stream'
 import type { JavaType } from './jackson-mapper.js'
+import type { OpenApiControllerSpec, OpenApiHandlerSpec, ParameterAnnotation } from './swagger-annotations.js'
 import type { Constraint } from './validation.js'
 import { Exception, KEnum, RuntimeException } from './kotlin.js'
 import type { HttpServletRequest, HttpServletResponse } from './servlet.js'
@@ -182,7 +192,16 @@ export class MethodArgumentNotValidException extends Exception {
   }
 }
 /** `@Validated` sur des paramètres simples (400) */
-export class HandlerMethodValidationException extends Exception {}
+export class HandlerMethodValidationException extends Exception {
+  constructor(
+    message: string,
+    /** ajout facultatif : `MethodValidationResult.getMethod()` (Method.toString()) et nombre d'erreurs d'objet (message de DefaultErrorAttributes) */
+    readonly method: string | null = null,
+    readonly objectErrorCount: number = 0,
+  ) {
+    super(message)
+  }
+}
 export class HttpMediaTypeNotAcceptableException extends Exception {}
 export class HttpMediaTypeNotSupportedException extends Exception {}
 export class HttpRequestMethodNotSupportedException extends Exception {}
@@ -368,7 +387,14 @@ export type ParamType = JavaType
  * - `parameterName` / `constraints` : nom Kotlin du paramètre et contraintes jakarta posées dessus
  *   (validation de méthode : `@Validated` sur la classe -> ConstraintViolationException `méthode.paramètre`).
  */
-export type ArgSpecOptions = { nullable?: boolean; hasDefault?: boolean; parameterName?: string; constraints?: Constraint[] }
+export type ArgSpecOptions = {
+  nullable?: boolean
+  hasDefault?: boolean
+  parameterName?: string
+  constraints?: Constraint[]
+  /** `@io.swagger.v3.oas.annotations.Parameter` sur l'argument (document OpenAPI seulement) */
+  openapi?: ParameterAnnotation
+}
 
 /** Résolution d'un argument de méthode (équivalent d'une annotation de paramètre ou d'un type résolu par Spring) */
 export type ArgSpec = (
@@ -448,6 +474,8 @@ export const modelArg = (): ArgSpec => ({ kind: 'model' })
 export const exceptionArg = (): ArgSpec => ({ kind: 'exception' })
 /** Contraintes jakarta posées sur un paramètre (`@Email @RequestHeader("X") email: String`) */
 export const withConstraints = (spec: ArgSpec, parameterName: string, constraints: Constraint[]): ArgSpec => ({ ...spec, parameterName, constraints })
+/** `@Parameter(hidden = true)` / `@Parameter(description = "...")` sur un argument (document OpenAPI seulement) */
+export const withParameter = (spec: ArgSpec, parameter: ParameterAnnotation): ArgSpec => ({ ...spec, openapi: parameter })
 
 export type HandlerSpec = {
   mapping: RequestMappingSpec
@@ -463,6 +491,8 @@ export type HandlerSpec = {
    * (« Required request body is missing: public ... »). Déduite de `javaName` et du nom de méthode si absente.
    */
   signature?: string
+  /** Annotations OpenAPI de la méthode (@Operation, @Parameter(s), @ApiResponse...) : port/swagger-annotations.ts */
+  openapi?: OpenApiHandlerSpec
 }
 
 /** `@ExceptionHandler` : exceptions traitées, `@ResponseStatus`, arguments (défaut : l'exception) et type de retour */
@@ -487,6 +517,8 @@ export type ControllerSpec = ComponentOptions & {
   validated?: boolean
   /** Nom qualifié Java de la classe (messages d'erreur), ex. `org.gotson.komga.interfaces.api.rest.LibraryController` */
   javaName?: string
+  /** Annotations OpenAPI de la classe (@Tag, @SecurityRequirements, @Hidden) : port/swagger-annotations.ts */
+  openapi?: OpenApiControllerSpec
 }
 
 type ControllerRegistration = { type: abstract new (...a: never[]) => unknown; spec: ControllerSpec }

@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookMetadataUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../../../port/jackson.js'
 import type { LocalDate } from '@js-joda/core'
 import { Author } from '../../../../domain/model/Author.js'
 import type { BookMetadata } from '../../../../domain/model/BookMetadata.js'
@@ -233,3 +234,8 @@ jsonProperties(BookMetadataUpdateDto, {
 })
 jsonProperties(AuthorUpdateDto, { name: { nullable: 'String' }, role: { nullable: 'String' } })
 jsonProperties(WebLinkUpdateDto, { label: { nullable: 'String' }, url: { nullable: 'String' } })
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto', BookMetadataUpdateDto)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto', AuthorUpdateDto)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.WebLinkUpdateDto', WebLinkUpdateDto)

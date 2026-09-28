@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookImportBatchDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../../../port/jackson.js'
 import { CopyMode } from '../../../../domain/model/CopyMode.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
@@ -48,3 +49,7 @@ jsonProperties(
   [],
   { required: ['sourceFile', 'seriesId'] },
 )
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.BookImportBatchDto', BookImportBatchDto)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.BookImportDto', BookImportDto)

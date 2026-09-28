@@ -263,6 +263,16 @@ export function isNullOrBlank(s: string | null | undefined): s is null | undefin
 export function isNotBlank(s: string | null | undefined): s is string {
   return !isBlank(s)
 }
+/** `buildList { add(..) }` : le bloc reçoit la liste en construction */
+export function buildList<T>(block: (list: T[]) => void): T[] {
+  const list: T[] = []
+  block(list)
+  return list
+}
+/** `Collection<T>?.isNullOrEmpty()` */
+export function isNullOrEmpty<T>(c: readonly T[] | ReadonlySet<T> | null | undefined): c is null | undefined {
+  return c === null || c === undefined || (Array.isArray(c) ? c.length === 0 : (c as ReadonlySet<T>).size === 0)
+}
 /** `equals(other, ignoreCase = true)` */
 export function equalsIgnoreCase(a: string | null | undefined, b: string | null | undefined): boolean {
   if (a === b) return true
@@ -468,7 +478,8 @@ export function ifBlank(s: string, f: () => string): string {
 }
 /** `ifEmpty { }` */
 export function ifEmpty<T extends { length: number } | { size: number }>(v: T, f: () => T): T {
-  const n = 'length' in v ? v.length : v.size
+  // l'opérateur `in` lève une TypeError sur une chaîne primitive
+  const n = typeof v === 'string' || 'length' in v ? (v as { length: number }).length : (v as { size: number }).size
   return n === 0 ? f() : v
 }
 

@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/PageHashMatchDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../../../port/jackson.js'
 import type { PageHashMatch } from '../../../../domain/model/PageHashMatch.js'
 import { toFilePath } from '../../../../infrastructure/web/Utils.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
@@ -49,3 +50,6 @@ jsonProperties(
   [],
   { required: ['bookId', 'url', 'pageNumber', 'fileName', 'fileSize', 'mediaType'] },
 )
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.PageHashMatchDto', PageHashMatchDto)

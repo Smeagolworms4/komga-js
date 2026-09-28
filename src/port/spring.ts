@@ -481,6 +481,12 @@ export class ApplicationContext implements ApplicationEventPublisher {
     if (c.length > 1) {
       const primary = c.filter((d) => d.primary)
       if (primary.length === 1) return primary[0] as BeanDefinition
+      // DefaultListableBeanFactory.determineAutowireCandidate : repli sur le nom du paramètre injecté ; les paramètres
+      // Kotlin portent en pratique le nom par défaut du bean du type demandé (`webPubGenerator: WebPubGenerator`)
+      if (qualifier === undefined) {
+        const byName = c.filter((d) => d.name === beanName(token))
+        if (byName.length === 1) return byName[0] as BeanDefinition
+      }
       throw new NoUniqueBeanDefinitionException(`No qualifying bean of type '${token.name}' available: expected single matching bean but found ${c.length}: ${c.map((d) => d.name).join(',')}`)
     }
     return c[0] as BeanDefinition

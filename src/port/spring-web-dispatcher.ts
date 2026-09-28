@@ -674,6 +674,9 @@ export function errorAttributes(request: HttpServletRequest): Map<string, unknow
   if (error instanceof MethodArgumentNotValidException) {
     const br = error.bindingResult
     m.set('message', `Validation failed for object='${br.objectName}'. Error count: ${br.errorCount}`)
+  } else if (error instanceof HandlerMethodValidationException && error.method !== null) {
+    // addMessageAndErrorsFromMethodValidationResult
+    m.set('message', `Validation failed for method='${error.method}'. Error count: ${error.objectErrorCount}`)
   } else {
     const attr = request.getAttribute(RequestDispatcher.ERROR_MESSAGE)
     if (attr !== null && attr !== '') m.set('message', String(attr))
@@ -863,6 +866,10 @@ function convertArgument(raw: string | string[] | null, declared: JavaType, ctx:
     return convertScalar(single, type)
   } catch (err) {
     if (!(err instanceof ConversionError)) throw err
+    // enum : StringToEnumConverterFactory via le ConversionService -> ConversionFailedException (relevé sur Komga :
+    // GET /api/v2/tags?include=FOO)
+    if (typeof type === 'object' && 'enum' in type)
+      throw fail(`Failed to convert from type [java.lang.String] to type [@${ctx.annotation} ${javaTypeName(type, true)}] for value [${single}]`)
     throw fail(err.message)
   }
 }
@@ -1733,7 +1740,18 @@ export class DispatcherServlet {
       }
     }
     if (value === null && spec.required && !this.isOptional(spec)) throw new HttpMessageNotReadableException(`Required request body is missing: ${c.handler?.signature ?? ''}`)
-    if (value !== null && spec.valid && typeof value === 'object' && !Array.isArray(value)) {
+    if (value !== null && spec.valid && (value instanceof Map || Array.isArray(value) || value instanceof Set)) {
+      // @Valid sur un conteneur (Map<String, Dto>, List<Dto>) : validation de méthode (MethodValidationAdapter),
+      // chaque élément est validé ; HandlerMethodValidationException (400)
+      const elements = value instanceof Map ? [...value.values()] : [...value]
+      const count = elements.reduce((n: number, e) => n + (e !== null && typeof e === 'object' ? validate(e as object).length : 0), 0)
+      if (count > 0) {
+        // Method.toString() : signature sans les paramètres de type (toGenericString sans <...>)
+        let method = c.handler?.signature ?? ''
+        while (/<[^<>]*>/.test(method)) method = method.replace(/<[^<>]*>/g, '')
+        throw asErrorResponse(new HandlerMethodValidationException('400 BAD_REQUEST "Validation failure"', method, count), 400, 'Validation failure')
+      }
+    } else if (value !== null && spec.valid && typeof value === 'object' && !Array.isArray(value)) {
       const violations = validate(value as object)
       if (violations.length > 0) {
         const objectName = (() => {

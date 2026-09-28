@@ -337,7 +337,7 @@ export function messageTemplateOf(c: Constraint): string {
 
 /** Contraintes en échec (composition comprise) pour une valeur */
 function failing(value: unknown, c: Constraint): Constraint[] {
-  if (c.type === 'Valid') return []
+  if (c.type === 'Valid' || c.type === 'ContainerElement') return []
   if (!constraintDefinitionOf(c.type)) {
     ensureBuiltins()
     const inline = c.validatedBy as (new (c?: Constraint) => ConstraintValidator)[] | undefined
@@ -419,6 +419,29 @@ export function validateParameters(
     const path = `${methodName}.${p.name}`
     for (const c of p.constraints) for (const f of failing(p.value, c)) out.push(violation(target, target, path, p.value, f, locale))
     if (p.constraints.some((c) => c.type === 'Valid') && p.value !== null && p.value !== undefined) cascade(target, p.value, path, out, locale, new Set())
+    for (const c of p.constraints) if (c.type === 'ContainerElement') containerElements(target, p.value, path, c, out, locale)
   }
   return out
+}
+
+/** Contraintes d'éléments de conteneur (MapKey / MapValue / IterableElement de port/validation.ts), chemins Hibernate */
+function containerElements(root: unknown, value: unknown, path: string, c: Constraint, out: ConstraintViolation[], locale: LocaleTag): void {
+  const list = (c.constraints as Constraint[] | undefined) ?? []
+  const check = (v: unknown, p: string) => {
+    for (const cc of list) for (const f of failing(v, cc)) out.push(violation(root, root, p, v, f, locale))
+    if (list.some((cc) => cc.type === 'Valid') && v !== null && v !== undefined) cascade(root, v, p.slice(0, p.lastIndexOf('.')), out, locale, new Set())
+  }
+  const entries: [unknown, unknown][] =
+    value instanceof Map ? [...value] : value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Set) ? Object.entries(value) : []
+  switch (c.element) {
+    case 'mapKey':
+      for (const [k] of entries) check(k, `${path}<K>[${String(k)}].<map key>`)
+      break
+    case 'mapValue':
+      for (const [k, v] of entries) check(v ?? null, `${path}[${String(k)}].<map value>`)
+      break
+    case 'iterable':
+      if (Array.isArray(value) || value instanceof Set) for (const v of value) check(v, `${path}[].<iterable element>`)
+      break
+  }
 }

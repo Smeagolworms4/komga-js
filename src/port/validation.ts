@@ -34,6 +34,14 @@ export const UniqueElements = (): Constraint => ({ type: 'UniqueElements' })
 /** `org.hibernate.validator.constraints.URL` */
 export const URL = (attrs: { protocol?: string; host?: string; port?: number } = {}): Constraint => ({ type: 'URL', ...attrs })
 
+/**
+ * Contraintes sur les éléments d'un conteneur (annotations d'usage de type, `Map<@Pattern String, @NotNull @Valid X>`,
+ * `Set<@Pattern String>`) : chemins Hibernate `p<K>[k].<map key>`, `p[k].<map value>`, `p[].<iterable element>`.
+ */
+export const MapKey = (constraints: Constraint[]): Constraint => ({ type: 'ContainerElement', element: 'mapKey', constraints })
+export const MapValue = (constraints: Constraint[]): Constraint => ({ type: 'ContainerElement', element: 'mapValue', constraints })
+export const IterableElement = (constraints: Constraint[]): Constraint => ({ type: 'ContainerElement', element: 'iterable', constraints })
+
 const classRegistry = new WeakMap<object, Constraint[]>()
 
 /** Enregistre les annotations de validation posées sur une classe (`@Target(AnnotationTarget.CLASS)`). */

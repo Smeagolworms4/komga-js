@@ -1,6 +1,8 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/R2Progression.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { registerClass } from '../../port/jackson.js'
 import type { ZonedDateTime } from '@js-joda/core'
 import { toUTCZoned } from '../../language/LanguageUtils.js'
+import { JsonTypes, jsonProperties } from '../../port/jackson-mapper.js'
 import { DataClass } from '../../port/kotlin.js'
 import { R2Device } from './R2Device.js'
 import { R2Locator } from './R2Locator.js'
@@ -32,3 +34,14 @@ export function toR2Progression(self: ReadProgress): R2Progression {
     locator: self.locator ?? new R2Locator({ href: '', type: '' }),
   })
 }
+
+// PORT: types des propriétés (réflexion Kotlin utilisée par Jackson)
+jsonProperties(
+  R2Progression,
+  { modified: JsonTypes.ZonedDateTime, device: { class: R2Device }, locator: { class: R2Locator } },
+  [],
+  { required: ['modified', 'device', 'locator'] },
+)
+
+// PORT: nom qualifié de la classe Kotlin (messages de Jackson)
+registerClass('org.gotson.komga.domain.model.R2Progression', R2Progression)

@@ -8,7 +8,7 @@
 // déclarées dans chaque fichier jumeau : `json(...)` (port/jackson.ts), `jsonProperties(...)`, `sealedInterface(...)`.
 // Ce fichier n'a pas de jumeau Kotlin.
 import { DateTimeFormatter, Duration, Instant, LocalDate, LocalDateTime, ZoneOffset, ZonedDateTime } from '@js-joda/core'
-import { type JsonIncludeValue, jsonMetaOf } from './jackson.js'
+import { type JsonIncludeValue, jsonMetaOf, qualifiedNameOf } from './jackson.js'
 import { JsonNumber, type JsonNode, javaDoubleToString, javaFloatToString, readTree, writeTree } from './jackson-tree.js'
 import { URI, URL } from './java-net.js'
 import { PageImpl, type Pageable, type Sort } from './spring-data.js'
@@ -455,12 +455,12 @@ export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<strin
     const v = fromTree(value, pt, localBindings, `${path}.${key}`)
     // module Kotlin : null explicite pour un paramètre non nul (même avec valeur par défaut)
     if (v === null && pt !== undefined && !(typeof pt === 'object' && 'nullable' in pt) && pt !== 'Any')
-      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${(target as { name: string }).name}] value failed for JSON property ${key} due to missing (therefore NULL) value for creator parameter ${prop} which is a non-nullable type`)
+      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${qualifiedNameOf(target) ?? (target as { name: string }).name}] value failed for JSON property ${key} due to missing (therefore NULL) value for creator parameter ${prop} which is a non-nullable type`)
     params[prop] = v
   }
   for (const r of pm.required)
     if (!(r in params))
-      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${(target as { name: string }).name}] value failed for JSON property ${r} due to missing (therefore NULL) value for creator parameter ${r} which is a non-nullable type`)
+      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${qualifiedNameOf(target) ?? (target as { name: string }).name}] value failed for JSON property ${r} due to missing (therefore NULL) value for creator parameter ${r} which is a non-nullable type`)
   const C = target as unknown as new (p: Record<string, unknown>) => unknown
   const instance = new C(params) as Record<string, unknown>
   // module Kotlin : un paramètre nullable absent et sans valeur par défaut vaut null (pas undefined)
@@ -524,7 +524,13 @@ export class ObjectMapper {
   }
 
   writeValueAsBytes(value: unknown, type?: JavaType): Uint8Array {
-    return Buffer.from(this.writeValueAsString(value, type), 'utf8')
+    // UTF8JsonGenerator (sortie en octets) : les paires de substitution sont échappées (😀),
+    // JsonWriteFeature.COMBINE_UNICODE_SURROGATES_IN_UTF8 étant désactivé par défaut (relevé sur Komga)
+    const json = this.writeValueAsString(value, type).replace(
+      /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+      (m) => `\\u${m.charCodeAt(0).toString(16).toUpperCase()}\\u${m.charCodeAt(1).toString(16).toUpperCase()}`,
+    )
+    return Buffer.from(json, 'utf8')
   }
 
   writerWithDefaultPrettyPrinter(): { writeValueAsString(v: unknown, type?: JavaType): string } {

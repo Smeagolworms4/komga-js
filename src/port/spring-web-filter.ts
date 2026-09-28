@@ -232,10 +232,20 @@ function eTagWeakMatch(first: string | null, second: string | null): boolean {
 export class ServletWebRequest implements WebRequest {
   private notModified = false
 
+  /** réponse facultative : `ServletWebRequest(request)` (Spring vérifie `getResponse() != null`) */
+  private readonly nativeResponse: HttpServletResponse | null
+
   constructor(
     readonly request: HttpServletRequest,
-    readonly response: HttpServletResponse,
-  ) {}
+    response: HttpServletResponse | null = null,
+  ) {
+    this.nativeResponse = response
+  }
+
+  get response(): HttpServletResponse {
+    if (this.nativeResponse === null) throw new Error('ServletWebRequest created without response')
+    return this.nativeResponse
+  }
 
   getHeader(name: string): string | null {
     return this.request.getHeader(name)
@@ -258,8 +268,8 @@ export class ServletWebRequest implements WebRequest {
     // PORT: surcharges Java réunies
     const eTag = typeof etagOrLastModified === 'string' ? etagOrLastModified : null
     const lastModifiedTimestamp = typeof etagOrLastModified === 'number' ? etagOrLastModified : (lastModified ?? -1)
-    const response = this.response
-    if (this.notModified || response.status !== 200) return this.notModified
+    const response = this.nativeResponse
+    if (this.notModified || (response !== null && response.status !== 200)) return this.notModified
     // Evaluate conditions in order of precedence.
     // See https://datatracker.ietf.org/doc/html/rfc9110#section-13.2.2
     if (this.validateIfMatch(eTag)) {
@@ -338,21 +348,24 @@ export class ServletWebRequest implements WebRequest {
   }
 
   private updateResponseStateChanging(eTag: string | null, lastModifiedTimestamp: number): void {
-    if (this.notModified) this.response.setStatus(412)
+    if (this.notModified && this.nativeResponse !== null) this.nativeResponse.setStatus(412)
     else this.addCachingResponseHeaders(eTag, lastModifiedTimestamp)
   }
 
   private updateResponseIdempotent(eTag: string | null, lastModifiedTimestamp: number): void {
-    const isHttpGetOrHead = SAFE_METHODS.has(this.request.method)
-    if (this.notModified) this.response.setStatus(isHttpGetOrHead ? 304 : 412)
-    this.addCachingResponseHeaders(eTag, lastModifiedTimestamp)
+    if (this.nativeResponse !== null) {
+      const isHttpGetOrHead = SAFE_METHODS.has(this.request.method)
+      if (this.notModified) this.nativeResponse.setStatus(isHttpGetOrHead ? 304 : 412)
+      this.addCachingResponseHeaders(eTag, lastModifiedTimestamp)
+    }
   }
 
   private addCachingResponseHeaders(eTag: string | null, lastModifiedTimestamp: number): void {
-    if (SAFE_METHODS.has(this.request.method)) {
-      if (lastModifiedTimestamp > 0 && parseHttpDate(this.response.getHeader('Last-Modified')) === -1)
-        this.response.setHeader('Last-Modified', formatHttpDate(lastModifiedTimestamp))
-      if (eTag && this.response.getHeader('ETag') === null) this.response.setHeader('ETag', padEtagIfNecessary(eTag))
+    const response = this.nativeResponse
+    if (response !== null && SAFE_METHODS.has(this.request.method)) {
+      if (lastModifiedTimestamp > 0 && parseHttpDate(response.getHeader('Last-Modified')) === -1)
+        response.setHeader('Last-Modified', formatHttpDate(lastModifiedTimestamp))
+      if (eTag && response.getHeader('ETag') === null) response.setHeader('ETag', padEtagIfNecessary(eTag))
     }
   }
 }

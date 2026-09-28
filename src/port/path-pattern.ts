@@ -305,7 +305,10 @@ export class PathPattern {
     let e = head
     let last: PElement | null = null
     let beforeLast: PElement | null = null
+    let catchAll = false
     while (e) {
+      // PathPattern : catchAll si un élément (pas seulement le premier) est `/**` ou `{*var}`
+      if (e instanceof WildcardTheRestElement || e instanceof CaptureTheRestElement) catchAll = true
       captured += e.captureCount
       len += e.normalizedLength
       score += e.score
@@ -316,7 +319,7 @@ export class PathPattern {
     this.capturedVariableCount = captured
     this.normalizedLength = len
     this.score = score
-    this.catchAll = head instanceof WildcardTheRestElement || head instanceof CaptureTheRestElement
+    this.catchAll = catchAll
     this.endsWithSeparatorWildcard = last instanceof WildcardElement && beforeLast instanceof SeparatorElement && last.next === null
   }
 

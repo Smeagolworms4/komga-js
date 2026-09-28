@@ -125,6 +125,8 @@ export class UriComponentsBuilder {
   protected _host: string | null = null
   protected _port = -1
   protected _path = ''
+  /** dernier constructeur de chemin = PathSegmentComponentBuilder (pathSegment) */
+  protected _lastSegment = false
   protected _query: [string, string | null][] = []
   protected _fragment: string | null = null
 
@@ -178,6 +180,9 @@ export class UriComponentsBuilder {
   /** `path(p)` : ajouté au chemin courant (un seul `/` entre les deux) */
   path(path: string): this {
     if (!path) return this
+    // CompositePathComponentBuilder.addPath : après pathSegment(), le chemin ajouté commence par « / »
+    if (this._lastSegment && !path.startsWith('/')) path = `/${path}`
+    this._lastSegment = false
     if (this._path.endsWith('/') && path.startsWith('/')) this._path += path.slice(1)
     else this._path += path
     return this
@@ -185,6 +190,7 @@ export class UriComponentsBuilder {
 
   replacePath(path: string | null): this {
     this._path = path ?? ''
+    this._lastSegment = false
     return this
   }
 
@@ -195,6 +201,7 @@ export class UriComponentsBuilder {
     let p = this._path
     if (!p.endsWith('/')) p += '/'
     this._path = p + segs.map((s) => s.replaceAll('/', SEGMENT_SLASH)).join('/')
+    this._lastSegment = true
     return this
   }
 
@@ -219,6 +226,13 @@ export class UriComponentsBuilder {
     return this
   }
 
+  /** `queryParamIfPresent(name, Optional)` : une collection ajoute chacune de ses valeurs (aucune : nom seul) */
+  queryParamIfPresent(name: string, value: unknown): this {
+    if (value === null || value === undefined) return this
+    if (Array.isArray(value) || value instanceof Set) return this.queryParam(name, ...value)
+    return this.queryParam(name, value)
+  }
+
   replaceQueryParam(name: string, ...values: unknown[]): this {
     this._query = this._query.filter(([k]) => k !== name)
     if (values.length > 0) this.queryParam(name, ...values)
@@ -237,6 +251,7 @@ export class UriComponentsBuilder {
     b._host = this._host
     b._port = this._port
     b._path = this._path
+    b._lastSegment = this._lastSegment
     b._query = [...this._query]
     b._fragment = this._fragment
     return b
@@ -306,4 +321,12 @@ export class ServletUriComponentsBuilder extends UriComponentsBuilder {
   static fromCurrentRequest(): ServletUriComponentsBuilder {
     return ServletUriComponentsBuilder.fromRequest(ServletUriComponentsBuilder.currentRequest())
   }
+}
+
+/** `org.springframework.web.util.UriUtils` (encodage UTF-8) */
+export const UriUtils = {
+  /** `encodeQueryParam(queryParam, UTF_8)` : HierarchicalUriComponents.Type.QUERY_PARAM */
+  encodeQueryParam(queryParam: string): string {
+    return encodeComponent(queryParam, isQueryParam)
+  },
 }

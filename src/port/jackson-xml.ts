@@ -2,8 +2,11 @@
 // tel qu'utilisé par Komga. Ce fichier n'a pas de jumeau Kotlin.
 //
 // Points d'extension (XmlFactory, XmlMapper, MappingJackson2XmlHttpMessageConverter) utilisés par Komga pour l'OPDS v1 :
-// la sérialisation XML elle-même (DTO OPDS v1) appartient à la couche web : elle obtient ses writers par
+// l'écriture (`XmlMapper.writeValueAsString`, DTO OPDS v1 et erreurs) obtient son writer par
 // `XmlFactory.createXmlWriter(writer)`, ce qui applique la configuration des namespaces (NamespaceXmlFactory).
+// Écriture portée : ToXmlGenerator / XmlBeanSerializer (attributs en tête, listes enveloppées ou non, @JacksonXmlText,
+// null -> élément vide ou attribut omis, nom de racine du type déclaré) et Woodstox RepairingNsStreamWriter
+// (déclarations d'espaces de noms à la volée, échappements), vérifiés octet pour octet contre Komga (jshell, OPDS v1).
 //
 // Lecture (`XmlMapper().readValue`, ComicInfo.xml et listes ComicRack) :
 //
@@ -22,8 +25,9 @@
 // `json` (@JsonProperty -> rename, @JsonIgnoreProperties(ignoreUnknown), @JsonCreator -> creator,
 // @JsonSetter(nulls = AS_EMPTY) -> nullsAsEmpty) et `jacksonXml` (@JacksonXmlProperty / @JacksonXmlElementWrapper).
 // Équivalence vérifiée contre les vraies classes (jshell) : test/infrastructure/metadata/comicrack/XmlOracle.test.ts.
+import { Duration, Instant, LocalDate, LocalDateTime, ZonedDateTime } from '@js-joda/core'
 import { SaxesParser } from 'saxes'
-import { jsonMetaOf } from './jackson.js'
+import { type JsonIncludeValue, jsonMetaOf } from './jackson.js'
 import {
   InvalidFormatException,
   JsonMappingException,
@@ -31,7 +35,10 @@ import {
   type JsonType,
   MismatchedInputException,
   jsonPropertiesOf,
+  toTree,
 } from './jackson-mapper.js'
+import { JsonNumber, javaDoubleToString } from './jackson-tree.js'
+import { URI, URL } from './java-net.js'
 import { KEnum } from './kotlin.js'
 
 /** `UnrecognizedPropertyException` */
@@ -50,6 +57,12 @@ export type JacksonXmlMeta = {
   wrapper?: Record<string, { useWrapping?: boolean; localName?: string }>
   /** @JacksonXmlRootElement(localName = ...) : sans effet en lecture (le nom de la racine n'est pas vérifié) */
   rootElement?: string
+  /** @JacksonXmlRootElement(namespace = ...) : écriture seulement */
+  rootNamespace?: string
+  /** @JacksonXmlProperty(namespace = ...) : écriture seulement */
+  namespace?: Record<string, string>
+  /** @JacksonXmlText : écriture seulement */
+  text?: string[]
 }
 
 const xmlMeta = new WeakMap<object, JacksonXmlMeta>()
@@ -1137,6 +1150,392 @@ export class XmlFactory {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Écriture : Woodstox (RepairingNsStreamWriter + BufferingXmlWriter UTF-8), comme configuré par XmlFactory
+// (IS_REPAIRING_NAMESPACES = true, P_AUTOMATIC_EMPTY_ELEMENTS = true, pas de déclaration XML)
+// ---------------------------------------------------------------------------
+
+type OutElement = {
+  prefix: string
+  local: string
+  /** espace de noms par défaut en vigueur dans l'élément */
+  defaultNs: string
+  /** liaisons préfixe -> URI déclarées sur l'élément */
+  bindings: Map<string, string>
+}
+
+/** Échappement du texte (BufferingXmlWriter.writeCharacters, sortie UTF-8), relevé sur Woodstox 7.1.1 */
+function escapeText(text: string): string {
+  let out = ''
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i)
+    const ch = text[i] as string
+    if (c === 0x3c) out += '&lt;'
+    else if (c === 0x26) out += '&amp;'
+    // « > » échappé en début de texte ou après « ] » (fin possible de « ]]> »)
+    else if (c === 0x3e) out += i === 0 || text[i - 1] === ']' ? '&gt;' : '>'
+    else if (c < 0x20) {
+      if (c === 0x0a || c === 0x09) out += ch
+      else if (c === 0x0d) out += '&#xd;'
+      else throw new XMLStreamException(`Invalid white space character (0x${c.toString(16)}) in text to output (in xml 1.1, could output as a character entity)`)
+    } else if (c >= 0x7f && c <= 0x9f) out += `&#x${c.toString(16)};`
+    else out += ch
+  }
+  return out
+}
+
+/** Échappement d'une valeur d'attribut (BufferingXmlWriter.writeAttrValue) */
+function escapeAttr(value: string): string {
+  let out = ''
+  for (let i = 0; i < value.length; i++) {
+    const c = value.charCodeAt(i)
+    const ch = value[i] as string
+    if (c === 0x22) out += '&quot;'
+    else if (c === 0x3c) out += '&lt;'
+    else if (c === 0x26) out += '&amp;'
+    else if (c < 0x20) {
+      if (c === 0x0a || c === 0x09 || c === 0x0d) out += `&#x${c.toString(16)};`
+      else throw new XMLStreamException(`Invalid white space character (0x${c.toString(16)}) in attribute value to output`)
+    } else out += ch
+  }
+  return out
+}
+
+/**
+ * `com.ctc.wstx.sw.RepairingNsStreamWriter` : les déclarations d'espaces de noms sont ajoutées à la volée.
+ * Préfixe d'un élément : liaison en vigueur (défaut compris), sinon préfixe suggéré (setPrefix / setDefaultNamespace),
+ * sinon espace de noms par défaut s'il est libre, sinon préfixe généré `wstxnsN`. Attribut : préfixe non vide
+ * (liaison en vigueur, suggéré ou généré), déclaration écrite juste avant l'attribut.
+ */
+export class XmlStreamWriter implements XMLStreamWriter {
+  private out = ''
+  private readonly stack: OutElement[] = []
+  private startOpen = false
+  private suggestedDefaultNs: string | null = null
+  private readonly suggestedPrefixes = new Map<string, string>()
+  private autoNsSeq = 1
+
+  setDefaultNamespace(uri: string): void {
+    this.suggestedDefaultNs = uri
+  }
+
+  setPrefix(prefix: string, uri: string): void {
+    this.suggestedPrefixes.set(uri, prefix)
+  }
+
+  private current(): OutElement | null {
+    return this.stack[this.stack.length - 1] ?? null
+  }
+
+  private currentDefaultNs(): string {
+    return this.current()?.defaultNs ?? ''
+  }
+
+  /** URI liée au préfixe dans la portée courante */
+  private uriOfPrefix(prefix: string): string | null {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      const u = (this.stack[i] as OutElement).bindings.get(prefix)
+      if (u !== undefined) return u
+    }
+    return null
+  }
+
+  /** préfixe (non vide) lié à l'URI dans la portée courante */
+  private prefixOfUri(uri: string): string | null {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      for (const [p, u] of (this.stack[i] as OutElement).bindings) if (u === uri && this.uriOfPrefix(p) === uri) return p
+    }
+    return null
+  }
+
+  private generatePrefix(): string {
+    for (;;) {
+      const p = `wstxns${this.autoNsSeq++}`
+      if (this.uriOfPrefix(p) === null) return p
+    }
+  }
+
+  private closeStart(empty: boolean): void {
+    if (!this.startOpen) return
+    this.out += empty ? '/>' : '>'
+    this.startOpen = false
+  }
+
+  private doStart(nsURI: string, localName: string): void {
+    this.closeStart(false)
+    const parentDefault = this.currentDefaultNs()
+    const el: OutElement = { prefix: '', local: localName, defaultNs: parentDefault, bindings: new Map() }
+    let decl = ''
+    if (nsURI === '') {
+      if (parentDefault !== '') {
+        el.defaultNs = ''
+        decl = ' xmlns=""'
+      }
+    } else if (parentDefault === nsURI) {
+      el.prefix = ''
+    } else {
+      const bound = this.prefixOfUri(nsURI)
+      if (bound !== null) el.prefix = bound
+      else {
+        let prefix: string
+        if (this.suggestedDefaultNs === nsURI) prefix = ''
+        else prefix = this.suggestedPrefixes.get(nsURI) ?? (parentDefault === '' ? '' : this.generatePrefix())
+        if (prefix === '') {
+          el.defaultNs = nsURI
+          decl = ` xmlns="${escapeAttr(nsURI)}"`
+        } else {
+          el.prefix = prefix
+          el.bindings.set(prefix, nsURI)
+          decl = ` xmlns:${prefix}="${escapeAttr(nsURI)}"`
+        }
+      }
+    }
+    this.out += `<${el.prefix === '' ? '' : `${el.prefix}:`}${localName}${decl}`
+    this.stack.push(el)
+    this.startOpen = true
+  }
+
+  writeStartElement(nsURI: string, localName: string): void {
+    this.doStart(nsURI, localName)
+  }
+
+  writeEmptyElement(nsURI: string, localName: string): void {
+    this.doStart(nsURI, localName)
+    this.writeEndElement()
+  }
+
+  writeAttribute(nsURI: string, localName: string, value: string): void {
+    if (!this.startOpen) throw new XMLStreamException('Trying to write an attribute when there is no open start element.')
+    let prefix = ''
+    if (nsURI !== '') {
+      const el = this.current() as OutElement
+      const bound = this.prefixOfUri(nsURI)
+      if (bound !== null) prefix = bound
+      else {
+        prefix = this.suggestedPrefixes.get(nsURI) ?? this.generatePrefix()
+        el.bindings.set(prefix, nsURI)
+        this.out += ` xmlns:${prefix}="${escapeAttr(nsURI)}"`
+      }
+    }
+    this.out += ` ${prefix === '' ? '' : `${prefix}:`}${localName}="${escapeAttr(value)}"`
+  }
+
+  writeCharacters(text: string): void {
+    this.closeStart(false)
+    this.out += escapeText(text)
+  }
+
+  writeEndElement(): void {
+    const el = this.stack.pop()
+    if (el === undefined) throw new XMLStreamException('No open start element, when trying to write end element')
+    if (this.startOpen) this.closeStart(true)
+    else this.out += `</${el.prefix === '' ? '' : `${el.prefix}:`}${el.local}>`
+  }
+
+  toString(): string {
+    return this.out
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Écriture : ToXmlGenerator / XmlBeanSerializer (jackson-dataformat-xml 2.21), relevé sur les vraies classes (jshell)
+// ---------------------------------------------------------------------------
+
+/** annotations de la classe et de ses parentes (Jackson fusionne les annotations des super-types) */
+function xmlMetaChain(cls: object): JacksonXmlMeta {
+  const chain: object[] = []
+  let c: object | null = cls
+  while (c && c !== Function.prototype) {
+    chain.unshift(c)
+    c = Object.getPrototypeOf(c) as object | null
+  }
+  const m: JacksonXmlMeta = {}
+  for (const k of chain) {
+    const x = xmlMeta.get(k)
+    if (!x) continue
+    m.localName = { ...(m.localName ?? {}), ...(x.localName ?? {}) }
+    m.namespace = { ...(m.namespace ?? {}), ...(x.namespace ?? {}) }
+    m.wrapper = { ...(m.wrapper ?? {}), ...(x.wrapper ?? {}) }
+    m.isAttribute = [...(m.isAttribute ?? []), ...(x.isAttribute ?? [])]
+    m.text = [...(m.text ?? []), ...(x.text ?? [])]
+    if (x.rootElement !== undefined) m.rootElement = x.rootElement
+    if (x.rootNamespace !== undefined) m.rootNamespace = x.rootNamespace
+  }
+  return m
+}
+
+function jsonMetaChain(cls: object): ReturnType<typeof jsonMetaOf> {
+  const chain: object[] = []
+  let c: object | null = cls
+  while (c && c !== Function.prototype) {
+    chain.unshift(c)
+    c = Object.getPrototypeOf(c) as object | null
+  }
+  let m: ReturnType<typeof jsonMetaOf> = {}
+  for (const k of chain) {
+    const x = jsonMetaOf(k)
+    m = {
+      ...m,
+      ...x,
+      rename: { ...(m.rename ?? {}), ...(x.rename ?? {}) },
+      propertyInclude: { ...(m.propertyInclude ?? {}), ...(x.propertyInclude ?? {}) },
+      ignore: [...(m.ignore ?? []), ...(x.ignore ?? [])],
+    }
+  }
+  return m
+}
+
+function includedXml(value: unknown, include: JsonIncludeValue): boolean {
+  switch (include) {
+    case 'ALWAYS':
+      return true
+    case 'NON_NULL':
+    case 'NON_ABSENT':
+      return value !== null && value !== undefined
+    case 'NON_EMPTY':
+      if (value === null || value === undefined) return false
+      if (typeof value === 'string' || Array.isArray(value)) return value.length > 0
+      if (value instanceof Set || value instanceof Map) return value.size > 0
+      return true
+    case 'NON_DEFAULT':
+      return value !== null && value !== undefined && value !== false && value !== 0 && value !== ''
+  }
+}
+
+const SCALAR_CLASSES: object[] = [LocalDateTime, LocalDate, ZonedDateTime, Instant, Duration, URL, URI]
+
+function isScalar(v: unknown, type: JsonType | undefined): boolean {
+  if (v === null || v === undefined) return true
+  if (typeof v !== 'object') return true
+  if (type !== undefined && typeof type === 'object' && 'scalar' in type) return true
+  return v instanceof KEnum || v instanceof Uint8Array || v instanceof JsonNumber || SCALAR_CLASSES.some((c) => v instanceof (c as never))
+}
+
+/** texte d'un scalaire, avec les sérialiseurs de l'ObjectMapper (dates, enums @JsonValue, nombres Java) */
+function scalarText(v: unknown, type: JsonType | undefined): string {
+  const n = toTree(v, type)
+  if (typeof n === 'string') return n
+  if (typeof n === 'boolean') return n ? 'true' : 'false'
+  if (n instanceof JsonNumber) return n.kind === 'double' ? javaDoubleToString(Number(n.value)) : String(n.value)
+  throw new JsonMappingException(`Not a scalar: ${String(v)}`)
+}
+
+function unwrapType(t: JsonType | undefined): JsonType | undefined {
+  return t !== undefined && typeof t === 'object' && 'nullable' in t ? t.nullable : t
+}
+
+function elementTypeOf(t: JsonType | undefined): JsonType | undefined {
+  const u = unwrapType(t)
+  if (u !== undefined && typeof u === 'object') {
+    if ('list' in u) return u.list
+    if ('set' in u) return u.set
+    if ('map' in u) return u.map
+  }
+  return undefined
+}
+
+type XmlProp = { name: string; ns: string; value: unknown; type: JsonType | undefined; attribute: boolean; text: boolean; wrapper: { useWrapping?: boolean; localName?: string } | undefined }
+
+/** Propriétés d'un bean dans l'ordre de Jackson (paramètres du constructeur d'abord), attributs en tête (XmlBeanSerializerBase) */
+function beanProperties(v: object): XmlProp[] {
+  const runtime = v.constructor as object
+  const view = jsonMetaOf(runtime).serializeAs ?? runtime
+  const meta = jsonMetaChain(view)
+  const xml = xmlMetaChain(view)
+  const pm = jsonPropertiesOf(view)
+  const ownKeys = Object.keys(v)
+  const creatorKeys = pm !== undefined ? Object.keys(pm.props).filter((k) => ownKeys.includes(k)) : []
+  const keys = [...creatorKeys, ...ownKeys.filter((k) => !creatorKeys.includes(k)), ...(pm?.getters ?? [])]
+  const props: XmlProp[] = []
+  for (const k of keys) {
+    if (k.startsWith('_') || meta.ignore?.includes(k)) continue
+    const value = (v as Record<string, unknown>)[k]
+    if (typeof value === 'function') continue
+    const include = meta.propertyInclude?.[k] ?? meta.include ?? 'ALWAYS'
+    if (!includedXml(value, include)) continue
+    props.push({
+      name: xml.localName?.[k] ?? meta.rename?.[k] ?? k,
+      ns: xml.namespace?.[k] ?? '',
+      value,
+      type: pm?.props[k],
+      attribute: xml.isAttribute?.includes(k) ?? false,
+      text: xml.text?.includes(k) ?? false,
+      wrapper: xml.wrapper?.[k],
+    })
+  }
+  return [...props.filter((p) => p.attribute), ...props.filter((p) => !p.attribute)]
+}
+
+/** ToXmlGenerator : écriture d'une valeur sous le nom (ns, local) */
+function writeXmlValue(w: XmlStreamWriter, ns: string, local: string, v: unknown, type: JsonType | undefined): void {
+  if (v === null || v === undefined) {
+    // writeNull : élément vide (WRITE_NULLS_AS_XSI_NIL désactivé)
+    w.writeEmptyElement(ns, local)
+    return
+  }
+  if (Array.isArray(v) || v instanceof Set) {
+    // liste enveloppée (defaultUseWrapper = true) : enveloppe et éléments du nom de la propriété
+    w.writeStartElement('', local)
+    for (const it of v) writeXmlValue(w, ns, local, it, elementTypeOf(type))
+    w.writeEndElement()
+    return
+  }
+  if (isScalar(v, unwrapType(type))) {
+    w.writeStartElement(ns, local)
+    w.writeCharacters(scalarText(v, unwrapType(type)))
+    w.writeEndElement()
+    return
+  }
+  w.writeStartElement(ns, local)
+  writeXmlContent(w, v as object, type)
+  w.writeEndElement()
+}
+
+/** contenu d'un objet (Map ou bean) : attributs, texte, éléments */
+function writeXmlContent(w: XmlStreamWriter, v: object, type: JsonType | undefined): void {
+  if (v instanceof Map) {
+    const el = elementTypeOf(type)
+    for (const [k, x] of v) writeXmlValue(w, '', k instanceof KEnum ? k.name : String(k), x, el)
+    return
+  }
+  for (const p of beanProperties(v)) {
+    if (p.attribute) {
+      // writeNull d'un attribut : omis
+      if (p.value === null || p.value === undefined) continue
+      w.writeAttribute(p.ns, p.name, scalarText(p.value, unwrapType(p.type)))
+    } else if (p.text) {
+      if (p.value === null || p.value === undefined) continue
+      w.writeCharacters(scalarText(p.value, unwrapType(p.type)))
+    } else if (Array.isArray(p.value) || p.value instanceof Set) {
+      const items = [...p.value]
+      const el = elementTypeOf(p.type)
+      if (p.wrapper?.useWrapping === false) {
+        for (const it of items) writeXmlValue(w, p.ns, p.name, it, el)
+      } else {
+        // enveloppe : nom de @JacksonXmlElementWrapper(localName) ou de la propriété, sans espace de noms
+        w.writeStartElement('', p.wrapper?.localName ?? p.name)
+        for (const it of items) writeXmlValue(w, p.ns, p.name, it, el)
+        w.writeEndElement()
+      }
+    } else writeXmlValue(w, p.ns, p.name, p.value, p.type)
+  }
+}
+
+/** nom de l'élément racine (XmlRootNameLookup) : @JacksonXmlRootElement du type déclaré, sinon son nom simple */
+function rootNameOf(v: unknown, type: JsonType | undefined): { ns: string; local: string } {
+  const t = unwrapType(type)
+  let cls: object | null = null
+  if (t !== undefined && typeof t === 'object' && 'class' in t) cls = t.class
+  else if (t !== undefined && typeof t === 'object' && 'map' in t) return { ns: '', local: 'Map' }
+  else if (v instanceof Map) {
+    // PORT: seul producteur de Map sans type déclaré : BasicErrorController (ResponseEntity<Map<String, Object>>)
+    return { ns: '', local: 'Map' }
+  } else if (v !== null && typeof v === 'object') cls = v.constructor as object
+  if (cls === null) return { ns: '', local: typeof v === 'string' ? 'String' : 'Object' }
+  const xml = xmlMetaChain(cls)
+  return { ns: xml.rootNamespace ?? '', local: xml.rootElement ?? (cls as { name: string }).name }
+}
+
 /** `com.fasterxml.jackson.dataformat.xml.XmlMapper` */
 export class XmlMapper {
   constructor(readonly factory: XmlFactory = new XmlFactory()) {}
@@ -1151,6 +1550,26 @@ export class XmlMapper {
     const t = p.nextToken()
     if (t === 'VALUE_NULL') return null as T
     return deserializerFor(type)(p) as T
+  }
+
+  /**
+   * `writeValueAsString(value)` / `writerFor(type).writeValueAsString(value)` : sans déclaration XML
+   * (WRITE_XML_DECLARATION désactivé), writer obtenu par `factory.createXmlWriter` (NamespaceXmlFactory).
+   */
+  writeValueAsString(value: unknown, type?: JsonType): string {
+    const w = this.factory.createXmlWriter(new XmlStreamWriter())
+    const root = rootNameOf(value, type)
+    try {
+      writeXmlValue(w, root.ns, root.local, value, type)
+    } catch (e) {
+      if (e instanceof XMLStreamException) throw new JsonMappingException(e.message, e)
+      throw e
+    }
+    return w.toString()
+  }
+
+  writeValueAsBytes(value: unknown, type?: JsonType): Uint8Array {
+    return new Uint8Array(Buffer.from(this.writeValueAsString(value, type), 'utf8'))
   }
 }
 
