@@ -48,6 +48,18 @@ function findFile(rel: string): string | null {
 }
 
 let nativeModule: Native | null = null
+
+/**
+ * `malloc_trim(0)` de glibc (même extension native) : rend au système la mémoire libérée par un thread terminé (worker
+ * des tâches, port/task-worker.ts). Sans effet hors glibc ou sans l'extension.
+ */
+export function mallocTrim(): boolean {
+  try {
+    return (native() as Native & { mallocTrim?: () => boolean }).mallocTrim?.() ?? false
+  } catch {
+    return false
+  }
+}
 function native(): Native {
   if (nativeModule === null) {
     const p = findFile('build/komgajpeg.node')

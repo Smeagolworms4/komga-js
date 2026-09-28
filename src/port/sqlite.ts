@@ -26,6 +26,9 @@ export function komgaSqliteExtensionPath(): string {
   throw new Error('build/komgasqlite.so introuvable : lancer `npm run build:native`')
 }
 
+/** `HikariConfig.connectionTimeout` par défaut (ms) */
+const HIKARI_CONNECTION_TIMEOUT = 30_000
+
 export class SQLiteConfig {
   enforceForeignKeys = false
   journalMode: string | null = null
@@ -68,7 +71,10 @@ export class SQLiteDataSource {
     // sqlite-jdbc est compilé avec SQLITE_DEFAULT_CACHE_SIZE=-2000 (2 Mo par connexion) et
     // SQLITE_DEFAULT_WAL_SYNCHRONOUS=2 (FULL) ; better-sqlite3 avec -16000 (16 Mo) et 1 (NORMAL) : on aligne sur Komga
     db.pragma('cache_size = -2000')
-    db.pragma(`busy_timeout = ${this.config.busyTimeout}`)
+    // PORT: dans Komga, les threads se partagent la connexion d'écriture (pool Hikari de taille 1) et attendent qu'elle se
+    // libère jusqu'à connectionTimeout (30 s). Ici le worker des tâches a sa propre connexion (port/task-worker.ts) :
+    // l'attente se fait sur le verrou de SQLite, au moins aussi longtemps
+    db.pragma(`busy_timeout = ${Math.max(this.config.busyTimeout, HIKARI_CONNECTION_TIMEOUT)}`)
     db.pragma(`foreign_keys = ${this.config.enforceForeignKeys ? 'ON' : 'OFF'}`)
     if (this.config.journalMode) db.pragma(`journal_mode = ${this.config.journalMode}`)
     if (String(db.pragma('journal_mode', { simple: true })).toUpperCase() === 'WAL') db.pragma('synchronous = FULL')

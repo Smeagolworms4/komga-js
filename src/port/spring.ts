@@ -322,7 +322,20 @@ export type BeanDefinition = {
   /** `@EventListener` : méthode appelée pour chaque événement instance d'un des types */
   eventListeners: { method: string; events: Token[] }[]
   early: boolean
+  /** Place du bean quand les tâches s'exécutent dans le worker des tâches (voir `TaskWorkerRole`) */
+  taskWorker?: TaskWorkerRole
 }
+
+/**
+ * PORT: place d'un bean quand les tâches de Komga (scan, analyse…) s'exécutent dans un `worker_thread` avec son propre
+ * contexte (port/task-worker.ts). Sans cette option, chaque thread a sa propre instance (services sans état, DAO).
+ * - `run` : le bean n'existe que dans le thread qui exécute les tâches (TaskProcessor) ;
+ * - `callMain` : bean du thread principal (état partagé : index de recherche, métriques) ; dans le worker, ses méthodes
+ *   sont appelées dans le thread principal (appel synchrone, le worker attend la réponse) ;
+ * - `mirrorMain` : chaque thread a son instance, mais l'état du thread principal (réglages modifiés par l'API) est
+ *   recopié dans le worker après chaque modification.
+ */
+export type TaskWorkerRole = 'run' | 'callMain' | 'mirrorMain'
 
 const definitions: BeanDefinition[] = []
 
@@ -350,6 +363,8 @@ export type ComponentOptions = {
    * DependsOn post-processors de Spring Boot qui font passer les migrations Flyway avant jOOQ.
    */
   early?: boolean
+  /** PORT: place du bean quand les tâches s'exécutent dans un worker (voir `TaskWorkerRole`) */
+  taskWorker?: TaskWorkerRole
 }
 
 function profileMatcher(p?: string | ((profiles: string[]) => boolean)): ((profiles: string[]) => boolean) | undefined {
@@ -373,6 +388,7 @@ export function component<T>(cls: Token<T>, opts: ComponentOptions = {}): void {
     preDestroy: opts.preDestroy ?? [],
     eventListeners: opts.eventListeners ?? [],
     early: opts.early ?? false,
+    taskWorker: opts.taskWorker,
     create: (ctx) => {
       for (const n of opts.dependsOn ?? []) ctx.getBean(n)
       const args = (opts.inject ?? []).map((d) => ctx.resolve(d))
@@ -508,17 +524,46 @@ function isAssignable(def: BeanDefinition, token: Token): boolean {
   return def.type.prototype instanceof token
 }
 
+/**
+ * PORT: rôle d'un contexte quand les tâches s'exécutent dans un `worker_thread` (port/task-worker.ts).
+ * - `main` : contexte du thread principal ; les beans `taskWorker: 'run'` n'y existent pas ;
+ * - `taskWorker` : contexte du worker ; les beans `callMain` sont des mandataires (`remoteBean`), seuls les listeners
+ *   des beans déjà créés dans le worker reçoivent les événements, les autres événements sont transmis au thread
+ *   principal (`forwardEvent`).
+ * `beanCreated` est appelé à la création de chaque bean et peut le remplacer (mandataire) ; `eventPublished` reçoit
+ * chaque événement publié dans le thread principal (transmis au worker s'il y est écouté).
+ */
+export type ContextThreading =
+  | { role: 'main'; beanCreated?: (d: BeanDefinition, bean: unknown) => unknown; eventPublished?: (event: unknown) => void }
+  | {
+      role: 'taskWorker'
+      remoteBean: (d: BeanDefinition) => unknown
+      forwardEvent: (event: unknown) => void
+      beanCreated?: (d: BeanDefinition, bean: unknown) => unknown
+    }
+
 export class ApplicationContext implements ApplicationEventPublisher {
   private readonly instances = new Map<BeanDefinition, unknown>()
   private readonly creating = new Set<BeanDefinition>()
   private readonly active: BeanDefinition[]
   private readonly created: BeanDefinition[] = []
+  /** Définitions remplacées par un mandataire vers le thread principal (contexte `taskWorker`) */
+  private readonly remote = new Set<BeanDefinition>()
 
   constructor(
     readonly environment: Environment,
     extra: { name: string; type: Token; instance: unknown; primary?: boolean }[] = [],
+    readonly threading: ContextThreading | null = null,
   ) {
     this.active = definitions.filter((d) => (!d.profile || d.profile(environment.activeProfiles)) && (!d.condition || d.condition(environment)))
+    if (threading?.role === 'main') this.active = this.active.filter((d) => d.taskWorker !== 'run')
+    else if (threading?.role === 'taskWorker')
+      this.active = this.active.map((d) => {
+        if (d.taskWorker !== 'callMain') return d
+        const proxy: BeanDefinition = { ...d, postConstruct: [], preDestroy: [], eventListeners: [], configurationProperties: undefined, create: () => threading.remoteBean(d) }
+        this.remote.add(proxy)
+        return proxy
+      })
     for (const e of extra) {
       const def: BeanDefinition = {
         name: e.name,
@@ -545,6 +590,15 @@ export class ApplicationContext implements ApplicationEventPublisher {
     return this
   }
 
+  /**
+   * PORT: démarrage du contexte du worker des tâches : seuls les beans `taskWorker: 'run'` (et leurs dépendances) sont
+   * créés ; les autres beans sont ceux du thread principal
+   */
+  startTaskWorkerBeans(): this {
+    for (const d of this.active) if (d.taskWorker === 'run') this.instantiate(d)
+    return this
+  }
+
   /** Démarrage complet : refresh puis ApplicationReadyEvent */
   start(): this {
     this.refresh()
@@ -554,6 +608,18 @@ export class ApplicationContext implements ApplicationEventPublisher {
 
   /** Publication synchrone aux `@EventListener`, dans l'ordre d'enregistrement des beans */
   publishEvent(event: unknown): void {
+    // PORT: worker des tâches : un événement sans listener dans le worker est traité par le thread principal
+    const threading = this.threading
+    if (threading?.role === 'taskWorker' && !this.listenerDefinitions(event).length) {
+      threading.forwardEvent(event)
+      return
+    }
+    if (threading?.role === 'main') threading.eventPublished?.(event)
+    this.publishLocalEvent(event)
+  }
+
+  /** PORT: publication aux seuls listeners de ce contexte (événement reçu d'un autre thread) */
+  publishLocalEvent(event: unknown): void {
     // bean `applicationEventMulticaster` (ex. AsynchronousSpringEventsConfig hors profil test) : diffusion déléguée
     const multicaster = this.active.find((d) => d.name === 'applicationEventMulticaster')
     if (multicaster) {
@@ -566,12 +632,28 @@ export class ApplicationContext implements ApplicationEventPublisher {
 
   /** Appel synchrone des `@EventListener` correspondant à l'événement */
   invokeListeners(event: unknown): void {
-    for (const d of this.active)
+    for (const d of this.listenerDefinitions(event))
       for (const l of d.eventListeners)
         if (l.events.some((e) => event instanceof e)) {
           const bean = this.instantiate(d) as Record<string, (e: unknown) => void>
           ;(bean[l.method] as (e: unknown) => void).call(bean, event)
         }
+  }
+
+  /**
+   * Beans dont un listener reçoit l'événement. PORT: dans le worker des tâches, seuls les beans déjà créés dans le
+   * worker (ceux des tâches) écoutent ; les autres listeners sont ceux du thread principal.
+   */
+  private listenerDefinitions(event: unknown): BeanDefinition[] {
+    const worker = this.threading?.role === 'taskWorker'
+    return this.active.filter((d) => (!worker || this.instances.has(d)) && d.eventListeners.some((l) => l.events.some((e) => event instanceof e)))
+  }
+
+  /** PORT: types d'événements écoutés par les beans créés dans ce contexte (worker des tâches) */
+  listenedEventTypes(): Token[] {
+    const types = new Set<Token>()
+    for (const d of this.created) for (const l of d.eventListeners) for (const e of l.events) types.add(e)
+    return [...types]
   }
 
   private candidates(token: Token): BeanDefinition[] {
@@ -605,10 +687,13 @@ export class ApplicationContext implements ApplicationEventPublisher {
     const previousCreatingContext = creatingContext
     creatingContext = this
     try {
-      const bean = d.create(this) as Record<string, unknown>
-      if (d.configurationProperties) this.environment.bind(d.configurationProperties.prefix, bean, d.configurationProperties.types)
-      for (const m of d.postConstruct) (bean[m] as () => void).call(bean)
-      if (bean && typeof bean.afterPropertiesSet === 'function') (bean.afterPropertiesSet as () => void)()
+      let bean = d.create(this) as Record<string, unknown>
+      if (!this.remote.has(d)) {
+        if (d.configurationProperties) this.environment.bind(d.configurationProperties.prefix, bean, d.configurationProperties.types)
+        for (const m of d.postConstruct) (bean[m] as () => void).call(bean)
+        if (bean && typeof bean.afterPropertiesSet === 'function') (bean.afterPropertiesSet as () => void)()
+      }
+      if (this.threading?.beanCreated) bean = this.threading.beanCreated(d, bean) as Record<string, unknown>
       this.instances.set(d, bean)
       this.created.push(d)
       return bean
@@ -708,6 +793,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
 
   private destroyBeans(): void {
     for (const d of [...this.created].reverse()) {
+      if (this.remote.has(d)) continue
       const bean = this.instances.get(d) as Record<string, unknown>
       for (const m of d.preDestroy) (bean[m] as () => void).call(bean)
       if (bean && typeof bean.destroy === 'function') (bean.destroy as () => void)()

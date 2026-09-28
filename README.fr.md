@@ -33,9 +33,13 @@ configuration vierge avec ses réglages par défaut. Mémoire résidente du proc
 | Scan des 60 livres | **55 s** | 134 s | 2,4 × plus lent |
 
 Le scan est plus lent volontairement pour l'instant : le traitement d'image tourne sur un
-seul thread pour garder la mémoire basse, et les tâches de fond partagent le processus avec
-le serveur web. Ce sont les deux prochaines améliorations. Le banc d'essai est
-`tools/mem-bench.mjs` ; lancez-le sur votre propre bibliothèque.
+seul thread pour garder la mémoire basse. Les tâches de fond (scan, analyse, empreintes,
+miniatures) tournent dans un worker thread, comme le pool de tâches de Komga : le serveur web
+continue de répondre pendant un scan ; le worker ajoute 60 à 100 Mo pendant qu'il tourne et
+s'arrête après 60 s sans tâche. Les bancs d'essai sont `tools/mem-bench.mjs` et
+`tools/scan-latency-bench.mjs` ; lancez-les sur votre propre bibliothèque. Dans un conteneur,
+le tas V8 de chaque thread est limité au quart de la mémoire allouée (`KOMGAJS_MAX_HEAP_MB`
+l'impose) ; `KOMGAJS_TASK_WORKER=false` exécute les tâches dans le thread principal.
 
 ## Fonctionnalités
 

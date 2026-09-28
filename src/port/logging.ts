@@ -1,6 +1,9 @@
 // Support de portage : équivalent de io.github.oshai.kotlinlogging (KotlinLogging.logger {}).
 // Ce fichier n'a pas de jumeau Kotlin. Niveaux et format proches de la sortie Logback de Komga.
 
+import { writeSync } from 'node:fs'
+import { inspect } from 'node:util'
+
 export type Level = 'TRACE' | 'DEBUG' | 'INFO' | 'WARN' | 'ERROR'
 const ORDER: Record<Level, number> = { TRACE: 0, DEBUG: 1, INFO: 2, WARN: 3, ERROR: 4 }
 
@@ -25,6 +28,28 @@ function effectiveLevel(name: string): Level {
 
 type Msg = () => unknown
 
+/**
+ * Dans un worker_thread (tâches, port/task-worker.ts), la console est relayée par le thread principal et n'est vidée
+ * qu'au retour à la boucle d'événements du worker : pendant une longue tâche synchrone (scan), les lignes
+ * s'accumuleraient. Elles sont écrites directement sur le descripteur du processus, comme depuis le thread principal.
+ */
+let directOutput = false
+
+/** Écriture directe des journaux (appelé au démarrage du worker des tâches) */
+export function useDirectLogOutput(): void {
+  directOutput = true
+}
+
+function writeLine(fd: number, text: string): boolean {
+  try {
+    writeSync(fd, `${text}\n`)
+    return true
+  } catch {
+    // descripteur non bloquant plein (EAGAIN) ou fermé : relais par la console
+    return false
+  }
+}
+
 export class KLogger {
   constructor(readonly name: string) {}
 
@@ -37,6 +62,7 @@ export class KLogger {
     const [err, msg] = a instanceof Error ? [a, b] : [undefined, a]
     const line = `${new Date().toISOString()} ${level.padStart(5)} ${this.name} : ${String(msg?.() ?? '')}`
     const out = ORDER[level] >= ORDER.WARN ? console.error : console.log
+    if (directOutput && writeLine(ORDER[level] >= ORDER.WARN ? 2 : 1, err ? `${line}\n${inspect(err)}` : line)) return
     if (err) out(line, err)
     else out(line)
   }

@@ -105,4 +105,7 @@ export class LuceneHelper {
 // PORT: injection par nom de paramètre (searchAnalyzer, indexAnalyzer) -> qualificateurs explicites
 component(LuceneHelper, {
   inject: [Directory, { type: Analyzer, qualifier: 'searchAnalyzer' }, { type: Analyzer, qualifier: 'indexAnalyzer' }, IndexWriter, SearcherManager, LuceneCommitter],
+  // PORT: un seul index (en mémoire, journal sur disque) dans le thread principal ; les tâches du worker l'appellent
+  // dans ce thread (port/task-worker.ts)
+  taskWorker: 'callMain',
 })

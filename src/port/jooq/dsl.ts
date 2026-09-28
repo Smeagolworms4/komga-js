@@ -258,7 +258,11 @@ export function transactional<T>(db: Database.Database, fn: () => T, { readOnly 
   if (depth > 0) return fn()
   txDepth.set(db, 1)
   txReadOnly.set(db, readOnly)
-  db.exec('BEGIN')
+  // PORT: sqlite-jdbc ouvre les transactions en mode DEFERRED, et dans Komga une seule connexion écrit (pool RW de
+  // taille 1, partagé par les threads). Ici le worker des tâches (port/task-worker.ts) a sa propre connexion d'écriture :
+  // une transaction d'écriture prend le verrou d'écriture dès le début (IMMEDIATE, attente selon busy_timeout), sinon
+  // une transaction qui lit puis écrit échouerait aussitôt (SQLITE_BUSY) si l'autre thread a écrit entre-temps
+  db.exec(readOnly ? 'BEGIN' : 'BEGIN IMMEDIATE')
   try {
     const r = fn()
     if (r instanceof Promise) throw new Error('@Transactional function must be synchronous (better-sqlite3)')

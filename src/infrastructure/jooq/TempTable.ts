@@ -11,13 +11,19 @@ import { SQLDataType } from '../../port/jooq/types.js'
  *
  * The table name is automatically generated, and the table is dropped when the object is closed.
  */
+// PORT: les noms des tables supprimées sont réutilisés, par connexion : better-sqlite3 garde chaque instruction préparée
+// jusqu'au ramasse-miettes, et un nom unique par table rendait uniques (non réutilisables) toutes les requêtes qui
+// l'utilisent (voir prepareCached dans port/jooq/core.ts)
+const freeNames = new WeakMap<object, string[]>()
+
 export class TempTable {
   private created = false
+  private released = false
 
   // PORT: constructeur primaire privé (dslContext, name) et secondaire (dslContext) fusionnés
   constructor(
     private readonly dslContext: DSLContext,
-    readonly name: string = TempTable.generateName(),
+    readonly name: string = TempTable.generateName(dslContext),
   ) {}
 
   create(): void {
@@ -45,14 +51,22 @@ export class TempTable {
 
   close(): void {
     if (this.created) this.dslContext.dropTableIfExists(this.name).execute()
+    // PORT: nom rendu à la connexion (une seule fois)
+    if (!this.released) {
+      this.released = true
+      let free = freeNames.get(this.dslContext.db)
+      if (free === undefined) freeNames.set(this.dslContext.db, (free = []))
+      free.push(this.name)
+    }
   }
 
-  private static generateName(): string {
-    return `temp_${TsidCreator.getTsid256()}`
+  // PORT: nom libre de la connexion s'il y en a un
+  private static generateName(dslContext: DSLContext): string {
+    return freeNames.get(dslContext.db)?.pop() ?? `temp_${TsidCreator.getTsid256()}`
   }
 
   static withTempTable(self: DSLContext, batchSize: number, collection: Iterable<string>): TempTable {
-    const it = new TempTable(self, TempTable.generateName())
+    const it = new TempTable(self, TempTable.generateName(self))
     it.insertTempStrings(batchSize, collection)
     return it
   }

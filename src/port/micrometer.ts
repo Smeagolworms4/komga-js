@@ -302,4 +302,6 @@ export abstract class MeterRegistry {
 /** `io.micrometer.core.instrument.simple.SimpleMeterRegistry` */
 export class SimpleMeterRegistry extends MeterRegistry {}
 
-component(SimpleMeterRegistry, { name: 'simpleMeterRegistry', types: [MeterRegistry] })
+// PORT: registre unique (celui du thread principal, exposé par l'actuator) : les tâches du worker y enregistrent leurs
+// métriques par appel au thread principal (port/task-worker.ts)
+component(SimpleMeterRegistry, { name: 'simpleMeterRegistry', types: [MeterRegistry], taskWorker: 'callMain' })

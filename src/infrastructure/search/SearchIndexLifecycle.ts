@@ -155,4 +155,7 @@ component(SearchIndexLifecycle, {
   inject: [SeriesCollectionRepository, ReadListRepository, BookDtoRepository, SeriesDtoRepository, LuceneHelper],
   // @EventListener
   eventListeners: [{ method: 'consumeEvents', events: [DomainEvent] }],
+  // PORT: l'index est celui du thread principal : les événements des tâches y sont traités, et les tâches
+  // RebuildIndex / UpgradeIndex du worker y appellent ce bean (port/task-worker.ts)
+  taskWorker: 'callMain',
 })
