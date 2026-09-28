@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/hash/Hasher.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { createRequire } from 'node:module'
-import { ByteArrayInputStream, FileInputStream, InputStream, use } from '../../port/java-io.js'
+import { ByteArrayInputStream, InputStream, use } from '../../port/java-io.js'
+import { inputStream } from '../../port/kotlin-io-path.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 
@@ -23,7 +24,7 @@ export class Hasher {
       const path = pathOrStream
       logger.debug(() => `Hashing: ${path}`)
 
-      return this.computeHash(new FileInputStream(path))
+      return this.computeHash(inputStream(path))
     }
     const stream = pathOrStream
     // PORT: Seeded(SEED.toLong()) : graine 64 bits

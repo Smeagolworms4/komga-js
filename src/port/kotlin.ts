@@ -275,11 +275,51 @@ export function buildList<T>(block: (list: T[]) => void): T[] {
 export function isNullOrEmpty<T>(c: readonly T[] | ReadonlySet<T> | null | undefined): c is null | undefined {
   return c === null || c === undefined || (Array.isArray(c) ? c.length === 0 : (c as ReadonlySet<T>).size === 0)
 }
-/** `equals(other, ignoreCase = true)` */
+/**
+ * `Character.toUpperCase(codePoint)` : correspondance simple (un point de code pour un), alors que
+ * `String.prototype.toUpperCase` applique la correspondance complète (ß -> SS).
+ */
+export function charToUpperCase(cp: number): number {
+  const u = String.fromCodePoint(cp).toUpperCase()
+  const c = u.codePointAt(0) as number
+  if (u.length === (c > 0xffff ? 2 : 1)) return c
+  // grec avec iota souscrit : la correspondance simple donne la lettre de titre (ᾀ -> ᾈ)
+  if ((cp >= 0x1f80 && cp <= 0x1faf && (cp & 0xf) < 8) || cp === 0x1fb3 || cp === 0x1fc3 || cp === 0x1ff3) return cp + (cp >= 0x1fb0 ? 9 : 8)
+  return cp
+}
+
+/** `Character.toLowerCase(codePoint)` : correspondance simple (İ -> i, et non i + point suscrit) */
+export function charToLowerCase(cp: number): number {
+  const l = String.fromCodePoint(cp).toLowerCase()
+  const c = l.codePointAt(0) as number
+  if (l.length === (c > 0xffff ? 2 : 1)) return c
+  return cp === 0x130 ? 0x69 : cp
+}
+
+/**
+ * `equals(other, ignoreCase = true)` = `String.equalsIgnoreCase` de Java : même longueur (en unités UTF-16),
+ * puis point de code par point de code, égaux, ou égaux après `Character.toUpperCase`, ou après
+ * `Character.toLowerCase(Character.toUpperCase(c))`.
+ */
 export function equalsIgnoreCase(a: string | null | undefined, b: string | null | undefined): boolean {
   if (a === b) return true
   if (a == null || b == null) return false
-  return a.length === b.length && (a.toUpperCase() === b.toUpperCase() || a.toLowerCase() === b.toLowerCase())
+  if (a.length !== b.length) return false
+  let i = 0
+  while (i < a.length) {
+    const c1 = a.codePointAt(i) as number
+    const c2 = b.codePointAt(i) as number
+    i += c1 > 0xffff ? 2 : 1
+    if (c1 === c2) continue
+    // PORT: Java compare les deux caractères d'une paire de substitution séparément si l'autre chaîne n'en a pas
+    if ((c1 > 0xffff) !== (c2 > 0xffff)) return false
+    const u1 = charToUpperCase(c1)
+    const u2 = charToUpperCase(c2)
+    if (u1 === u2) continue
+    if (charToLowerCase(u1) === charToLowerCase(u2)) continue
+    return false
+  }
+  return true
 }
 
 // ---------------------------------------------------------------------------

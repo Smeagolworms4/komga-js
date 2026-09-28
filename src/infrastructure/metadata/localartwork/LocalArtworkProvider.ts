@@ -8,7 +8,8 @@ import { Sidecar } from '../../../domain/model/Sidecar.js'
 import { ThumbnailBook } from '../../../domain/model/ThumbnailBook.js'
 import { ThumbnailSeries } from '../../../domain/model/ThumbnailSeries.js'
 import { FilenameUtils } from '../../../port/commons-io.js'
-import { FileInputStream, use } from '../../../port/java-io.js'
+import { use } from '../../../port/java-io.js'
+import { inputStream } from '../../../port/kotlin-io-path.js'
 import { pathToUrl } from '../../../port/java-net.js'
 import { str } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
@@ -96,7 +97,7 @@ export class LocalArtworkProvider implements SidecarSeriesConsumer, SidecarBookC
           fileSize: statSync(path).size,
           mediaType: this.contentDetector.detectMediaType(path),
           // PORT: path.inputStream() n'est pas fermé en Kotlin (fermé par le GC) ; fermé ici
-          dimension: use(new FileInputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
+          dimension: use(inputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
         })
       })
   }
@@ -124,7 +125,7 @@ export class LocalArtworkProvider implements SidecarSeriesConsumer, SidecarBookC
           fileSize: statSync(path).size,
           mediaType: this.contentDetector.detectMediaType(path),
           // PORT: path.inputStream() n'est pas fermé en Kotlin (fermé par le GC) ; fermé ici
-          dimension: use(new FileInputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
+          dimension: use(inputStream(path), (it) => this.imageAnalyzer.getDimension(it)) ?? new Dimension({ width: 0, height: 0 }),
         })
       })
   }

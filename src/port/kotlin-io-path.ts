@@ -4,10 +4,10 @@
 import { accessSync, constants, copyFileSync, existsSync, lstatSync, openSync, closeSync, readdirSync, renameSync, rmdirSync, statSync, unlinkSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { IOException } from './java-io.js'
+import { FileInputStream, FileNotFoundException, IOException } from './java-io.js'
 
-/** `java.io.FileNotFoundException` */
-export class FileNotFoundException extends IOException {}
+/** `java.io.FileNotFoundException` : une seule classe, celle de java-io.ts (sinon `instanceof` échoue d'un module à l'autre) */
+export { FileNotFoundException }
 
 /** `java.nio.file.FileSystemException` */
 export class FileSystemException extends IOException {}
@@ -43,6 +43,17 @@ export function translateNodeError(e: unknown, file: string): unknown {
     default:
       return e
   }
+}
+
+/** `Path.inputStream()` (Files.newInputStream) : NoSuchFileException, AccessDeniedException... et non FileNotFoundException */
+export function inputStream(path: string): FileInputStream {
+  let fd: number
+  try {
+    fd = openSync(path, 'r')
+  } catch (e) {
+    throw translateNodeError(e, path)
+  }
+  return new FileInputStream({ fd })
 }
 
 function fileName(path: string): string {

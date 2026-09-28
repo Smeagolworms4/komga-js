@@ -3,6 +3,10 @@ import { lowerNotBlank } from '../../language/LanguageUtils.js'
 import { type Equatable, distinctSet, eq, hash, lazy, str, subtract } from '../../port/kotlin.js'
 import type { AgeRestriction } from './AgeRestriction.js'
 
+// `isRestricted` est initialisé dans le corps de la classe Kotlin : `labelsAllow` / `labelsExclude` y désignent les
+// paramètres du constructeur (non normalisés), pas les propriétés. Ex. labelsAllow = {" "} : isRestricted = true.
+const isRestrictedInit = new WeakMap<ContentRestrictions, () => boolean>()
+
 export class ContentRestrictions implements Equatable {
   readonly ageRestriction: AgeRestriction | null
   readonly labelsAllow: Set<string>
@@ -21,10 +25,12 @@ export class ContentRestrictions implements Equatable {
     this.labelsAllow = subtract(distinctSet(lowerNotBlank(labelsAllow)), distinctSet(lowerNotBlank(labelsExclude)))
 
     this.labelsExclude = distinctSet(lowerNotBlank(labelsExclude))
+
+    isRestrictedInit.set(this, () => ageRestriction !== null || labelsAllow.size > 0 || labelsExclude.size > 0)
   }
 
   get isRestricted(): boolean {
-    return lazy(this, 'isRestricted', () => this.ageRestriction !== null || this.labelsAllow.size > 0 || this.labelsExclude.size > 0)
+    return lazy(this, 'isRestricted', isRestrictedInit.get(this) as () => boolean)
   }
 
   toString(): string {
