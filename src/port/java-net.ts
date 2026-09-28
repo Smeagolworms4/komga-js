@@ -4,6 +4,7 @@
 // Comportements relevés sur Java 21 (jshell), voir test/port/java-net.test.ts. Ce fichier n'a pas de jumeau Kotlin.
 import { existsSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parseJavaUri } from './java-uri.js'
 import { type Equatable, Exception, IllegalArgumentException, RuntimeException, hash } from './kotlin.js'
 
 export class MalformedURLException extends Exception {}
@@ -114,7 +115,8 @@ export class URI implements Equatable {
   readonly fragment: string | null
 
   constructor(private readonly str: string) {
-    if (/[\s"<>\\^`{|}]/.test(str)) throw new URISyntaxException(`Illegal character in URI: ${str}`)
+    // PORT: validation de java.net.URI$Parser (URISyntaxException aux mêmes endroits, même message)
+    parseJavaUri(str)
     try {
       const p = parse(str, false)
       this.scheme = p.scheme

@@ -1972,6 +1972,13 @@ export class Batch {
         }
       })
     }
-    return this.queries.map((q) => q.execute())
+    // PORT: sans valeurs liées, jOOQ exécute un BatchMultiple (Statement.executeBatch de sqlite-jdbc) : l'échec est une
+    // BatchUpdateException sans SQLState, traduite en DataAccessException générique (pas IntegrityConstraintViolationException)
+    try {
+      return this.queries.map((q) => q.execute())
+    } catch (e) {
+      if (e instanceof DataAccessException && e.constructor !== DataAccessException) throw new DataAccessException(e.message, e.cause)
+      throw e
+    }
   }
 }
