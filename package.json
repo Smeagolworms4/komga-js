@@ -12,6 +12,8 @@
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:unit:coverage": "node tools/oracle-coverage.mjs",
     "coverage": "vitest run --coverage",
     "port:status": "node tools/port-status.mjs",
     "port:diff": "node tools/upstream-diff.mjs",

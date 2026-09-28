@@ -61,6 +61,39 @@ Révision upstream portée : voir `UPSTREAM_REF` (Komga 1.27.1 au départ).
   Komga JVM et sur KomgaJS avec la même base et la même bibliothèque, puis les réponses sont comparées.
 - **Schéma OpenAPI** : chaque réponse est validée contre le schéma OpenAPI généré par Komga.
 
+## Tests unitaires à oracle (`test/unit/`)
+
+But : chaque fonction Kotlin (inventaire `coverage-baseline/kotlin-functions.json`, 1 384 fonctions avec du code)
+est appelée sur le vrai Komga avec de nombreux cas limites, et son jumeau TS doit rendre exactement le même résultat.
+Rapides : pas de contexte Spring (ni côté Kotlin ni côté TS), SQLite en mémoire seulement quand un DAO l'exige.
+
+- **Oracle Kotlin** : branche `unit-oracles` du fork (https://github.com/Smeagolworms4/komga), un test par fichier Kotlin :
+  `komga/src/test/kotlin/org/gotson/komga/oracle/<p>/XOracleTest.kt` pour `.../komga/<p>/X.kt`, qui étend `OracleTest`
+  (`oracle/Oracle.kt`) et déclare `cases()` : `func("nomExact") { case("description") { ... } }`. Surcharges ou
+  fonctions homonymes du même fichier : `func("nom@<ligne>")` (ligne de l'inventaire). Le résultat (ou l'exception)
+  est écrit sous forme canonique (`Canon`) dans `test/unit/fixtures/<p>/X.json`.
+- **Jumeau TS** : `test/unit/<p>/X.test.ts`, mêmes cas dans le même ordre :
+  `const { func, kase, deviation } = oracle('<p>/X')`, `func('nomExact', () => { kase('description', () => ...) })`.
+  `canon.ts` est le miroir exact de `Canon` (KEnum → `{"@enum"}`, data class → `{"@class", champs dans l'ordre du
+  constructeur}`, Set → `{"@set"}`, Map → `{"@map"}`, dates js-joda → `{"@time": toString()}`, Path = chaîne,
+  exception → `{"@throws": nom, message}`). Un cas de la fixture non rejoué fait échouer le fichier.
+  Aides partagées : `oracleBytes(n)` / `tempDir()` / `exceptionType { }` (mêmes noms des deux côtés).
+- **Écart** : un cas qui diffère est un bug de portage, corrigé dans `src/`. Seul un écart assumé (bibliothèque,
+  voir tableau ci-dessous) est déclaré par `deviation('description', 'raison')`.
+- Fuseau `Europe/Paris` et locale `en_US` des deux côtés (propriété Gradle `oracleOut`, `vitest.unit.config.ts`).
+  Les valeurs dépendant de la machine (chemins temporaires, messages d'erreur du système) ne sont pas enregistrées.
+
+```bash
+tools/run-kotlin-oracles.sh                          # tous les oracles (Gradle, ../komga-oracle, JDK 21)
+tools/run-kotlin-oracles.sh language/LanguageUtils 'domain/model/*'
+npm run test:unit                                    # jumeaux TS (sans Java : les fixtures sont versionnées)
+npm run test:unit:coverage                           # fonctions de l'inventaire couvertes, par paquet
+node tools/oracle-coverage.mjs --missing domain/model  # fonctions restantes d'un paquet
+```
+
+En CI : `npm run test:unit` (build.yml de KomgaJS) ; côté fork, `.github/workflows/oracles.yml` relance les oracles
+et vérifie que les fixtures produites sont identiques à celles de la branche `unit-tests` de KomgaJS.
+
 ## Suivre une nouvelle version de Komga
 
 ```bash
@@ -126,6 +159,8 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | gzip (`GZIPOutputStream`) | octets compressés différents de la JVM (même contenu décompressé) | aucun : relu par Komga et KomgaJS |
 | SQLite : compilation | better-sqlite3 est compilé différemment de sqlite-jdbc. Écarts corrigés au chargement par `native/komga_sqlite.c` : DQS (guillemets doubles). **À traiter** : `MAX_VARIABLE_NUMBER` 32766 contre 250000 (recompiler better-sqlite3 avec les options de sqlite-jdbc) ; `LIKE_DOESNT_MATCH_BLOBS` | à vérifier au portage des DAO |
 | Collations ICU | ICU4C du système (74) au lieu d'ICU4J 78 | ordre identique sur les jeux de test ; différences possibles sur des caractères très rares |
+| Exceptions js-joda | `DateTimeException` là où java.time lève sa sous-classe `UnsupportedTemporalTypeException` (même message) | aucun : Komga n'intercepte pas ces exceptions |
+| Casse Unicode | Node suit Unicode 17, le JDK 21 Unicode 15 : `Character.toUpperCase`/`toLowerCase` (`charToUpperCase`...) diffèrent sur 110 caractères ajoutés depuis | négligeable |
 
 ## Stockage SQLite (jOOQ 3.19 + sqlite-jdbc), relevé sur les vraies bibliothèques
 
