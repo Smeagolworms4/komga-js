@@ -1,0 +1,31 @@
+{
+  "name": "komgajs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Portage à plat du backend Komga en TypeScript",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "port:status": "node tools/port-status.mjs",
+    "port:diff": "node tools/upstream-diff.mjs"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.3",
+    "@vitest/coverage-v8": "^5.0.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "fastify": "^5.12.5",
+    "kysely": "^0.29.6"
+  }
+}
