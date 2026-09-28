@@ -7,6 +7,7 @@
 // Ce fichier n'a pas de jumeau Kotlin.
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, writeSync } from 'node:fs'
 import { join } from 'node:path'
+import { IOException } from '../java-io.js'
 
 export const INDEX_FILE = 'komgajs-index.jsonl'
 export const FORMAT_HEADER = JSON.stringify({ format: 'komgajs-lucene-index', version: 1 })
@@ -24,8 +25,17 @@ export abstract class Directory {
   /** Remplace atomiquement tous les commits */
   abstract rewrite(lines: string[]): void
 
+  /**
+   * Verrou d'écriture (`write.lock`) tenu par un IndexWriter ouvert sur ce Directory
+   * PORT: SingleInstanceLockFactory (celle de Komga et de ByteBuffersDirectory) : verrou propre à l'instance
+   */
+  writeLocked = false
+
   close(): void {}
 }
+
+/** `org.apache.lucene.store.LockObtainFailedException` */
+export class LockObtainFailedException extends IOException {}
 
 /** `LockFactory` : le verrou d'écriture n'est pas porté (un seul processus Node) */
 export abstract class LockFactory {}

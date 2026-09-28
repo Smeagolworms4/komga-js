@@ -16,7 +16,8 @@ import { IllegalArgumentException, IllegalStateException } from '../kotlin.js'
 import type { Analyzer } from './analysis.js'
 import { toTermText } from './analysis.js'
 import { Document, Field, type IndexOptions, StringField, Term, TextField } from './document.js'
-import type { Directory } from './store.js'
+import { type Directory, LockObtainFailedException } from './store.js'
+import { FileNotFoundException } from '../java-io.js'
 
 /** `IndexWriter.MAX_TERM_LENGTH` (octets UTF-8) */
 export const MAX_TERM_LENGTH = 32766
@@ -180,6 +181,9 @@ export class IndexWriter {
     conf: IndexWriterConfig,
   ) {
     this.analyzer = conf.analyzer
+    // verrou d'écriture du Directory (SingleInstanceLockFactory)
+    if (directory.writeLocked) throw new LockObtainFailedException(`lock instance already obtained: (dir=${directory.constructor.name} lockFactory=SingleInstanceLockFactory, lockName=write.lock)`)
+    directory.writeLocked = true
     // OpenMode.CREATE_OR_APPEND : relit le dernier commit
     const log = directory.readCommits()
     this.hasCommit = log !== null && log.commits.length > 0
@@ -269,6 +273,7 @@ export class IndexWriter {
     if (this.closed) return
     this.commit()
     this.closed = true
+    this.directory.writeLocked = false
   }
 
   // PORT: méthode de destruction déduite par Spring pour un @Bean Closeable (IndexWriter.close())
@@ -497,6 +502,9 @@ class InvertState {
 
 export class AlreadyClosedException extends IllegalStateException {}
 
+/** `org.apache.lucene.index.IndexNotFoundException` : aucun commit dans le Directory */
+export class IndexNotFoundException extends FileNotFoundException {}
+
 // ---------------------------------------------------------------------------
 // Lecture
 // ---------------------------------------------------------------------------
@@ -610,6 +618,10 @@ export class IndexUpgrader {
     private readonly deletePriorCommits: boolean,
   ) {}
 
-  // PORT: format d'index propre à KomgaJS, pas de segments d'une ancienne version de Lucene à réécrire
-  upgrade(): void {}
+  // PORT: format d'index propre à KomgaJS, pas de segments d'une ancienne version de Lucene à réécrire ; comme Lucene,
+  // IndexNotFoundException sans index, et un IndexWriter est ouvert (LockObtainFailedException si un autre tient le verrou)
+  upgrade(): void {
+    if (!DirectoryReader.indexExists(this.dir)) throw new IndexNotFoundException(`no segments* file found in ${this.dir.constructor.name}: files: []`)
+    new IndexWriter(this.dir, this.conf).close()
+  }
 }

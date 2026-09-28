@@ -6,9 +6,9 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { MultiLingualNGramAnalyzer } from '../../../src/infrastructure/search/MultiLingualNGramAnalyzer.js'
 import { DateTools, Document, Field, StringField, Term, TextField } from '../../../src/port/lucene/document.js'
-import { DirectoryReader, IndexUpgrader, IndexWriter, IndexWriterConfig, SmallFloat } from '../../../src/port/lucene/index.js'
+import { DirectoryReader, IndexNotFoundException, IndexUpgrader, IndexWriter, IndexWriterConfig, SmallFloat } from '../../../src/port/lucene/index.js'
 import { SearcherFactory, SearcherManager, TermQuery } from '../../../src/port/lucene/search.js'
-import { ByteBuffersDirectory, FSDirectory, INDEX_FILE, SingleInstanceLockFactory } from '../../../src/port/lucene/store.js'
+import { ByteBuffersDirectory, FSDirectory, INDEX_FILE, LockObtainFailedException, SingleInstanceLockFactory } from '../../../src/port/lucene/store.js'
 
 function doc(id: string, title: string): Document {
   const d = new Document()
@@ -73,7 +73,9 @@ describe('Lucene index support', () => {
     w.updateDocument(new Term('book_id', '3'), doc('3', 'joker'))
     w.commit()
     w.addDocument(doc('4', 'batman forever')) // non validé
-    new IndexUpgrader(dir, new IndexWriterConfig(analyzer()), true).upgrade()
+    // comme Lucene : l'IndexWriter ouvert tient le verrou d'écriture du Directory
+    expect(() => new IndexUpgrader(dir, new IndexWriterConfig(analyzer()), true).upgrade()).toThrow(LockObtainFailedException)
+    expect(() => new IndexUpgrader(new ByteBuffersDirectory(), new IndexWriterConfig(analyzer()), true).upgrade()).toThrow(IndexNotFoundException)
 
     const dir2 = FSDirectory.open(path)
     expect(DirectoryReader.indexExists(dir2)).toBe(true)
