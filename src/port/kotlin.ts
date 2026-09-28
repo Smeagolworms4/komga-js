@@ -471,7 +471,14 @@ export function compareValues(a: unknown, b: unknown): number {
   if (a === null || a === undefined) return -1
   if (b === null || b === undefined) return 1
   if (typeof a === 'string' && typeof b === 'string') return a < b ? -1 : a > b ? 1 : 0
-  if (typeof a === 'number' && typeof b === 'number') return a - b
+  if (typeof a === 'number' && typeof b === 'number') {
+    // PORT: Double.compareTo / Float.compareTo : NaN est plus grand que tout (et égal à lui-même), -0.0 < 0.0
+    if (a < b) return -1
+    if (a > b) return 1
+    if (Number.isNaN(a)) return Number.isNaN(b) ? 0 : 1
+    if (Number.isNaN(b)) return -1
+    return Object.is(a, b) ? 0 : Object.is(a, -0) ? -1 : 1
+  }
   if (typeof a === 'boolean' && typeof b === 'boolean') return (a ? 1 : 0) - (b ? 1 : 0)
   if (typeof (a as { compareTo?: unknown }).compareTo === 'function')
     return (a as { compareTo(o: unknown): number }).compareTo(b)

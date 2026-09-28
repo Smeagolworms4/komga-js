@@ -28,7 +28,8 @@ export function zipBytes(entries: ZipEntrySpec[]): Uint8Array {
     u32(out, data.length)
     u16(out, nameBytes.length)
     u16(out, 0)
-    out.push(...nameBytes, ...data)
+    for (const x of nameBytes) out.push(x)
+    for (const x of data) out.push(x)
 
     u32(central, 0x02014b50)
     u16(central, 0x031e)
@@ -50,7 +51,7 @@ export function zipBytes(entries: ZipEntrySpec[]): Uint8Array {
     central.push(...nameBytes)
   }
   const cdOffset = out.length
-  out.push(...central)
+  for (const x of central) out.push(x)
   u32(out, 0x06054b50)
   u16(out, 0)
   u16(out, 0)

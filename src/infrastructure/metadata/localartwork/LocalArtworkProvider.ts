@@ -1,5 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/localartwork/LocalArtworkProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { opendirSync, statSync } from 'node:fs'
+import { statSync } from 'node:fs'
+import { newDirectoryStream } from '../../../port/java-nio-file.js'
 import { basename, dirname, join } from 'node:path'
 import type { Book } from '../../../domain/model/Book.js'
 import { Dimension } from '../../../domain/model/Dimension.js'
@@ -46,15 +47,9 @@ function extension(path: string): string {
 }
 
 /** `Files.list(dir)` : ordre de readdir, comme le DirectoryStream de la JVM */
+// PORT: NoSuchFileException / NotDirectoryException... comme Files.list (newDirectoryStream de java-nio-file.ts)
 function listDirectory(dir: string): string[] {
-  const d = opendirSync(dir)
-  const out: string[] = []
-  try {
-    for (let e = d.readSync(); e !== null; e = d.readSync()) out.push(join(dir, e.name))
-  } finally {
-    d.closeSync()
-  }
-  return out
+  return newDirectoryStream(dir)
 }
 
 /** `Files.isRegularFile(path)` (suit les liens) */

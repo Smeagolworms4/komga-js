@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/SeriesLifecycle.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { LocalDateTime } from '@js-joda/core'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
+import { fileReadBytes } from '../../port/java-io.js'
 import { TaskEmitter } from '../../application/tasks/TaskEmitter.js'
 import type { Book } from '../model/Book.js'
 import { BookMetadata } from '../model/BookMetadata.js'
@@ -220,7 +221,7 @@ export class SeriesLifecycle {
 
   private getBytesFromThumbnailSeries(thumbnail: ThumbnailSeries): Uint8Array | null {
     if (thumbnail.thumbnail !== null) return thumbnail.thumbnail
-    else if (thumbnail.url !== null) return readFileSync(urlToPath(thumbnail.url))
+    else if (thumbnail.url !== null) return fileReadBytes(urlToPath(thumbnail.url)) // PORT: File(uri).readBytes() : FileNotFoundException comme la JVM
     else return null
   }
 

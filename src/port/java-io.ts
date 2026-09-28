@@ -3,7 +3,7 @@
 // Conventions : `bytes.inputStream()` -> `new ByteArrayInputStream(bytes)`, `File(path).inputStream()` / `FileInputStream(file)` -> `new FileInputStream(path)`,
 // `path.inputStream()` (kotlin.io.path, Files.newInputStream) -> `inputStream(path)` de kotlin-io-path.ts,
 // `string.byteInputStream()` -> `ByteArrayInputStream.ofString(string)` (UTF-8), `stream.use { }` -> `use(stream, ...)`.
-import { closeSync, fstatSync, openSync, readSync } from 'node:fs'
+import { closeSync, fstatSync, openSync, readFileSync, readSync } from 'node:fs'
 import { Exception } from './kotlin.js'
 
 /** `java.io.IOException` */
@@ -136,6 +136,16 @@ export function openForRead(path: string): number {
     throw new FileNotFoundException(`${path} (Is a directory)`)
   }
   return fd
+}
+
+/** `File(path).readBytes()` (kotlin.io) : lecture par FileInputStream, FileNotFoundException("<chemin> (<errno>)") si l'ouverture échoue */
+export function fileReadBytes(path: string): Uint8Array {
+  const fd = openForRead(path)
+  try {
+    return new Uint8Array(readFileSync(fd))
+  } finally {
+    closeSync(fd)
+  }
 }
 
 export class FileInputStream extends InputStream {
