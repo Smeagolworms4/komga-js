@@ -119,7 +119,7 @@ describe('SeriesDtoDaoTest', () => {
     searchIndexLifecycle.rebuildIndex()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
     userRepository.findAll().forEach((it) => {
       userLifecycle.deleteUser(it)
@@ -127,7 +127,7 @@ describe('SeriesDtoDaoTest', () => {
     libraryRepository.findAll().forEach((it) => {
       libraryLifecycle.deleteLibrary(it)
     })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   function setupSeries(): void {

@@ -1,0 +1,1542 @@
+[
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"foo\":1}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"bad\",\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve type id 'bad' as a subtype of `org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>`: known type ids = [is, isnot] (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"is\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.domain.model.SearchOperator$Is<java.lang.String>] value failed for JSON property value due to missing (therefore NULL) value for creator parameter value which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input within/between Object entries"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"allOf\":\"x\"}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.domain.model.SearchCondition$Series>` from String value (token `JsonToken.VALUE_STRING`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"allOf\":[{\"x\":1}]}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"foo\":1}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Book]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Book` (16 candidates match)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":\"BAD\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.ReadStatus` from String \"BAD\": not one of the values accepted for Enum class: [READ, IN_PROGRESS, UNREAD]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"after\",\"dateTime\":\"notadate\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.ZonedDateTime` from String \"notadate\": Failed to deserialize java.time.ZonedDateTime: (java.time.format.DateTimeParseException) Text 'notadate' could not be parsed at index 0"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "garbage",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized token 'garbage': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"a\":1,}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)): was expecting double-quote to start field name"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto] value failed for JSON property name due to missing (therefore NULL) value for creator parameter name which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":5,\"bookIds\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `java.util.ArrayList` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('x')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"x\",\"bookIds\":[1,2],\"ordered\":\"abc\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `boolean` from String \"abc\": only \"true\"/\"True\"/\"TRUE\" or \"false\"/\"False\"/\"FALSE\" recognized"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":\"abc\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from String \"abc\": not a valid `java.lang.Integer` value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":\"FOO\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from String \"FOO\": not one of the values accepted for Enum class: [HIATUS, ONGOING, ABANDONED, ENDED]"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"tags\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `java.util.HashSet` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('x')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":5}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":\"abc\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Boolean` from String \"abc\": only \"true\" or \"false\" recognized"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":\"TRUE\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Boolean` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":2}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":\"abc\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Float` from String \"abc\": not a valid `Float` value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Float` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":true}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Float` from Boolean value (token `JsonToken.VALUE_TRUE`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":\"2020-13-45\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.LocalDate` from String \"2020-13-45\": Failed to deserialize java.time.LocalDate: (java.time.format.DateTimeParseException) Text '2020-13-45' could not be parsed: Invalid value for MonthOfYear (valid values 1 - 12): 13"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":5}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Expected array or string"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto>` from String value (token `JsonToken.VALUE_STRING`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto>` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":5}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto>` from Integer value (token `JsonToken.VALUE_NUMBER_INT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[\"x\"]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('x')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[5]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` (although at least one Creator exists): no int/Int-argument constructor/factory method to deserialize from Number value (5)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[[]]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.HashSet<java.lang.String>` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":5}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.HashSet<java.lang.String>` from Integer value (token `JsonToken.VALUE_NUMBER_INT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":[{}]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "[]",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "\"x\"",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('x')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "5",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` (although at least one Creator exists): no int/Int-argument constructor/factory method to deserialize from Number value (5)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":\"a\"",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":\"a}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input in VALUE_STRING"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":tru}",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized token 'tru': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{title:1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('t' (code 116)): was expecting double-quote to start field name"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[1,}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)): expected a value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":01}",
+  "status": 400,
+  "message": "JSON parse error: Invalid numeric value: Leading zeroes not allowed"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"\\q\"}",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized character escape 'q' (code 113)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1}x",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\"",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input within/between Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input within/between Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1,",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input within/between Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[1",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Array (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 6])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[1,",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input within/between Array entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Array (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 6])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"ab",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input in field name"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"b",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input in VALUE_STRING"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "  \n {\"a\":{\"b\":1",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 2, column: 7])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\" 1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('1' (code 49)): was expecting a colon to separate field name and value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1 \"b\":2}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('\"' (code 34)): was expecting comma to separate Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[1 2]}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('2' (code 50)): was expecting comma to separate Array entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":[1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected close marker '}': expected ']' (for Array starting at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 6])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1]",
+  "status": 400,
+  "message": "JSON parse error: Unexpected close marker ']': expected '}' (for Object starting at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "\n  {\"x\":\n [1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected close marker '}': expected ']' (for Array starting at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 3, column: 2])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":@}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('@' (code 64)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":.5}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('.' (code 46)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":+1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('+' (code 43)) in numeric value: JSON spec does not allow numbers to have plus signs: enable `JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS` to allow"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":-}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)) in numeric value: expected digit (0-9) to follow minus sign, for valid numeric value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":-x}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('x' (code 120)) in numeric value: expected digit (0-9) to follow minus sign, for valid numeric value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1.}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)) in numeric value: Decimal point not followed by a digit"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1e}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)) in numeric value: Exponent indicator not followed by a digit"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1x}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('x' (code 120)): was expecting comma to separate Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":00}",
+  "status": 400,
+  "message": "JSON parse error: Invalid numeric value: Leading zeroes not allowed"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":-01}",
+  "status": 400,
+  "message": "JSON parse error: Invalid numeric value: Leading zeroes not allowed"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":truex}",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized token 'truex': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":nul}",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized token 'nul': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":NaN}",
+  "status": 400,
+  "message": "JSON parse error: Non-standard token 'NaN': enable `JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS` to allow"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":'x'}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character (''' (code 39)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{'a':1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character (''' (code 39)): was expecting double-quote to start field name"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"\\u12x4\"}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('x' (code 120)): expected a hex-digit for character escape sequence"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"x\ny\"}",
+  "status": 400,
+  "message": "JSON parse error: Illegal unquoted character ((CTRL-CHAR, code 10)): has to be escaped using backslash to be included in string value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"x\ty\"}",
+  "status": 400,
+  "message": "JSON parse error: Illegal unquoted character ((CTRL-CHAR, code 9)): has to be escaped using backslash to be included in string value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":,}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character (',' (code 44)): expected a value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":]}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character (']' (code 93)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{,}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character (',' (code 44)): was expecting double-quote to start field name"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "[,1]",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "[1,]",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "]",
+  "status": 400,
+  "message": "JSON parse error: Unexpected close marker ']': no open Array to close"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected close marker '}': no open Object to close"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "   ",
+  "status": 400,
+  "message": "JSON parse error: No content to map due to end-of-input"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1}}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1}x",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":/*c*/1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('/' (code 47)): maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_COMMENTS' not enabled for parser)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":#c\n1}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('#' (code 35)): expected a valid value (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"é\"x}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('x' (code 120)): was expecting comma to separate Object entries"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":é}",
+  "status": 400,
+  "message": "JSON parse error: Invalid UTF-8 start byte 0xa9"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":1,\n\"b\":[\n1,\n}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)): expected a value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":tr",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized token 'tr': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":12",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input: expected close marker for Object (start marker at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1, column: 1])"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":\"\\",
+  "status": 400,
+  "message": "JSON parse error: Unexpected end-of-input in character escape sequence"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":{},}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"a\":{}, \"title\":{} x",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":\"\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":\"True\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":1.5}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Boolean` from Floating-point value (token `JsonToken.VALUE_NUMBER_FLOAT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Boolean` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":\"\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":\"1.5\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"numberSort\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Float` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":\"\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.LocalDate` from String \"x\": Failed to deserialize java.time.LocalDate: (java.time.format.DateTimeParseException) Text 'x' could not be parsed at index 0"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":true}",
+  "status": 400,
+  "message": "JSON parse error: Expected array or string"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":[]}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"releaseDate\":1.5}",
+  "status": 400,
+  "message": "JSON parse error: Expected array or string"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":\"\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot coerce empty String (\"\") to element of `java.util.HashSet` (but could if coercion was enabled using `CoercionConfig`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `java.util.HashSet` (although at least one Creator exists): no String-argument constructor/factory method to deserialize from String value ('x')"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":true}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.HashSet<java.lang.String>` from Boolean value (token `JsonToken.VALUE_TRUE`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":1.5}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.HashSet<java.lang.String>` from Floating-point value (token `JsonToken.VALUE_NUMBER_FLOAT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"tags\":[[]]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":\"\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto>` from String value (token `JsonToken.VALUE_STRING`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[true]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (true)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[1.5]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` (although at least one Creator exists): no double/Double-argument constructor/factory method to deserialize from Number value (1.5)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[123456789012]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` (although at least one Creator exists): no long/Long-argument constructor/factory method to deserialize from Number value (123456789012)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[\"\"]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot coerce empty String (\"\") to `org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto` value (but could if coercion was enabled using `CoercionConfig`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[{\"name\":null,\"role\":\"x\"}]}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[{\"role\":\"x\"}]}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[{\"name\":{},\"role\":\"x\"}]}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"links\":[{\"label\":\"a\",\"url\":\"not a url\"}]}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "true",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` (although at least one Creator exists): no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (true)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "1.5",
+  "status": 400,
+  "message": "JSON parse error: Cannot construct instance of `org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto` (although at least one Creator exists): no double/Double-argument constructor/factory method to deserialize from Number value (1.5)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":\"\"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":\"1.5\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from String \"1.5\": not a valid `java.lang.Integer` value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":\"3000000000\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from String \"3000000000\": Overflow: numeric value (3000000000) out of range of `java.lang.Integer` (-2147483648 -2147483647)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":3000000000}",
+  "status": 400,
+  "message": "JSON parse error: Numeric value (3000000000) out of range of int (-2147483648 - 2147483647)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":true}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from Boolean value (token `JsonToken.VALUE_TRUE`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"ageRating\":\" 12 \"}",
+  "status": 404,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":\"\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot coerce empty String (\"\") to `org.gotson.komga.domain.model.SeriesMetadata$Status` value (but could if coercion was enabled using `CoercionConfig`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":7}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from number 7: index value outside legal index range [0..3]"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":-1}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from number -1: index value outside legal index range [0..3]"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":true}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from Boolean value (token `JsonToken.VALUE_TRUE`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":\"ended\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from String \"ended\": not one of the values accepted for Enum class: [HIATUS, ONGOING, ABANDONED, ENDED]"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/series/BOGUS/metadata",
+  "body": "{\"status\":1.5}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from Floating-point value (token `JsonToken.VALUE_NUMBER_FLOAT`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":null,\"bookIds\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto] value failed for JSON property name due to missing (therefore NULL) value for creator parameter name which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\",\"bookIds\":null}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto] value failed for JSON property bookIds due to missing (therefore NULL) value for creator parameter bookIds which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\",\"bookIds\":[],\"ordered\":null}",
+  "status": 400,
+  "message": "JSON parse error: Cannot map `null` into type `boolean` (set DeserializationConfig.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES to 'false' to allow)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\",\"bookIds\":[],\"ordered\":\"\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot coerce `null` to `boolean` value (disable `DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES` to allow)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\",\"bookIds\":[],\"ordered\":\"True\"}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\",\"bookIds\":[null]}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"bookIds\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto] value failed for JSON property name due to missing (therefore NULL) value for creator parameter name which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"name\":\"\"}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto] value failed for JSON property bookIds due to missing (therefore NULL) value for creator parameter bookIds which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "{\"NAME\":\"\",\"BookIds\":[]}",
+  "status": 400,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/readlists",
+  "body": "[]",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Unexpected input"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":[]}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (END_ARRAY), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of org.gotson.komga.domain.model.SearchCondition$Series)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":5}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Unexpected input"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>]: missing type id property 'operator' (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":\"x\"}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>]: missing type id property 'operator' (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":[]}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (null), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of org.gotson.komga.domain.model.SearchOperator$Equality)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>]: missing type id property 'operator' (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":5}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve type id '5' as a subtype of `org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>`: known type ids = [is, isnot] (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"IS\",\"value\":\"x\"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"is\",\"value\":{}}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":null}}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.domain.model.SearchCondition$LibraryId] value failed for JSON property libraryId due to missing (therefore NULL) value for creator parameter operator which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"is\",\"value\":\"x\"},\"title\":{}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"title\":{\"operator\":\"is\",\"value\":\"x\"},\"libraryId\":{}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"foo\":1,\"libraryId\":{\"operator\":\"is\",\"value\":\"x\"},\"title\":5}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"allOf\":[{\"libraryId\":{\"operator\":\"is\",\"value\":\"x\"},\"title\":{\"operator\":\"is\",\"value\":\"x\"}}]}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"ageRating\":{\"operator\":\"is\",\"value\":\"abc\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Integer` from String \"abc\": not a valid `java.lang.Integer` value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"ageRating\":{\"operator\":\"gt\",\"value\":5}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve type id 'gt' as a subtype of `org.gotson.komga.domain.model.SearchOperator$NumericNullable<java.lang.Integer>`: known type ids = [greaterthan, is, isnot, isnotnull, isnull, lessthan] (for POJO property 'ageRating')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"isInTheLast\",\"duration\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.Duration` from String \"x\": Failed to deserialize java.time.Duration: (java.time.format.DateTimeParseException) Text cannot be parsed to a Duration"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"before\",\"dateTime\":\"2020-01-01\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.ZonedDateTime` from String \"2020-01-01\": Failed to deserialize java.time.ZonedDateTime: (java.time.format.DateTimeParseException) Text '2020-01-01' could not be parsed at index 10"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"seriesStatus\":{\"operator\":\"is\",\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SeriesMetadata$Status` from String \"x\": not one of the values accepted for Enum class: [HIATUS, ONGOING, ABANDONED, ENDED]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"complete\":{\"operator\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve type id 'x' as a subtype of `org.gotson.komga.domain.model.SearchOperator$Boolean`: known type ids = [isfalse, istrue] (for POJO property 'complete')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"fullTextSearch\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"anyOf\":{}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.util.ArrayList<org.gotson.komga.domain.model.SearchCondition$Series>` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"mediaStatus\":{\"operator\":\"is\",\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.Media$Status` from String \"x\": not one of the values accepted for Enum class: [ERROR, UNKNOWN, READY, UNSUPPORTED, OUTDATED]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"poster\":{\"operator\":\"is\",\"value\":{\"type\":\"x\"}}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.SearchCondition$PosterMatch$Type` from String \"x\": not one of the values accepted for Enum class: [USER_UPLOADED, SIDECAR, GENERATED]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"author\":{\"operator\":\"is\",\"value\":{}}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"numberSort\":{\"operator\":\"is\",\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Float` from String \"x\": not a valid `Float` value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"is\",\"value\":null}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"before\",\"dateTime\":true}}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (VALUE_TRUE), expected one of [VALUE_STRING, VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT] for java.time.ZonedDateTime value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"before\",\"dateTime\":{}}}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (START_OBJECT), expected one of [VALUE_STRING, VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT] for java.time.ZonedDateTime value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"before\",\"dateTime\":\"\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.domain.model.SearchOperator$Before] value failed for JSON property dateTime due to missing (therefore NULL) value for creator parameter dateTime which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"before\",\"dateTime\":\"2020-01-01T00:00:00\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.ZonedDateTime` from String \"2020-01-01T00:00:00\": Failed to deserialize java.time.ZonedDateTime: (java.time.format.DateTimeParseException) Text '2020-01-01T00:00:00' could not be parsed at index 19"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"isInTheLast\",\"duration\":true}}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (VALUE_TRUE), expected one of [VALUE_STRING, VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT] for java.time.Duration value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"isInTheLast\",\"duration\":{}}}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (START_OBJECT), expected one of [VALUE_STRING, VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT] for java.time.Duration value"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"releaseDate\":{\"operator\":\"isInTheLast\",\"duration\":\"P1X\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.time.Duration` from String \"P1X\": Failed to deserialize java.time.Duration: (java.time.format.DateTimeParseException) Text cannot be parsed to a Duration"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"allOf\":[1]}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Unexpected input"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"allOf\":[[]]}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (null), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of org.gotson.komga.domain.model.SearchCondition$Series)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":[1]}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve type id '1' as a subtype of `org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>`: known type ids = [is, isnot] (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":[{}]}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected token (null), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of org.gotson.komga.domain.model.SearchOperator$Equality)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"value\":\"x\",\"operator\":{}}}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>]: missing type id property 'operator' (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"value\":\"x\",\"OPERATOR\":\"is\"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"LIBRARYID\":{\"value\":\"x\",\"operator\":\"is\"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"operator\":\"is\",\"value\":\"x\"},\"libraryId\":5}}",
+  "status": 400,
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchOperator$Equality<java.lang.String>]: missing type id property 'operator' (for POJO property 'libraryId')"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"value\":{},\"operator\":\"is\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"libraryId\":{\"value\":\"x\",\"operator\":\"is\"},\"collectionId\":{}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"deleted\":{\"operator\":\"isTrue\"},\"complete\":{\"operator\":\"isTrue\"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"xx\":{},\"deleted\":{\"operator\":\"isTrue\",\"x\":1}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"anyOf\":[],\"allOf\":[]}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":\" READ \"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":\"1\"}}}",
+  "status": 200,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":\"9\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.ReadStatus` from String \"9\": not one of the values accepted for Enum class: [READ, IN_PROGRESS, UNREAD]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":\"read\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.ReadStatus` from String \"read\": not one of the values accepted for Enum class: [READ, IN_PROGRESS, UNREAD]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"readStatus\":{\"operator\":\"is\",\"value\":[]}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.ReadStatus` from Array value (token `JsonToken.START_ARRAY`)"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"mediaProfile\":{\"operator\":\"is\",\"value\":\"x\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `org.gotson.komga.domain.model.MediaProfile` from String \"x\": not one of the values accepted for Enum class: [EPUB, PDF, DIVINA]"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"numberSort\":{\"operator\":\"is\",\"value\":\"\"}}}",
+  "status": 500,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"numberSort\":{\"operator\":\"is\"}}}",
+  "status": 400,
+  "message": "JSON parse error: Instantiation of [simple type, class org.gotson.komga.domain.model.SearchOperator$Is<java.lang.Float>] value failed for JSON property value due to missing (therefore NULL) value for creator parameter value which is a non-nullable type"
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/books/list",
+  "body": "{\"condition\":{\"numberSort\":{\"operator\":\"is\",\"value\":null}}}",
+  "status": 500,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"ageRating\":{\"operator\":\"is\",\"value\":null}}}",
+  "status": 500,
+  "message": null
+ },
+ {
+  "method": "POST",
+  "path": "/api/v1/series/list",
+  "body": "{\"condition\":{\"ageRating\":{\"operator\":\"is\",\"value\":\"\"}}}",
+  "status": 500,
+  "message": null
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"authors\":[{\"name\":\"a\",\"role\":\"b\"}], \"title\":{}, \"x\":}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.String` from Object value (token `JsonToken.START_OBJECT`)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"x\":{\"a\":[1,2,}]}, \"title\":{}}",
+  "status": 400,
+  "message": "JSON parse error: Unexpected character ('}' (code 125)): expected a value"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"title\":\"a\\q\"}",
+  "status": 400,
+  "message": "JSON parse error: Unrecognized character escape 'q' (code 113)"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/v1/books/BOGUS/metadata",
+  "body": "{\"titleLock\":\"TRUE\",\"title\":\"a\",\"titleLock\":\"x\"}",
+  "status": 400,
+  "message": "JSON parse error: Cannot deserialize value of type `java.lang.Boolean` from String \"x\": only \"true\" or \"false\" recognized"
+ }
+]

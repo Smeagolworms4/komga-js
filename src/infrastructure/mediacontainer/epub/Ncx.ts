@@ -2,7 +2,7 @@
 import { EpubTocEntry } from '../../../domain/model/EpubTocEntry.js'
 import { urlDecode } from '../../../port/java-net-urldecoder.js'
 import { pathParent } from '../../../port/java-nio-file.js'
-import { type Element, Jsoup, Parser } from '../../../port/jsoup.js'
+import { type Element, Jsoup, Parser } from '../../../port/jsoup-parser.js'
 import { firstOrNull, mapNotNull } from '../../../port/kotlin.js'
 import { getEntryBytes } from '../../util/ZipFileUtils.js'
 import type { EpubPackage } from './Epub.js'

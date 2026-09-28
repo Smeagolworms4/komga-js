@@ -3,7 +3,8 @@
 // Node est mono-thread : l'exécution « asynchrone » d'une tâche est planifiée sur la boucle d'événements (setImmediate),
 // après le retour de l'appelant, comme un ThreadPoolTaskExecutor rend la main avant l'exécution de la tâche.
 import { KotlinLogging } from './logging.js'
-import { component } from './spring.js'
+import { RuntimeException } from './kotlin.js'
+import { type LifecycleResource, component, registerLifecycleResource } from './spring.js'
 
 const logger = KotlinLogging.logger('org.springframework.context.event.SimpleApplicationEventMulticaster')
 
@@ -13,9 +14,35 @@ export abstract class AsyncTaskExecutor {
 }
 
 /** `ThreadPoolTaskExecutor` auto-configuré par Spring Boot sous le nom `applicationTaskExecutor` */
-export class ApplicationTaskExecutor extends AsyncTaskExecutor {
+export class ApplicationTaskExecutor extends AsyncTaskExecutor implements LifecycleResource {
+  private shutdown = false
+  private readonly pending = new Set<NodeJS.Immediate>()
+
+  constructor() {
+    super()
+    // ExecutorConfigurationSupport : SmartLifecycle / ApplicationListener<ContextClosedEvent>
+    registerLifecycleResource(this)
+  }
+
   execute(task: () => void): void {
-    setImmediate(task)
+    // TaskRejectedException (org.springframework.core.task)
+    if (this.shutdown) throw new RuntimeException(`Executor [applicationTaskExecutor] did not accept task: ${String(task)}`)
+    const i = setImmediate(() => {
+      this.pending.delete(i)
+      task()
+    })
+    this.pending.add(i)
+  }
+
+  /** arrêt (ContextClosedEvent) : les tâches en attente sont abandonnées (waitForTasksToCompleteOnShutdown = false) */
+  stop(): void {
+    this.shutdown = true
+    for (const i of this.pending) clearImmediate(i)
+    this.pending.clear()
+  }
+
+  awaitTermination(): Promise<void> {
+    return Promise.resolve()
   }
 }
 

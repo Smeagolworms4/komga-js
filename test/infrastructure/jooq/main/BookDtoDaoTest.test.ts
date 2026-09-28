@@ -120,7 +120,7 @@ describe('BookDtoDaoTest', () => {
     searchIndexLifecycle.rebuildIndex()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
     userRepository.findAll().forEach((it) => {
       userLifecycle.deleteUser(it)
@@ -128,7 +128,7 @@ describe('BookDtoDaoTest', () => {
     libraryRepository.findAll().forEach((it) => {
       libraryLifecycle.deleteLibrary(it)
     })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   function setupBooks(): void {

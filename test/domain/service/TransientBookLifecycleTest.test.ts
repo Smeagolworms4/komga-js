@@ -74,9 +74,9 @@ describe('TransientBookLifecycleTest', () => {
     libraryRepository.insert(library)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

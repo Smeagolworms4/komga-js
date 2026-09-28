@@ -2,7 +2,7 @@
 import { KomgaSyncToken } from '../../domain/model/KomgaSyncToken.js'
 import { ObjectMapper, javaDoubleToString } from '../../port/jackson-mapper.js'
 import { JsonNumber, type JsonNode } from '../../port/jackson-tree.js'
-import { NullPointerException } from '../../port/kotlin.js'
+import { IllegalArgumentException, NullPointerException } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import type { HttpServletRequest } from '../../port/servlet.js'
 import { component } from '../../port/spring.js'
@@ -23,7 +23,7 @@ export class KomgaSyncTokenGenerator {
   private base64Decoder = {
     decode: (s: string): string => {
       const decoded = javaBase64Decode(s)
-      if (decoded === null) throw new Error('Illegal base64 character')
+      if (decoded === null) throw new IllegalArgumentException('Illegal base64 character')
       return decoded
     },
   }

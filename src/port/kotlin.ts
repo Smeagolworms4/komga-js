@@ -235,6 +235,8 @@ export function nn<T>(v: T | null | undefined): T {
   return v
 }
 export class NullPointerException extends RuntimeException {}
+/** `kotlin.NoWhenBranchMatchedException` : levée par le code généré pour un `when` exhaustif sans branche correspondante */
+export class NoWhenBranchMatchedException extends RuntimeException {}
 
 // ---------------------------------------------------------------------------
 // Chaînes

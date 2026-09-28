@@ -4,6 +4,7 @@ import { KomgaSettingsProvider } from '../configuration/KomgaSettingsProvider.js
 import { getCurrentRequest } from '../web/Utils.js'
 import { ObjectMapper } from '../../port/jackson-mapper.js'
 import type { JsonNode } from '../../port/jackson-tree.js'
+import { IOException } from '../../port/java-io.js'
 import { IllegalStateException, lazy } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import type { HttpServletRequest } from '../../port/servlet.js'
@@ -50,7 +51,7 @@ class KoboApiClient {
           resolve({ statusCode: res.statusCode ?? 0, statusText: res.statusMessage ?? '', headers: map, body: Buffer.concat(chunks) })
         })
       })
-      req.on('timeout', () => req.destroy(new Error(`Read timed out after ${this.timeoutMs}ms`)))
+      req.on('timeout', () => req.destroy(new IOException(`Read timed out after ${this.timeoutMs}ms`)))
       req.on('error', reject)
       if (body !== null) req.write(body)
       req.end()

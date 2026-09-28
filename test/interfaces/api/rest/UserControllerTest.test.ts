@@ -36,14 +36,14 @@ describe('UserControllerTest', () => {
     userRepository.insert(admin)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of userRepository.findAll()) {
       userLifecycle.deleteUser(it)
     }
     for (const it of libraryRepository.findAll()) {
       libraryLifecycle.deleteLibrary(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

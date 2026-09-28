@@ -55,10 +55,13 @@ export function springBootTest(
   return ctx
 }
 
-/** Fermeture du contexte et suppression des bases temporaires */
-export function closeContext(ctx: ApplicationContext): void {
+/**
+ * Fermeture du contexte (après la fin des tâches en cours des exécuteurs, voir
+ * `ApplicationContext.closeAndAwaitTermination`) et suppression des bases temporaires
+ */
+export async function closeContext(ctx: ApplicationContext): Promise<void> {
   const props = ctx.getBean(KomgaProperties)
-  ctx.close()
+  await ctx.closeAndAwaitTermination()
   for (const f of [props.database.file, props.tasksDb.file])
     for (const suffix of ['', '-wal', '-shm']) rmSync(`${f}${suffix}`, { force: true })
   if (ctx === shared) shared = null

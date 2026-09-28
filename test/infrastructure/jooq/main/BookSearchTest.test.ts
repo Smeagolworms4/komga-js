@@ -135,7 +135,7 @@ describe('BookSearchTest', () => {
     expect(bookDao.count()).toBe(0)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
     for (const it of userRepository.findAll()) {
       userLifecycle.deleteUser(it)
@@ -143,7 +143,7 @@ describe('BookSearchTest', () => {
     for (const it of libraryRepository.findAll()) {
       libraryLifecycle.deleteLibrary(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given some books when searching by library then results are accurate', () => {

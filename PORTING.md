@@ -43,7 +43,7 @@ Révision upstream portée : voir `UPSTREAM_REF` (Komga 1.27.1 au départ).
 | Thumbnailator / ImageIO / TwelveMonkeys | sharp (libvips) ; JPEG : libjpeg 6b + LittleCMS du JDK (`native/komga_jpeg.c`, `src/port/jpeg-jdk.ts`) |
 | commons-compress / junrar | yauzl, node-unrar-js, libarchive.js |
 | PDFBox | mupdf (wasm) |
-| jsoup | cheerio |
+| jsoup | `src/port/jsoup-parser.ts` : portage à plat de l'analyseur de jsoup 1.23.1 (tokeniseur, arbres HTML/XML, positions, sélecteurs utilisés, détection du jeu de caractères) |
 | Jackson (JSON/XML) | JSON natif, fast-xml-parser |
 | Caffeine | lru-cache |
 | icu4j | Intl, plus `icu` si nécessaire |

@@ -208,6 +208,10 @@ export class HttpRequestMethodNotSupportedException extends Exception {}
 export class NoResourceFoundException extends Exception {}
 /** Levée par @PreAuthorize (403, ou 401 si anonyme) */
 export class AccessDeniedException extends RuntimeException {}
+/** `org.springframework.web.client.RestClientResponseException` (RestTemplate / RestClient : statut 4xx / 5xx) */
+export class RestClientResponseException extends RuntimeException {}
+/** `org.springframework.web.reactive.function.client.WebClientResponseException` (WebClient.retrieve() : statut 4xx / 5xx) */
+export class WebClientResponseException extends RuntimeException {}
 
 // ---------------------------------------------------------------------------
 // Valeurs de retour

@@ -202,7 +202,7 @@ describe('ReferentialDaoTest', () => {
     everyPublishEventJustRuns()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     everyPublishEventJustRuns()
     userRepository.findAll().forEach((it) => {
       userLifecycle.deleteUser(it)
@@ -210,7 +210,7 @@ describe('ReferentialDaoTest', () => {
     libraryRepository.findAll().forEach((it) => {
       libraryLifecycle.deleteLibrary(it)
     })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   describe('Author', () => {

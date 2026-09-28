@@ -4,7 +4,16 @@ import { Duration, Instant } from '@js-joda/core'
 import { setTimeout as delay } from 'node:timers/promises'
 import { describe, expect, it } from 'vitest'
 import { Thread } from '../../src/port/java.js'
-import { FixedRateTask, ScheduledTaskRegistrar, ThreadPoolTaskExecutorBuilder, ThreadPoolTaskScheduler } from '../../src/port/spring-scheduling.js'
+import { ApplicationContext, ContextClosedEvent, Environment, component } from '../../src/port/spring.js'
+import {
+  FixedRateTask,
+  ScheduledTaskRegistrar,
+  TaskScheduler,
+  type ThreadPoolTaskExecutor,
+  ThreadPoolTaskExecutorBuilder,
+  ThreadPoolTaskScheduler,
+  scheduled,
+} from '../../src/port/spring-scheduling.js'
 
 describe('ThreadPoolTaskExecutor', () => {
   it('runs tasks after the caller returns, on named threads', async () => {
@@ -121,5 +130,74 @@ describe('ThreadPoolTaskScheduler', () => {
     await delay(200)
     expect(ran).toBe(1)
     expect(f.isDone()).toBe(true)
+  })
+})
+
+// Bean qui crée son propre exécuteur (comme TaskProcessor) et une méthode @Scheduled
+class CloseTestHolder {
+  readonly executor: ThreadPoolTaskExecutor
+  readonly events: string[] = []
+  ticks = 0
+  destroyed = false
+
+  constructor(builder: ThreadPoolTaskExecutorBuilder) {
+    this.executor = builder.threadNamePrefix('holder-').corePoolSize(1).build()
+    this.executor.initialize()
+  }
+
+  tick(): void {
+    this.ticks++
+  }
+
+  onClosed(): void {
+    this.events.push('closed event')
+  }
+
+  destroy(): void {
+    this.destroyed = true
+    this.events.push('destroy')
+  }
+}
+component(CloseTestHolder, { inject: [ThreadPoolTaskExecutorBuilder], eventListeners: [{ method: 'onClosed', events: [ContextClosedEvent] }] })
+scheduled(CloseTestHolder, [{ method: 'tick', fixedRate: 10 }])
+
+describe('ApplicationContext close', () => {
+  it('stops executors and schedulers, waits for running tasks before destroying beans, runs nothing afterwards', async () => {
+    const ctx = new ApplicationContext(new Environment({})).refresh()
+    const holder = ctx.getBean(CloseTestHolder)
+    await delay(50)
+    expect(holder.ticks).toBeGreaterThan(0)
+    let queuedRan = false
+    holder.executor.execute(async () => {
+      holder.events.push('task start')
+      await delay(50)
+      holder.events.push(`task end, destroyed: ${holder.destroyed}`)
+    })
+    holder.executor.execute(() => {
+      queuedRan = true
+    })
+    await delay(10)
+    await ctx.closeAndAwaitTermination()
+    expect(holder.events).toEqual(['task start', 'closed event', 'task end, destroyed: false', 'destroy'])
+    // la tâche en file est abandonnée, les nouvelles sont refusées
+    expect(queuedRan).toBe(false)
+    expect(() => holder.executor.execute(() => {})).toThrow('did not accept task')
+    const ticks = holder.ticks
+    await delay(50)
+    expect(holder.ticks).toBe(ticks)
+    expect(() => ctx.getBean(TaskScheduler)).toThrow('has been closed already')
+  })
+
+  it('close() stops executors without waiting', async () => {
+    const ctx = new ApplicationContext(new Environment({})).refresh()
+    const holder = ctx.getBean(CloseTestHolder)
+    const ran: number[] = []
+    // la première tâche a démarré son thread (shutdownNow ne l'empêche pas de s'exécuter), la seconde est en file
+    holder.executor.execute(() => void ran.push(1))
+    holder.executor.execute(() => void ran.push(2))
+    ctx.close()
+    expect(holder.destroyed).toBe(true)
+    await delay(20)
+    expect(ran).toEqual([1])
   })
 })

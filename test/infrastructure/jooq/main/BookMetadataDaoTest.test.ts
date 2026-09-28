@@ -53,11 +53,11 @@ describe('BookMetadataDaoTest', () => {
     }
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     bookRepository.deleteAll()
     seriesRepository.deleteAll()
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a metadata when inserting then it is persisted', () => {

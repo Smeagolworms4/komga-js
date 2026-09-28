@@ -2,6 +2,7 @@
 import { intersect, require } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { DefaultOAuth2User, DefaultOAuth2UserService, type OAuth2User, type OAuth2UserRequest } from '../../../port/spring-security-oauth2.js'
+import { RestClientResponseException } from '../../../port/spring-web.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.security.oauth2.GithubOAuth2UserService')
 
@@ -23,7 +24,7 @@ export class GithubOAuth2UserService extends DefaultOAuth2UserService {
           method: 'GET',
           headers: { Authorization: `Bearer ${userRequest.accessToken.tokenValue}`, Accept: 'application/json, application/*+json' },
         })
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+        if (!res.ok) throw new RestClientResponseException(`${res.status} ${res.statusText}`)
         const body = (await res.json()) as Record<string, unknown>[] | null
         let email: string | null = null
         if (body !== null) {

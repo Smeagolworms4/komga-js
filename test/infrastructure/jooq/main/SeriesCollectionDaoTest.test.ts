@@ -41,9 +41,9 @@ describe('SeriesCollectionDaoTest', () => {
     seriesRepository.deleteAll()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   // PORT: (1..10)

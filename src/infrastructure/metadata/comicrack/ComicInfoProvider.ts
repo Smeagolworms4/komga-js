@@ -14,7 +14,7 @@ import { ISBNValidator } from '../../../port/commons-validator.js'
 import { XmlMapper } from '../../../port/jackson-xml.js'
 import { javaUri } from '../../../port/java-uri.js'
 import { toFloatOrNull, toIntOrNull } from '../../../port/kotlin-numbers.js'
-import { distinctSet, filterNotNull, isBlank, isNullOrBlank, mapNotNull, nn, str, trim } from '../../../port/kotlin.js'
+import { NoWhenBranchMatchedException, distinctSet, filterNotNull, isBlank, isNullOrBlank, mapNotNull, nn, str, trim } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
 import { BookMetadataProvider } from '../BookMetadataProvider.js'
@@ -182,7 +182,7 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
       case MetadataPatchTarget.COLLECTION:
         return library.importComicInfoCollection
     }
-    throw new Error(`Unknown target ${str(target)}`)
+    throw new NoWhenBranchMatchedException()
   }
 
   private getComicInfo(book: BookWithMedia): ComicInfo | null {

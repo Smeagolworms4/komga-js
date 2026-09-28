@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/kobo/dto/TagTypeDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import type { JsonType } from '../../../../port/jackson-mapper.js'
-import { KEnum } from '../../../../port/kotlin.js'
+import { IllegalArgumentException, KEnum } from '../../../../port/kotlin.js'
 
 // PORT: @JsonProperty("...") sur les constantes -> nom JSON passé au constructeur
 export class TagTypeDto extends KEnum {
@@ -30,7 +30,7 @@ export function jsonTypeOfTagTypeDto(): JsonType {
     read: (s: string) =>
       TagTypeDto.entries().find((it) => it.jsonName === s) ??
       (() => {
-        throw new Error(`not one of the values accepted for Enum class: [${TagTypeDto.entries().map((it) => it.jsonName).join(', ')}]`)
+        throw new IllegalArgumentException(`not one of the values accepted for Enum class: [${TagTypeDto.entries().map((it) => it.jsonName).join(', ')}]`)
       })(),
     write: (v: TagTypeDto) => v.toJSON(),
   }

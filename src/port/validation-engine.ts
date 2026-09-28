@@ -400,7 +400,15 @@ function cascade(root: unknown, value: unknown, path: string, out: ConstraintVio
   else if (typeof value === 'object' && value !== null) validateInto(root, value, path, out, locale, seen)
 }
 
-/** `Validator.validate(bean)` : violations dans l'ordre de déclaration (contraintes de classe, puis propriétés) */
+/**
+ * `Validator.validate(bean)` : violations dans l'ordre de déclaration (contraintes de classe, puis propriétés).
+ * PORT: Hibernate Validator 8.0.3 renvoie un HashSet de ConstraintViolationImpl dont le hashCode
+ * (ConstraintViolationImpl.createHashCode) combine interpolatedMessage, propertyPath, constraintDescriptor et
+ * `System.identityHashCode` de rootBean, leafBeanInstance et value : l'ordre d'itération change d'une requête à l'autre
+ * (relevé sur Komga : `{"name":"","bookIds":[]}` sur POST /api/v1/readlists donne tantôt name puis bookIds, tantôt
+ * l'inverse ; 4 ordres différents en 4 requêtes pour 4 violations de SeriesMetadataUpdateDto). Aucun ordre ne peut être
+ * reproduit : l'ordre de déclaration, stable, est gardé.
+ */
 export function validate(bean: object, locale: LocaleTag = currentLocale()): ConstraintViolation[] {
   const out: ConstraintViolation[] = []
   validateInto(bean, bean, '', out, locale, new Set())

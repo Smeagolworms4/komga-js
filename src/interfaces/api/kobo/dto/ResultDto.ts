@@ -1,7 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/kobo/dto/ResultDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { WrappedResultDto } from './ReadingStateUpdateResultDto.js'
 import type { JsonType } from '../../../../port/jackson-mapper.js'
-import { KEnum } from '../../../../port/kotlin.js'
+import { IllegalArgumentException, KEnum } from '../../../../port/kotlin.js'
 
 // PORT: @JsonProperty("...") sur les constantes -> nom JSON passé au constructeur
 export class ResultDto extends KEnum {
@@ -39,7 +39,7 @@ export function jsonTypeOfResultDto(): JsonType {
     read: (s: string) =>
       ResultDto.entries().find((it) => it.jsonName === s) ??
       (() => {
-        throw new Error(`not one of the values accepted for Enum class: [${ResultDto.entries().map((it) => it.jsonName).join(', ')}]`)
+        throw new IllegalArgumentException(`not one of the values accepted for Enum class: [${ResultDto.entries().map((it) => it.jsonName).join(', ')}]`)
       })(),
     write: (v: ResultDto) => v.toJSON(),
   }

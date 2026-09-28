@@ -119,7 +119,7 @@ describe('SeriesControllerTest', () => {
     userRepository.insert(new KomgaUser({ email: 'user@example.org', password: '', id: '1' }))
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of userRepository.findAll()) {
       userLifecycle.deleteUser(it)
     }
@@ -127,7 +127,7 @@ describe('SeriesControllerTest', () => {
       libraryLifecycle.deleteLibrary(it)
     }
     for (const f of tempFiles) rmSync(f, { force: true })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

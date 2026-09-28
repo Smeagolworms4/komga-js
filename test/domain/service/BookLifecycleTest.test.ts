@@ -132,11 +132,11 @@ describe('BookLifecycleTest', () => {
     userRepository.insert(user2)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
     readProgressRepository.deleteAll()
     userRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

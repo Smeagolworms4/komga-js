@@ -33,9 +33,9 @@ describe('SeriesDaoTest', () => {
     expect(seriesDao.count()).toBe(0)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a series when inserting then it is persisted', () => {

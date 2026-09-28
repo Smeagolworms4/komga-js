@@ -122,12 +122,12 @@ describe('SearchIndexLifecycleTest', () => {
     })
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     captureEvents()
     libraryRepository.findAll().forEach((it) => {
       libraryLifecycle.deleteLibrary(it)
     })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   describe('Book', () => {

@@ -397,6 +397,30 @@ type BeanMethodOptions = {
 export function configuration<T>(cls: Token<T>, opts: ComponentOptions & { beans?: BeanMethodOptions[] } = {}): void {
   component(cls, opts)
   const configName = opts.name ?? beanName(cls)
+  // @Configuration(proxyBeanMethods = true) : la sous-classe CGLIB renvoie le singleton du contexte quand une méthode
+  // @Bean est appelée par une autre méthode de la classe (ex. `sqliteDataSourceRO()` qui renvoie `sqliteDataSourceRW()`)
+  const configDefinition = definitions[definitions.length - 1] as BeanDefinition
+  const createConfig = configDefinition.create
+  configDefinition.create = (ctx) => {
+    const config = createConfig(ctx) as Record<string, unknown>
+    const originals = new Map<string, (...a: unknown[]) => unknown>()
+    beanMethodOriginals.set(config, originals)
+    for (const b of opts.beans ?? []) {
+      const original = config[b.method] as (...a: unknown[]) => unknown
+      originals.set(b.method, original)
+      const name = b.name ?? b.method
+      Object.defineProperty(config, b.method, {
+        configurable: true,
+        writable: true,
+        value: function (this: unknown, ...a: unknown[]) {
+          // ConfigurationClassEnhancer.BeanMethodInterceptor : appel de la vraie méthode par la fabrique du bean
+          if (factoryMethodsInvoked.has(original) || !ctx.containsBeanDefinition(name)) return original.apply(config, a)
+          return ctx.getBean(name)
+        },
+      })
+    }
+    return config
+  }
   for (const b of opts.beans ?? []) {
     definitions.push({
       name: b.name ?? b.method,
@@ -413,11 +437,22 @@ export function configuration<T>(cls: Token<T>, opts: ComponentOptions & { beans
       create: (ctx) => {
         const config = ctx.getBean(configName) as Record<string, (...a: unknown[]) => unknown>
         const args = (b.inject ?? []).map((d) => ctx.resolve(d))
-        return (config[b.method] as (...a: unknown[]) => unknown).apply(config, args)
+        const method = beanMethodOriginals.get(config)?.get(b.method) ?? (config[b.method] as (...a: unknown[]) => unknown)
+        factoryMethodsInvoked.add(method)
+        try {
+          return method.apply(config, args)
+        } finally {
+          factoryMethodsInvoked.delete(method)
+        }
       },
     })
   }
 }
+
+/** Méthodes @Bean en cours d'appel par la fabrique de leur bean (SimpleInstantiationStrategy.currentlyInvokedFactoryMethod) */
+const factoryMethodsInvoked = new Set<unknown>()
+/** Méthodes @Bean d'origine d'une instance de @Configuration (avant interception) */
+const beanMethodOriginals = new WeakMap<object, Map<string, (...a: unknown[]) => unknown>>()
 
 /** Retire toutes les définitions (tests) */
 export function clearDefinitions(): void {
@@ -590,6 +625,11 @@ export class ApplicationContext implements ApplicationEventPublisher {
       return this.instantiate(d) as T
     }
     return this.instantiate(this.select(token, qualifier)) as T
+  }
+
+  /** `containsBeanDefinition(name)` : bean actif (profil et conditions) de ce nom */
+  containsBeanDefinition(name: string): boolean {
+    return this.active.some((d) => d.name === name)
   }
 
   getBeansOfType<T>(token: Token<T>): T[] {

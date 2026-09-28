@@ -14,7 +14,7 @@ import type { Condition, OrderField, SelectFieldOrAsterisk, Table, TableField } 
 import { DSL, DSLContext, select } from '../../../port/jooq/dsl.js'
 import { Order, type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
-import { mapNotNull, nn, require, sortedBy, str } from '../../../port/kotlin.js'
+import { NoWhenBranchMatchedException, mapNotNull, nn, require, sortedBy, str } from '../../../port/kotlin.js'
 
 export class ReferentialDao extends SplitDslDaoBase implements ReferentialRepository {
   private readonly a = Tables.BOOK_METADATA_AUTHOR
@@ -269,7 +269,7 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
         return this.findGeneric(context, search, filterBy, pageable, this.at, this.at.TAG, this.at.SERIES_ID, null, (it) => (it !== null ? it.tag : null), Sort.by('tag'))
     }
     // PORT: when exhaustif sur l'enum
-    throw new Error(`Unknown FilterTags: ${filterTags}`)
+    throw new NoWhenBranchMatchedException()
   }
 
   /** @deprecated Use findTags instead */

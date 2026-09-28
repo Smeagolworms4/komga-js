@@ -70,7 +70,7 @@ describe('BookControllerTest', () => {
     userRepository.insert(user2)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of userRepository.findAll()) {
       userLifecycle.deleteUser(it)
     }
@@ -78,7 +78,7 @@ describe('BookControllerTest', () => {
       libraryLifecycle.deleteLibrary(it)
     }
     for (const f of tempFiles) rmSync(f, { force: true })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

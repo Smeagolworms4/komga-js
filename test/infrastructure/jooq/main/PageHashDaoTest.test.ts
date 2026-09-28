@@ -44,11 +44,11 @@ describe('PageHashDaoTest', () => {
     })
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     bookRepository.deleteAll()
     seriesRepository.deleteAll()
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   describe('Known', () => {

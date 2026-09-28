@@ -9,7 +9,7 @@
 // Ce fichier n'a pas de jumeau Kotlin.
 import { DateTimeFormatter, Duration, Instant, LocalDate, LocalDateTime, ZoneOffset, ZonedDateTime } from '@js-joda/core'
 import { type JsonIncludeValue, jsonMetaOf, qualifiedNameOf } from './jackson.js'
-import { JsonNumber, type JsonNode, javaDoubleToString, javaFloatToString, readTree, writeTree } from './jackson-tree.js'
+import { JsonNumber, type JsonNode, JsonPoison, deferredError, javaDoubleToString, javaFloatToString, readTree, writeTree } from './jackson-tree.js'
 import { URI, URL } from './java-net.js'
 import { PageImpl, type Pageable, type Sort } from './spring-data.js'
 import { DataObject, Exception, KEnum, type SealedInterface, sealedInterfaceList } from './kotlin.js'
@@ -30,6 +30,10 @@ export class InvalidFormatException extends MismatchedInputException {}
 export class MissingKotlinParameterException extends MismatchedInputException {}
 /** `JsonParseException` */
 export class JsonParseException extends JsonProcessingException {}
+/** `com.fasterxml.jackson.core.exc.InputCoercionException` (nombre hors limites) */
+export class InputCoercionException extends JsonProcessingException {}
+/** `com.fasterxml.jackson.databind.exc.InvalidTypeIdException` */
+export class InvalidTypeIdException extends MismatchedInputException {}
 
 // ---------------------------------------------------------------------------
 // Types (réflexion)
@@ -329,138 +333,479 @@ function isSealed(t: object): t is SealedInterface<unknown> {
   return sealedInterfaceList().includes(t as SealedInterface<unknown>)
 }
 
-function nodeKind(n: JsonNode): string {
-  if (n === null) return 'null'
-  if (n instanceof Map) return 'object'
-  if (Array.isArray(n)) return 'array'
-  if (n instanceof JsonNumber) return 'number'
-  return typeof n
+// --- Messages d'erreur de Jackson (DeserializationContext, StdDeserializer, ClassUtil) ---
+
+/** Erreur de syntaxe rencontrée au fil de la lecture (voir JsonPoison dans port/jackson-tree.ts) */
+function poisonException(p: JsonPoison): JsonProcessingException {
+  return p.mismatch ? new MismatchedInputException(p.message) : new JsonParseException(p.message)
 }
 
-function scalarText(n: JsonNode): string | null {
-  if (typeof n === 'string') return n
-  if (typeof n === 'boolean') return String(n)
-  if (n instanceof JsonNumber) return writeTree(n)
-  return null
+function checkPoison(n: JsonNode): void {
+  if ((n as unknown) instanceof JsonPoison) throw poisonException(n as unknown as JsonPoison)
 }
 
-export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<string, JsonType> = new Map(), path = ''): unknown {
+/** Fin d'un objet ou d'un tableau : erreur de lecture après ses entrées */
+function checkDeferred(container: object): void {
+  const p = deferredError(container)
+  if (p !== undefined) throw poisonException(p)
+}
+
+/** Valeur lue sans être désérialisée (`skipChildren`, TokenBuffer) : première erreur de lecture qu'elle contient */
+function scan(n: JsonNode): void {
+  checkPoison(n)
+  if (n instanceof Map) {
+    for (const x of n.values()) scan(x)
+    checkDeferred(n)
+  } else if (Array.isArray(n)) {
+    for (const x of n) scan(x)
+    checkDeferred(n)
+  }
+}
+
+const SCALAR_CLASSES: Record<string, string> = {
+  LocalDateTime: 'java.time.LocalDateTime',
+  LocalDate: 'java.time.LocalDate',
+  ZonedDateTime: 'java.time.ZonedDateTime',
+  Instant: 'java.time.Instant',
+  Duration: 'java.time.Duration',
+  URL: 'java.net.URL',
+  URI: 'java.net.URI',
+  ByteArray: 'byte[]',
+}
+
+const PRIMITIVES: Record<string, [string, string]> = {
+  Int: ['int', 'java.lang.Integer'],
+  Long: ['long', 'java.lang.Long'],
+  Float: ['float', 'java.lang.Float'],
+  Double: ['double', 'java.lang.Double'],
+  Boolean: ['boolean', 'java.lang.Boolean'],
+}
+
+/** Nom qualifié Java (registerClass) ; à défaut, le nom de la classe TS */
+function className(cls: object): string {
+  return qualifiedNameOf(cls) ?? (cls as { name?: string }).name ?? String(cls)
+}
+
+/**
+ * `JavaType.toCanonical()` d'un type déclaré ; `primitive` : paramètre de constructeur non nul d'un type primitif
+ * (Int -> int). Listes et ensembles Kotlin : ArrayList et HashSet (implémentations par défaut de Jackson).
+ */
+function javaTypeName(t: JsonType, bindings: Map<string, JsonType> = new Map(), primitive = false): string {
+  if (typeof t === 'string') {
+    const p = PRIMITIVES[t]
+    if (p !== undefined) return primitive ? p[0] : p[1]
+    return t === 'String' ? 'java.lang.String' : t === 'Number' ? 'java.lang.Number' : 'java.lang.Object'
+  }
+  if ('nullable' in t) return javaTypeName(t.nullable, bindings)
+  if ('typeVar' in t) {
+    const b = bindings.get(t.typeVar)
+    return b !== undefined ? javaTypeName(b) : 'java.lang.Object'
+  }
+  if ('scalar' in t) return SCALAR_CLASSES[t.scalar] ?? t.scalar
+  if ('list' in t) return `java.util.ArrayList<${javaTypeName(t.list, bindings)}>`
+  if ('set' in t) return `java.util.HashSet<${javaTypeName(t.set, bindings)}>`
+  if ('map' in t) return `java.util.LinkedHashMap<${javaTypeName(t.key ?? 'String', bindings)},${javaTypeName(t.map, bindings)}>`
+  if ('enum' in t) return className(t.enum)
+  const args = (t.args ?? []).map((a) => javaTypeName(a, bindings))
+  return args.length > 0 ? `${className(t.class)}<${args.join(',')}>` : className(t.class)
+}
+
+/** Description du jeton courant (`ClassUtil.getTypeDescription` / `JsonToken`) */
+function tokenDesc(n: JsonNode): string {
+  if (n instanceof Map) return 'Object value (token `JsonToken.START_OBJECT`)'
+  if (Array.isArray(n)) return 'Array value (token `JsonToken.START_ARRAY`)'
+  if (typeof n === 'string') return 'String value (token `JsonToken.VALUE_STRING`)'
+  if (n instanceof JsonNumber) return n.kind === 'int' ? 'Integer value (token `JsonToken.VALUE_NUMBER_INT`)' : 'Floating-point value (token `JsonToken.VALUE_NUMBER_FLOAT`)'
+  if (n === true) return 'Boolean value (token `JsonToken.VALUE_TRUE`)'
+  if (n === false) return 'Boolean value (token `JsonToken.VALUE_FALSE`)'
+  return 'Null value (token `JsonToken.VALUE_NULL`)'
+}
+
+function tokenName(n: JsonNode): string {
+  if (n instanceof Map) return 'START_OBJECT'
+  if (Array.isArray(n)) return 'START_ARRAY'
+  if (typeof n === 'string') return 'VALUE_STRING'
+  if (n instanceof JsonNumber) return n.kind === 'int' ? 'VALUE_NUMBER_INT' : 'VALUE_NUMBER_FLOAT'
+  if (n === true) return 'VALUE_TRUE'
+  if (n === false) return 'VALUE_FALSE'
+  return 'VALUE_NULL'
+}
+
+/** `DeserializationContext.handleUnexpectedToken` */
+function unexpectedToken(typeName: string, n: JsonNode): MismatchedInputException {
+  return new MismatchedInputException(`Cannot deserialize value of type \`${typeName}\` from ${tokenDesc(n)}`)
+}
+
+/** `StdDeserializer._quotedString` */
+function quoted(s: string): string {
+  return `"${s.length <= 500 ? s : `${s.slice(0, 500)}]...[${s.slice(s.length - 500)}`}"`
+}
+
+/** `DeserializationContext.handleWeirdStringValue` */
+function weirdString(typeName: string, s: string, msg: string, cause?: unknown): InvalidFormatException {
+  return new InvalidFormatException(`Cannot deserialize value of type \`${typeName}\` from String ${quoted(s)}: ${msg}`, cause)
+}
+
+/** `CoercionAction.Fail` pour une chaîne vide */
+function emptyStringCoercion(target: string): InvalidFormatException {
+  return new InvalidFormatException(`Cannot coerce empty String ("") to ${target} (but could if coercion was enabled using \`CoercionConfig\`)`)
+}
+
+/** FAIL_ON_NULL_FOR_PRIMITIVES (application.yml de Komga) */
+function nullForPrimitive(primitiveName: string): MismatchedInputException {
+  return new MismatchedInputException(`Cannot map \`null\` into type \`${primitiveName}\` (set DeserializationConfig.DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES to 'false' to allow)`)
+}
+
+function coercedNullForPrimitive(primitiveName: string): MismatchedInputException {
+  return new MismatchedInputException(`Cannot coerce \`null\` to \`${primitiveName}\` value (disable \`DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES\` to allow)`)
+}
+
+/** `ValueInstantiator` sans créateur pour ce type de jeton (`handleMissingInstantiator`) */
+function missingInstantiator(cls: object, n: JsonNode): MismatchedInputException {
+  let what: string
+  if (typeof n === 'string') what = `no String-argument constructor/factory method to deserialize from String value ('${n}')`
+  else if (n instanceof JsonNumber && n.kind === 'int') {
+    const v = BigInt(n.value)
+    const kind = v >= -2147483648n && v <= 2147483647n ? 'int/Int' : 'long/Long'
+    what = `no ${kind}-argument constructor/factory method to deserialize from Number value (${String(n.value)})`
+  } else if (n instanceof JsonNumber) what = `no double/Double-argument constructor/factory method to deserialize from Number value (${javaDoubleToString(Number(n.value))})`
+  else what = `no boolean/Boolean-argument constructor/factory method to deserialize from boolean value (${String(n)})`
+  return new MismatchedInputException(`Cannot construct instance of \`${className(cls)}\` (although at least one Creator exists): ${what}`)
+}
+
+/** `String.trim()` de Java */
+function javaTrim(s: string): string {
+  let st = 0
+  let len = s.length
+  while (st < len && s.charCodeAt(st) <= 0x20) st++
+  while (st < len && s.charCodeAt(len - 1) <= 0x20) len--
+  return s.substring(st, len)
+}
+
+/**
+ * Clés de CompactStringObjectMap (EnumDeserializer, message "not one of the values accepted") : table construite
+ * à partir d'un HashMap (ordre d'itération de HashMap), emplacement `hashCode & masque`, puis zone de débordement.
+ */
+function compactStringObjectMapKeys(names: string[]): string[] {
+  const all = [...javaHashSet(names)]
+  const size = all.length <= 5 ? 8 : all.length <= 12 ? 16 : (() => {
+    const needed = all.length + (all.length >> 2)
+    let r = 32
+    while (r < needed) r += r
+    return r
+  })()
+  const mask = size - 1
+  const area: (string | undefined)[] = new Array((size + (size >> 1)) * 2)
+  let spill = 0
+  for (const key of all) {
+    const slot = javaStringHash(key) & mask
+    let ix = slot + slot
+    if (area[ix] !== undefined) {
+      ix = (size + (slot >> 1)) << 1
+      if (area[ix] !== undefined) {
+        ix = ((size + (size >> 1)) << 1) + spill
+        spill += 2
+      }
+    }
+    area[ix] = key
+  }
+  const keys: string[] = []
+  for (let k = 0; k < area.length; k += 2) if (area[k] !== undefined) keys.push(area[k] as string)
+  return keys
+}
+
+/** Message de DateTimeParseException de java.time à partir de celui de js-joda */
+function dateTimeParseMessage(e: unknown, text: string): string {
+  const m = (e as Error)?.message?.split('\n')[0] ?? String(e)
+  return m.replace(new RegExp(`: ${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}, at index: \\d+$`), '')
+}
+
+type Ctx = {
+  /** propriété POJO en cours (message "(for POJO property 'x')" des désérialiseurs de type) */
+  prop: string | null
+  /** paramètre de constructeur (type primitif si non nul) */
+  direct: boolean
+  /** élément d'une collection */
+  element: boolean
+}
+
+const ROOT: Ctx = { prop: null, direct: false, element: false }
+
+export function fromTree(node: JsonNode, declared: JsonType, bindings: Map<string, JsonType> = new Map(), c: Ctx = ROOT): unknown {
+  checkPoison(node)
   const nullable = typeof declared === 'object' && 'nullable' in declared
-  const type = unwrapNullable(declared) as JsonType
+  let type = unwrapNullable(declared) as JsonType
+  const primitive = c.direct && !nullable && typeof type === 'string' && PRIMITIVES[type] !== undefined
   if (node === null) {
-    if (!nullable && (type === 'Int' || type === 'Long' || type === 'Float' || type === 'Double' || type === 'Boolean'))
-      // FAIL_ON_NULL_FOR_PRIMITIVES
-      throw new MismatchedInputException(`Cannot map \`null\` into type ${type} at ${path || '$'}`)
+    // FAIL_ON_NULL_FOR_PRIMITIVES
+    if (primitive) throw nullForPrimitive((PRIMITIVES[type as string] as [string, string])[0])
     return null
   }
+  if (typeof type === 'object' && 'typeVar' in type) type = bindings.get(type.typeVar) ?? 'Any'
   if (type === 'Any') return plain(node)
   if (type === 'String') {
-    const s = scalarText(node)
-    if (s === null) throw new MismatchedInputException(`Cannot deserialize value of type \`java.lang.String\` from ${nodeKind(node)} at ${path || '$'}`)
-    return s
+    if (node instanceof Map || Array.isArray(node)) throw unexpectedToken('java.lang.String', node)
+    return scalarText(node)
   }
   if (type === 'Boolean') {
+    const jt = primitive ? 'boolean' : 'java.lang.Boolean'
     if (typeof node === 'boolean') return node
-    if (typeof node === 'string' && (node === 'true' || node === 'false')) return node === 'true'
-    if (node instanceof JsonNumber) return Number(node.value) !== 0
-    throw new MismatchedInputException(`Cannot deserialize value of type \`boolean\` from ${nodeKind(node)} at ${path || '$'}`)
+    if (node instanceof JsonNumber && node.kind === 'int') return Number(node.value) !== 0
+    if (typeof node === 'string') {
+      // _checkFromStringCoercion : chaîne vide -> null
+      if (node === '') {
+        if (primitive) throw coercedNullForPrimitive('boolean')
+        return null
+      }
+      const t = javaTrim(node)
+      if (t === 'true' || t === 'TRUE' || t === 'True') return true
+      if (t === 'false' || t === 'FALSE' || t === 'False') return false
+      if (t === 'null' && !primitive) return null
+      throw weirdString(jt, t, primitive ? 'only "true"/"True"/"TRUE" or "false"/"False"/"FALSE" recognized' : 'only "true" or "false" recognized')
+    }
+    throw unexpectedToken(jt, node)
   }
-  if (type === 'Int' || type === 'Long' || type === 'Float' || type === 'Double' || type === 'Number') {
+  if (type === 'Int' || type === 'Long') {
+    const [prim, wrapper] = PRIMITIVES[type] as [string, string]
+    const jt = primitive ? prim : wrapper
+    const [min, max] = type === 'Int' ? [-2147483648n, 2147483647n] : [-9223372036854775808n, 9223372036854775807n]
+    if (node instanceof JsonNumber) {
+      if (node.kind === 'int') {
+        const b = BigInt(node.value)
+        if (b < min || b > max) throw new InputCoercionException(`Numeric value (${String(node.value)}) out of range of ${prim} (${min} - ${max})`)
+        return Number(node.value)
+      }
+      // ACCEPT_FLOAT_AS_INT
+      const d = Number(node.value)
+      if (d < Number(min) || d > Number(max)) throw new InputCoercionException(`Numeric value (${javaDoubleToString(d)}) out of range of ${prim} (${min} - ${max})`)
+      return Math.trunc(d)
+    }
+    if (typeof node === 'string') {
+      if (node === '') {
+        if (primitive) throw coercedNullForPrimitive(prim)
+        return null
+      }
+      const t = javaTrim(node)
+      if (t === 'null' && !primitive) return null
+      if (!/^[+-]?[0-9]+$/.test(t)) throw weirdString(jt, t, `not a valid \`${jt}\` value`)
+      const b = BigInt(t)
+      if (type === 'Int' && t.length > 9 && b >= -9223372036854775808n && b <= 9223372036854775807n && (b < min || b > max))
+        throw weirdString(jt, t, `Overflow: numeric value (${t}) out of range of ${primitive ? prim : `\`${wrapper}\``} (${min} -${max})`)
+      if (b < min || b > max) throw weirdString(jt, t, `not a valid \`${jt}\` value`)
+      return Number(b)
+    }
+    throw unexpectedToken(jt, node)
+  }
+  if (type === 'Float' || type === 'Double' || type === 'Number') {
+    const [prim, wrapper] = type === 'Number' ? ['double', 'java.lang.Number'] : (PRIMITIVES[type] as [string, string])
+    const jt = primitive ? prim : wrapper
     let n: number
     if (node instanceof JsonNumber) n = Number(node.value)
-    // Int/Long depuis une chaîne : Integer.parseInt / Long.parseLong après trim (pas de décimale ni d'exposant)
-    else if (typeof node === 'string' && (type === 'Int' || type === 'Long')) {
-      if (!/^[\x00-\x20]*[+-]?[0-9]+[\x00-\x20]*$/.test(node)) throw new InvalidFormatException(`Cannot deserialize value of type \`${type}\` from String "${node}": not a valid \`${type}\` value`)
-      n = Number(node.trim())
-    } else if (typeof node === 'string' && /^\s*[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?\s*$/.test(node)) n = Number(node)
-    else throw new InvalidFormatException(`Cannot deserialize value of type \`${type}\` from ${nodeKind(node)} at ${path || '$'}`)
-    if (type === 'Int' || type === 'Long') {
-      if (!Number.isInteger(n)) n = Math.trunc(n)
-      if (type === 'Int' && (n > 2147483647 || n < -2147483648)) throw new InvalidFormatException(`Numeric value (${n}) out of range of int`)
-      return n
-    }
+    else if (typeof node === 'string') {
+      if (node === '') {
+        if (primitive) throw coercedNullForPrimitive(prim)
+        return null
+      }
+      const t = javaTrim(node)
+      if (t === 'null' && !primitive) return null
+      if (/^[+-]?(NaN|Infinity)$/.test(t)) n = t.endsWith('NaN') ? Number.NaN : t.startsWith('-') ? -Infinity : Infinity
+      else if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?[fFdD]?$/.test(t)) n = Number(t.replace(/[fFdD]$/, ''))
+      else throw weirdString(jt, t, `not a valid \`${primitive ? prim : type === 'Number' ? 'Number' : type}\` value`)
+    } else throw unexpectedToken(jt, node)
+    if (type === 'Number') return n
     return type === 'Float' ? Math.fround(n) : n
   }
-  if ('typeVar' in type) {
-    const bound = bindings.get(type.typeVar)
-    return fromTree(node, bound ?? 'Any', bindings, path)
-  }
   if ('scalar' in type) {
-    const s = scalarText(node)
-    if (s === null) throw new MismatchedInputException(`Cannot deserialize value of type \`${type.scalar}\` from ${nodeKind(node)} at ${path || '$'}`)
-    try {
-      return type.read(s)
-    } catch (e) {
-      throw new InvalidFormatException(`Cannot deserialize value of type \`${type.scalar}\` from String "${s}"`, e)
+    const jt = SCALAR_CLASSES[type.scalar] ?? type.scalar
+    const temporal = ['LocalDateTime', 'LocalDate', 'ZonedDateTime', 'Instant', 'Duration'].includes(type.scalar)
+    if (typeof node === 'string') {
+      const s = temporal ? javaTrim(node) : node
+      if (s === '' && type.scalar !== 'ByteArray') return null
+      try {
+        return type.read(s)
+      } catch (e) {
+        if (temporal) throw weirdString(jt, s, `Failed to deserialize ${jt}: (java.time.format.DateTimeParseException) ${dateTimeParseMessage(e, s)}`, e)
+        throw weirdString(jt, s, `not a valid textual representation, problem: ${(e as Error)?.message}`, e)
+      }
     }
+    if (type.scalar === 'LocalDate' || type.scalar === 'LocalDateTime') {
+      if (type.scalar === 'LocalDate' && node instanceof JsonNumber && node.kind === 'int') return LocalDate.ofEpochDay(Number(node.value))
+      if (Array.isArray(node)) {
+        if (node.length === 0) return null
+        const parts = node.map((x) => (x instanceof JsonNumber ? Number(x.value) : Number.NaN))
+        if (type.scalar === 'LocalDate' && parts.length === 3 && parts.every(Number.isInteger)) return LocalDate.of(parts[0] as number, parts[1] as number, parts[2] as number)
+      }
+      throw new MismatchedInputException('Expected array or string')
+    }
+    if (type.scalar === 'ZonedDateTime' || type.scalar === 'Instant' || type.scalar === 'Duration') {
+      if (node instanceof JsonNumber) {
+        const d = Number(node.value)
+        const seconds = Math.floor(d)
+        const nanos = Math.round((d - seconds) * 1e9)
+        if (type.scalar === 'Duration') return Duration.ofSeconds(seconds, nanos)
+        const instant = Instant.ofEpochSecond(seconds, nanos)
+        return type.scalar === 'Instant' ? instant : ZonedDateTime.ofInstant(instant, ZoneOffset.UTC)
+      }
+      throw new MismatchedInputException(`Unexpected token (${tokenName(node)}), expected one of [VALUE_STRING, VALUE_NUMBER_INT, VALUE_NUMBER_FLOAT] for ${jt} value`)
+    }
+    throw unexpectedToken(jt, node)
   }
   if ('list' in type || 'set' in type) {
     const el = 'list' in type ? type.list : type.set
-    // ACCEPT_SINGLE_VALUE_AS_ARRAY est désactivé
-    if (!Array.isArray(node)) throw new MismatchedInputException(`Cannot deserialize value of type \`java.util.List\` from ${nodeKind(node)} at ${path || '$'}`)
-    const items = node.map((it, i) => fromTree(it, el, bindings, `${path}[${i}]`))
+    const raw = 'list' in type ? 'java.util.ArrayList' : 'java.util.HashSet'
+    if (!Array.isArray(node)) {
+      // ACCEPT_SINGLE_VALUE_AS_ARRAY est désactivé ; collection de chaînes : StringCollectionDeserializer
+      if (typeof node === 'string' && unwrapNullable(el) === 'String') {
+        if (node === '') throw emptyStringCoercion(`element of \`${raw}\``)
+        throw missingInstantiator({ name: raw }, node)
+      }
+      throw unexpectedToken(javaTypeName(type, bindings), node)
+    }
+    const items = node.map((it) => fromTree(it, el, bindings, { prop: c.prop, direct: false, element: true }))
+    checkDeferred(node)
     return 'set' in type ? javaHashSet(items) : items
   }
   if ('map' in type) {
-    if (!(node instanceof Map)) throw new MismatchedInputException(`Cannot deserialize value of type \`java.util.Map\` from ${nodeKind(node)} at ${path || '$'}`)
-    return new Map([...node].map(([k, x]) => [type.key ? fromTree(k, type.key, bindings, path) : k, fromTree(x, type.map, bindings, `${path}.${k}`)]))
+    if (!(node instanceof Map)) throw unexpectedToken(javaTypeName(type, bindings), node)
+    const out = new Map([...node].map(([k, x]) => [type.key ? fromTree(k, type.key, bindings) : k, fromTree(x, type.map, bindings, { prop: k, direct: false, element: false })]))
+    checkDeferred(node)
+    return out
   }
   if ('enum' in type) {
+    const jt = className(type.enum)
+    const entries = type.enum.entries()
     // FAIL_ON_NUMBERS_FOR_ENUMS désactivé : un entier est l'ordinal de la constante
-    if (node instanceof JsonNumber && Number.isInteger(Number(node.value))) {
-      const byIndex = type.enum.entries()[Number(node.value)]
-      if (byIndex === undefined) throw new InvalidFormatException(`Cannot deserialize value of type enum from number ${String(node.value)}: index value outside legal index range`)
+    if (node instanceof JsonNumber && node.kind === 'int') {
+      const index = Number(node.value)
+      const byIndex = entries[index]
+      if (byIndex === undefined)
+        throw new InvalidFormatException(`Cannot deserialize value of type \`${jt}\` from number ${String(node.value)}: index value outside legal index range [0..${entries.length - 1}]`)
       return byIndex
     }
+    if (typeof node !== 'string') throw unexpectedToken(jt, node)
+    if (node === '') throw emptyStringCoercion(`\`${jt}\` value`)
     // accept-case-insensitive-values ne s'applique pas aux enums (il faudrait ACCEPT_CASE_INSENSITIVE_ENUMS) : casse exacte
-    const name = scalarText(node) ?? ''
-    const e = type.enum.entries().find((it) => (it as KEnum & { toJSON(): string }).toJSON() === name)
-    if (!e) throw new InvalidFormatException(`Cannot deserialize value of type enum from String "${name}": not one of the values accepted for Enum class`)
-    return e
+    const names = entries.map((it) => (it as KEnum & { toJSON(): string }).toJSON())
+    const find = (s: string) => entries[names.indexOf(s)]
+    const e = find(node) ?? find(javaTrim(node))
+    if (e !== undefined) return e
+    // EnumDeserializer._deserializeAltString : chaîne numérique -> ordinal
+    const t = javaTrim(node)
+    if (/^[0-9]+$/.test(t) && Number(t) <= 2147483647 && entries[Number(t)] !== undefined) return entries[Number(t)]
+    throw weirdString(jt, node, `not one of the values accepted for Enum class: [${compactStringObjectMapKeys(names).join(', ')}]`)
   }
   const clsType = type as { readonly class: object; readonly args?: readonly JsonType[] }
   const args = (clsType.args ?? []).map((it) => (typeof it === 'object' && 'typeVar' in it ? (bindings.get(it.typeVar) ?? it) : it))
-  if (!(node instanceof Map)) throw new MismatchedInputException(`Cannot deserialize value from ${nodeKind(node)} (expected object) at ${path || '$'}`)
   let target: object = clsType.class
+  const baseName = javaTypeName({ class: target, args }, bindings)
+  const forProp = c.prop !== null ? ` (for POJO property '${c.prop}')` : ''
   if (isSealed(target) || jsonMetaOf(target).typeInfo !== undefined || deduction.has(target)) {
     const subTypes = isSealed(target) ? target.subTypes() : []
     const ti = jsonMetaOf(target).typeInfo
+    const typeIdOfSub = (it: object) => metaOf(it).typeName
     if (ti !== undefined) {
-      const id = node.get(ti.property)
-      const sub = subTypes.find((it) => metaOf(it).typeName === id)
-      if (sub === undefined) throw new InvalidFormatException(`Could not resolve type id '${String(id)}' as a subtype of ${(target as { name?: string }).name}`)
-      target = sub
-    } else if (deduction.has(target)) {
-      let candidates = [...subTypes]
-      for (const key of node.keys()) {
-        const remaining = candidates.filter((it) => findKey(jsonNamesOf(typeof it === 'function' ? it : it.constructor), key) !== undefined)
-        if (remaining.length > 0) candidates = remaining
-        if (candidates.length === 1) break
+      // AsPropertyTypeDeserializer
+      const knownIds = () => `known type ids = [${subTypes.map((it) => (typeIdOfSub(it) ?? '').toLowerCase()).sort().join(', ')}]`
+      const resolve = (id: string): object => {
+        const sub = subTypes.find((it) => typeIdOfSub(it)?.toLowerCase() === id.toLowerCase())
+        if (sub === undefined) throw new InvalidTypeIdException(`Could not resolve type id '${id}' as a subtype of \`${baseName}\`: ${knownIds()}${forProp}`)
+        return sub
       }
-      if (candidates.length !== 1) throw new InvalidFormatException(`Could not deduce subtype of ${(target as { name?: string }).name}`)
-      target = candidates[0] as object
+      if (Array.isArray(node)) {
+        // AsArrayTypeDeserializer (repli) : identifiant de type en premier élément
+        const first = node[0]
+        if (first !== undefined && first !== null && !(first instanceof Map) && !Array.isArray(first)) {
+          checkPoison(first)
+          resolve(scalarText(first) as string)
+        }
+        throw new MismatchedInputException(`Unexpected token (null), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of ${className(target)})`)
+      }
+      if (!(node instanceof Map)) throw new InvalidTypeIdException(`Could not resolve subtype of [simple type, class ${baseName}]: missing type id property '${ti.property}'${forProp}`)
+      let found: object | null = null
+      for (const [k, v] of node) {
+        if (k.toLowerCase() === ti.property.toLowerCase()) {
+          checkPoison(v)
+          if (v !== null && !(v instanceof Map) && !Array.isArray(v)) {
+            found = resolve(scalarText(v) as string)
+            break
+          }
+        }
+        scan(v)
+      }
+      if (found === null) {
+        checkDeferred(node)
+        throw new InvalidTypeIdException(`Could not resolve subtype of [simple type, class ${baseName}]: missing type id property '${ti.property}'${forProp}`)
+      }
+      target = found
+    } else if (deduction.has(target)) {
+      // AsDeductionTypeDeserializer : empreintes (noms de propriétés, en minuscules) des sous-types
+      const fingerprints = subTypes.map((it) => new Set([...jsonNamesOf(typeof it === 'function' ? it : it.constructor).keys()].map((k) => k.toLowerCase())))
+      const known = new Set(fingerprints.flatMap((f) => [...f]))
+      if (Array.isArray(node)) {
+        const token = !c.element && node.length === 0 ? 'END_ARRAY' : 'null'
+        throw new MismatchedInputException(`Unexpected token (${token}), expected VALUE_STRING: need String, Number of Boolean value that contains type id (for subtype of ${className(target)})`)
+      }
+      if (!(node instanceof Map)) throw new InvalidTypeIdException(`Could not resolve subtype of [simple type, class ${baseName}]: Unexpected input`)
+      let candidates = subTypes.map((_, k) => k)
+      const empty = fingerprints.findIndex((f) => f.size === 0)
+      let chosen: number | null = node.size === 0 && empty >= 0 && deferredError(node) === undefined ? empty : null
+      if (chosen === null) {
+        for (const [k, v] of node) {
+          scan(v)
+          const name = k.toLowerCase()
+          if (!known.has(name)) continue
+          candidates = candidates.filter((ix) => (fingerprints[ix] as Set<string>).has(name))
+          if (candidates.length === 1) {
+            chosen = candidates[0] as number
+            break
+          }
+        }
+      }
+      if (chosen === null) {
+        checkDeferred(node)
+        throw new InvalidTypeIdException(`Could not resolve subtype of [simple type, class ${baseName}]: Cannot deduce unique subtype of \`${baseName}\` (${candidates.length} candidates match)`)
+      }
+      target = subTypes[chosen] as object
     }
   }
   // data object : l'instance unique
-  if (typeof target !== 'function') return target
+  if (typeof target !== 'function') {
+    if (node instanceof Map) scan(node)
+    return target
+  }
   const pm = jsonPropertiesOf(target) ?? { typeParams: [], props: {}, required: [], getters: [] }
+  const targetName = javaTypeName({ class: target, args: pm.typeParams.length > 0 ? args : [] }, bindings)
+  if (!(node instanceof Map)) {
+    if (Array.isArray(node)) throw unexpectedToken(targetName, node)
+    if (node === '') throw emptyStringCoercion(`\`${targetName}\` value`)
+    throw missingInstantiator(target, node)
+  }
   const localBindings = new Map(pm.typeParams.map((p, i) => [p, (args[i] as JsonType | undefined) ?? ('Any' as JsonType)]))
   const names = jsonNamesOf(target)
+  const meta = jsonMetaOf(target)
   const params: Record<string, unknown> = {}
   for (const [key, value] of node) {
     const prop = findKey(names, key)
-    // FAIL_ON_UNKNOWN_PROPERTIES est désactivé par Spring Boot
-    if (prop === undefined) continue
+    // FAIL_ON_UNKNOWN_PROPERTIES est désactivé par Spring Boot : valeur ignorée (mais lue)
+    if (prop === undefined) {
+      scan(value)
+      continue
+    }
     const pt = pm.props[prop] as JsonType
-    const v = fromTree(value, pt, localBindings, `${path}.${key}`)
-    // module Kotlin : null explicite pour un paramètre non nul (même avec valeur par défaut)
-    if (v === null && pt !== undefined && !(typeof pt === 'object' && 'nullable' in pt) && pt !== 'Any')
-      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${qualifiedNameOf(target) ?? (target as { name: string }).name}] value failed for JSON property ${key} due to missing (therefore NULL) value for creator parameter ${prop} which is a non-nullable type`)
-    params[prop] = v
+    params[prop] = fromTree(value, pt, localBindings, { prop: meta.rename?.[prop] ?? prop, direct: true, element: false })
   }
-  for (const r of pm.required)
-    if (!(r in params))
-      throw new MissingKotlinParameterException(`Instantiation of [simple type, class ${qualifiedNameOf(target) ?? (target as { name: string }).name}] value failed for JSON property ${r} due to missing (therefore NULL) value for creator parameter ${r} which is a non-nullable type`)
+  checkDeferred(node)
+  // KotlinValueInstantiator : paramètres du constructeur dans l'ordre, absent sans valeur par défaut ou null pour un
+  // type non nul (sauf variable de type)
+  for (const prop of Object.keys(pm.props)) {
+    const pt = pm.props[prop] as JsonType
+    const missing = !(prop in params) && pm.required.includes(prop)
+    const nullForNonNull = prop in params && params[prop] === null && !(typeof pt === 'object' && ('nullable' in pt || 'typeVar' in pt)) && pt !== 'Any'
+    if (missing || nullForNonNull)
+      throw new MissingKotlinParameterException(
+        `Instantiation of [simple type, class ${targetName}] value failed for JSON property ${meta.rename?.[prop] ?? prop} due to missing (therefore NULL) value for creator parameter ${prop} which is a non-nullable type`,
+      )
+  }
   const C = target as unknown as new (p: Record<string, unknown>) => unknown
   const instance = new C(params) as Record<string, unknown>
   // module Kotlin : un paramètre nullable absent et sans valeur par défaut vaut null (pas undefined)
@@ -493,11 +838,27 @@ export function javaHashSet<T>(items: T[]): Set<T> {
   return new Set(unique.map((it, i) => [bucket(it), i, it] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]).map((x) => x[2]))
 }
 
+function scalarText(n: JsonNode): string | null {
+  if (typeof n === 'string') return n
+  if (typeof n === 'boolean') return String(n)
+  if (n instanceof JsonNumber) return writeTree(n)
+  return null
+}
+
 /** Valeur JSON brute (type effacé / Any) : Map -> LinkedHashMap, nombres -> Int/Long/Double */
 function plain(n: JsonNode): unknown {
+  checkPoison(n)
   if (n instanceof JsonNumber) return typeof n.value === 'bigint' ? n.value : Number(n.value)
-  if (n instanceof Map) return new Map([...n].map(([k, x]) => [k, plain(x)]))
-  if (Array.isArray(n)) return n.map(plain)
+  if (n instanceof Map) {
+    const out = new Map([...n].map(([k, x]) => [k, plain(x)]))
+    checkDeferred(n)
+    return out
+  }
+  if (Array.isArray(n)) {
+    const out = n.map(plain)
+    checkDeferred(n)
+    return out
+  }
   return n
 }
 
@@ -508,14 +869,22 @@ function plain(n: JsonNode): unknown {
 /** Type cible de `readValue` (équivalent de `Class<T>` / `TypeReference<T>`) */
 export type JavaType = JsonType
 
+/**
+ * Lecture pour la désérialisation : les erreurs de syntaxe restent dans l'arbre (JsonPoison) et sont levées quand
+ * `fromTree` atteint le jeton fautif, comme la lecture en flux de Jackson (une erreur de type rencontrée plus tôt l'emporte).
+ * PORT: un nom de propriété répété n'est vu qu'une fois (Map), à la place de sa première occurrence, avec la dernière valeur.
+ */
 function parse(src: string | Uint8Array): JsonNode {
   const text = typeof src === 'string' ? src : Buffer.from(src).toString('utf8')
-  try {
-    // FAIL_ON_TRAILING_TOKENS désactivé : le contenu qui suit la valeur racine n'est pas lu
-    return readTree(text, { allowTrailing: true })
-  } catch (e) {
-    throw new JsonParseException(`Unexpected character: ${(e as Error).message}`, e)
-  }
+  // FAIL_ON_TRAILING_TOKENS désactivé : le contenu qui suit la valeur racine n'est pas lu
+  return readTree(text, { allowTrailing: true, lenient: true })
+}
+
+/** Arbre complet (`readTree`) : première erreur de syntaxe */
+function parseStrict(src: string | Uint8Array): JsonNode {
+  const tree = parse(src)
+  scan(tree)
+  return tree
 }
 
 export class ObjectMapper {
@@ -543,7 +912,7 @@ export class ObjectMapper {
   }
 
   readTree(src: string | Uint8Array): JsonNode {
-    return parse(src)
+    return parseStrict(src)
   }
 
   treeToValue<T>(node: JsonNode, type: JavaType): T {

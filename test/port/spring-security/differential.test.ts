@@ -382,7 +382,7 @@ describe('spring-security differential', () => {
       mkdirSync('test/port/spring-security/fixtures', { recursive: true })
       writeFileSync(FIXTURES, `${JSON.stringify(recorded, null, 2)}\n`)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   async function postJson(base: string, path: string, body: unknown): Promise<string> {

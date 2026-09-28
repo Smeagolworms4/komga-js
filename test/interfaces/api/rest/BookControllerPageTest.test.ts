@@ -44,11 +44,11 @@ describe('BookControllerPageTest', () => {
     libraryRepository.insert(library)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of libraryRepository.findAll()) {
       libraryLifecycle.deleteLibrary(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

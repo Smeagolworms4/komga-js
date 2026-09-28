@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SeriesCoverDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { Library } from '../../../../domain/model/Library.js'
-import { KEnum } from '../../../../port/kotlin.js'
+import { KEnum, NoWhenBranchMatchedException } from '../../../../port/kotlin.js'
 
 export class SeriesCoverDto extends KEnum {
   static readonly FIRST = new SeriesCoverDto('FIRST')
@@ -21,7 +21,7 @@ export function toDto(self: Library.SeriesCover): SeriesCoverDto {
       return SeriesCoverDto.LAST
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }
 
 export function toDomain(self: SeriesCoverDto): Library.SeriesCover {
@@ -36,5 +36,5 @@ export function toDomain(self: SeriesCoverDto): Library.SeriesCover {
       return Library.SeriesCover.LAST
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }

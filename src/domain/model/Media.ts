@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Media.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { LocalDateTime } from '@js-joda/core'
 import { DataClass, KEnum, lazy, str } from '../../port/kotlin.js'
+import { registerClass } from '../../port/jackson.js'
 import type { Auditable } from './Auditable.js'
 import type { BookPage } from './BookPage.js'
 import type { MediaExtension } from './MediaExtension.js'
@@ -84,3 +85,5 @@ export namespace Media {
     static readonly OUTDATED = new Status('OUTDATED')
   }
 }
+
+registerClass('org.gotson.komga.domain.model.Media$Status', Media.Status as never)

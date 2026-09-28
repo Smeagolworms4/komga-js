@@ -2,6 +2,8 @@
 import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { ConfigurationException } from '../../domain/model/Exceptions.js'
+import { IOException } from '../../port/java-io.js'
+import { IllegalArgumentException } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 import { KomgaProperties } from './KomgaProperties.js'
@@ -23,7 +25,8 @@ function fileStoreType(path: string): string {
     const matches = dir === '/' || real === dir || real.startsWith(`${dir}/`)
     if (matches && (best === null || dir.length >= best.dir.length)) best = { dir, type }
   }
-  if (best === null) throw new Error(`Mount point not found for ${real}`)
+  // UnixFileStore.findMountEntry
+  if (best === null) throw new IOException('Mount point not found')
   return best.type
 }
 
@@ -49,8 +52,8 @@ export class ConfigurationChecker {
     if (database.checkLocalFilesystem) {
       let path: string
       try {
-        // PORT: Path(String) lève InvalidPathException pour un caractère NUL
-        if (database.file.includes('\u0000')) throw new Error('Nul character not allowed')
+        // PORT: Path(String) lève InvalidPathException (IllegalArgumentException) pour un caractère NUL
+        if (database.file.includes('\u0000')) throw new IllegalArgumentException(`Nul character not allowed: ${database.file}`)
         path = database.file
       } catch {
         return

@@ -34,9 +34,9 @@ describe('ClientSettingsDtoDaoTest', () => {
     clientSettingsDtoDao.deleteAll()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     userRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   describe('Global', () => {

@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/ScanIntervalDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { Library } from '../../../../domain/model/Library.js'
-import { KEnum } from '../../../../port/kotlin.js'
+import { KEnum, NoWhenBranchMatchedException } from '../../../../port/kotlin.js'
 
 export class ScanIntervalDto extends KEnum {
   static readonly DISABLED = new ScanIntervalDto('DISABLED')
@@ -27,7 +27,7 @@ export function toDto(self: Library.ScanInterval): ScanIntervalDto {
       return ScanIntervalDto.WEEKLY
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }
 
 export function toDomain(self: ScanIntervalDto): Library.ScanInterval {
@@ -46,5 +46,5 @@ export function toDomain(self: ScanIntervalDto): Library.ScanInterval {
       return Library.ScanInterval.WEEKLY
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }

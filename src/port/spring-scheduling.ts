@@ -20,7 +20,7 @@ import { Duration, Instant } from '@js-joda/core'
 import { runInThread } from './java.js'
 import { IllegalArgumentException, IllegalStateException, RuntimeException } from './kotlin.js'
 import { KotlinLogging } from './logging.js'
-import { ApplicationContext, ContextRefreshedEvent, component, type Token } from './spring.js'
+import { ApplicationContext, ContextRefreshedEvent, type LifecycleResource, component, registerLifecycleResource, type Token } from './spring.js'
 
 /** `java.lang.Runnable` (le corps peut être asynchrone) */
 export type Runnable = () => void | Promise<void>
@@ -62,7 +62,7 @@ type Worker = { readonly name: string; busy: boolean; idleTimer: NodeJS.Timeout 
  * `org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor` (sur un ThreadPoolExecutor à file non bornée :
  * au plus corePoolSize threads).
  */
-export class ThreadPoolTaskExecutor {
+export class ThreadPoolTaskExecutor implements LifecycleResource {
   private readonly logger = KotlinLogging.logger('org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor')
   threadNamePrefix = 'ThreadPoolTaskExecutor-'
   private _corePoolSize = 1
@@ -81,6 +81,8 @@ export class ThreadPoolTaskExecutor {
   initialize(): void {
     this.initialized = true
     this.shutdown = false
+    // ExecutorConfigurationSupport : SmartLifecycle / ApplicationListener<ContextClosedEvent>
+    registerLifecycleResource(this)
   }
 
   get corePoolSize(): number {
@@ -140,6 +142,27 @@ export class ThreadPoolTaskExecutor {
     this.shutdown = true
     this.queue.length = 0
     for (const w of [...this.workers]) if (!w.busy) this.removeWorker(w)
+    if (this.workers.length === 0) this.notifyTerminated()
+  }
+
+  /** `SmartLifecycle.stop` / `initiateEarlyShutdown` (ContextClosedEvent) : arrêt du pool */
+  stop(): void {
+    this.destroy()
+  }
+
+  private terminationWaiters: (() => void)[] = []
+
+  /** `awaitTermination` : fin des tâches en cours après l'arrêt (PORT: promesse au lieu d'une attente bloquante) */
+  awaitTermination(): Promise<void> {
+    if (this.shutdown && this.workers.length === 0) return Promise.resolve()
+    return new Promise<void>((resolve) => this.terminationWaiters.push(resolve))
+  }
+
+  private notifyTerminated(): void {
+    if (!this.shutdown || this.workers.length > 0) return
+    const waiters = this.terminationWaiters
+    this.terminationWaiters = []
+    for (const r of waiters) r()
   }
 
   private startWorker(first: Runnable): void {
@@ -154,6 +177,7 @@ export class ThreadPoolTaskExecutor {
     w.idleTimer = null
     const i = this.workers.indexOf(w)
     if (i >= 0) this.workers.splice(i, 1)
+    this.notifyTerminated()
   }
 
   private assign(w: Worker, task: Runnable): void {
@@ -276,8 +300,18 @@ export abstract class TaskScheduler {
  * `ThreadPoolTaskScheduler` auto-configuré par Spring Boot (bean `taskScheduler`, un seul thread `scheduling-1`) :
  * les exécutions sont sérialisées ; une exécution en retard (à intervalle fixe) démarre dès la fin de la précédente.
  */
-export class ThreadPoolTaskScheduler extends TaskScheduler {
+export class ThreadPoolTaskScheduler extends TaskScheduler implements LifecycleResource {
   private readonly logger = KotlinLogging.logger('org.springframework.scheduling.support.TaskUtils')
+  private shutdown = false
+  /** exécutions en cours ou en attente sur le thread */
+  private running = 0
+  private terminationWaiters: (() => void)[] = []
+
+  constructor() {
+    super()
+    // ExecutorConfigurationSupport : SmartLifecycle / ApplicationListener<ContextClosedEvent>
+    registerLifecycleResource(this)
+  }
   threadNamePrefix = 'scheduling-'
   backend: ThreadBackend = new InProcessThreadBackend()
   private readonly timers = new Set<NodeJS.Timeout>()
@@ -290,8 +324,13 @@ export class ThreadPoolTaskScheduler extends TaskScheduler {
 
   /** Exécution sur le thread du planificateur, après les exécutions en cours */
   private runOnThread(task: Runnable): Promise<void> {
-    const p = this.chain.then(() => this.backend.run(this.threadName, task))
-    this.chain = p.catch(() => undefined)
+    this.running++
+    // une exécution en file au moment de l'arrêt est abandonnée (shutdownNow)
+    const p = this.chain.then(() => (this.shutdown ? undefined : this.backend.run(this.threadName, task)))
+    this.chain = p.catch(() => undefined).finally(() => {
+      this.running--
+      this.notifyTerminated()
+    })
     return p
   }
 
@@ -299,12 +338,14 @@ export class ThreadPoolTaskScheduler extends TaskScheduler {
     const t = setTimeout(
       () => {
         this.timers.delete(t)
-        fn()
+        if (!this.shutdown) fn()
       },
       Math.max(0, at - Date.now()),
     )
     t.unref()
-    this.timers.add(t)
+    // après l'arrêt : aucune nouvelle exécution planifiée
+    if (this.shutdown) clearTimeout(t)
+    else this.timers.add(t)
     return t
   }
 
@@ -312,7 +353,8 @@ export class ThreadPoolTaskScheduler extends TaskScheduler {
     let done = false
     let cancelled = false
     const t = this.timer(() => {
-      this.runOnThread(task)
+      // une exécution annulée avant son démarrage n'a pas lieu (FutureTask.cancel)
+      this.runOnThread(() => (cancelled ? undefined : task()))
         .catch((e) => {
           // TaskUtils.LOG_AND_PROPAGATE_ERROR_HANDLER
           this.logger.error(e as Error, () => 'Unexpected error occurred in scheduled task')
@@ -340,7 +382,7 @@ export class ThreadPoolTaskScheduler extends TaskScheduler {
     let current: NodeJS.Timeout | null = null
     const fire = (scheduledAt: number) => {
       current = null
-      this.runOnThread(task)
+      this.runOnThread(() => (cancelled ? undefined : task()))
         .catch((e) => {
           // TaskUtils.LOG_AND_SUPPRESS_ERROR_HANDLER : les exécutions suivantes ont lieu
           this.logger.error(e as Error, () => 'Unexpected error occurred in scheduled task')
@@ -383,8 +425,28 @@ export class ThreadPoolTaskScheduler extends TaskScheduler {
   }
 
   destroy(): void {
+    this.shutdown = true
     for (const t of this.timers) clearTimeout(t)
     this.timers.clear()
+    this.notifyTerminated()
+  }
+
+  /** `SmartLifecycle.stop` (ContextClosedEvent) : plus aucune exécution planifiée */
+  stop(): void {
+    this.destroy()
+  }
+
+  /** fin de l'exécution en cours après l'arrêt */
+  awaitTermination(): Promise<void> {
+    if (this.shutdown && this.running === 0) return Promise.resolve()
+    return new Promise<void>((resolve) => this.terminationWaiters.push(resolve))
+  }
+
+  private notifyTerminated(): void {
+    if (!this.shutdown || this.running > 0) return
+    const waiters = this.terminationWaiters
+    this.terminationWaiters = []
+    for (const r of waiters) r()
   }
 }
 

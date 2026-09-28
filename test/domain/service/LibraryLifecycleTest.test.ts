@@ -78,8 +78,8 @@ describe('LibraryLifecycleTest', () => {
   const ctx = springBootTest()
   const libraryRepository = ctx.getBean(LibraryRepository)
   const libraryLifecycle = ctx.getBean(LibraryLifecycle)
-  afterAll(() => {
-    closeContext(ctx)
+  afterAll(async () => {
+    await closeContext(ctx)
     for (const d of tempDirs) rmSync(d, { recursive: true, force: true })
   })
 

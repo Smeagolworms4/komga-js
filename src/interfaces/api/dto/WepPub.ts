@@ -2,7 +2,7 @@
 import type { LocalDate, ZonedDateTime } from '@js-joda/core'
 import { json } from '../../../port/jackson.js'
 import { type JsonType, JsonTypes, jsonProperties } from '../../../port/jackson-mapper.js'
-import { DataClass, KEnum, kFloat } from '../../../port/kotlin.js'
+import { DataClass, IllegalArgumentException, KEnum, kFloat } from '../../../port/kotlin.js'
 import { openApiSchema } from '../../../port/swagger-annotations.js'
 import { constraints, Positive } from '../../../port/validation.js'
 
@@ -302,7 +302,7 @@ const WPReadingProgressionDtoJson: JsonType = {
   read: (s: string) =>
     WPReadingProgressionDto.entries().find((it) => it.jsonName === s) ??
     (() => {
-      throw new Error(`not one of the values accepted for Enum class: [${WPReadingProgressionDto.entries().map((it) => it.jsonName).join(', ')}]`)
+      throw new IllegalArgumentException(`not one of the values accepted for Enum class: [${WPReadingProgressionDto.entries().map((it) => it.jsonName).join(', ')}]`)
     })(),
   write: (v: WPReadingProgressionDto) => v.toJSON(),
 }

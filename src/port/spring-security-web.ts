@@ -23,7 +23,7 @@ import { PathPatternParser, type PathPattern } from './path-pattern.js'
 import { Cookie, FilterRegistrationBean, type Filter, type FilterChain, type HttpServletRequest, type HttpServletResponse, type HttpSession } from './servlet.js'
 import { type ApplicationContext, ApplicationEventPublisher, type Dependency, configuration } from './spring.js'
 import { type CorsConfiguration, type CorsConfigurationSource, CorsFilter } from './spring-web-cors.js'
-import { OncePerRequestFilter, setFilterDispatcherTypes } from './spring-web-filter.js'
+import { OncePerRequestFilter, dispatcherTypeOf, setFilterDispatcherTypes } from './spring-web-filter.js'
 import { HandlerMapping, setPreAuthorizeEvaluator } from './spring-web-dispatcher.js'
 import {
   AccessDeniedException,
@@ -87,6 +87,9 @@ function pathWithinApplication(request: HttpServletRequest): string {
 
 /** `request.getRequestURI()` de Tomcat : chemin brut, non décodé, non normalisé */
 export function rawRequestUri(request: HttpServletRequest): string {
+  // dispatch interne (forward, page d'erreur) : ApplicationHttpRequest de Tomcat renvoie le chemin cible du dispatch
+  // (ex. `/error`), pas celui de la requête d'origine
+  if (dispatcherTypeOf(request) !== 'REQUEST') return request.requestURI
   const raw = request.raw?.url
   if (typeof raw === 'string') {
     const q = raw.indexOf('?')

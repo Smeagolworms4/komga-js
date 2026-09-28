@@ -36,8 +36,8 @@ describe('KepubConverterTest', () => {
     tempDirs.push(d)
     return d
   }
-  afterAll(() => {
-    closeContext(ctx)
+  afterAll(async () => {
+    await closeContext(ctx)
     for (const d of tempDirs) rmSync(d, { recursive: true, force: true })
   })
 

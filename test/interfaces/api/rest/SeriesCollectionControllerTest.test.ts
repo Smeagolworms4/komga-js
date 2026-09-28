@@ -97,11 +97,11 @@ describe('SeriesCollectionControllerTest', () => {
     seriesLibrary2 = [6, 7, 8, 9, 10].map((it) => makeSeries(`Series_${it}`, { libraryId: library2.id })).map((it) => seriesLifecycle.createSeries(it))
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of libraryRepository.findAll()) {
       libraryLifecycle.deleteLibrary(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

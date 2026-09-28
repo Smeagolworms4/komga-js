@@ -43,9 +43,9 @@ describe('BookMetadataAggregationDaoTest', () => {
     seriesRepository.deleteAll()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a bookMetadataAggregation when inserting then it is persisted', () => {

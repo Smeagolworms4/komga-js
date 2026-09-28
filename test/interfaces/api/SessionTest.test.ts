@@ -27,11 +27,11 @@ describe('SessionTest', () => {
     userLifecycle.createUser(user)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of userRepository.findAll()) {
       userLifecycle.deleteUser(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given valid basic credentials when hitting an endpoint then session cookie is returned', async () => {

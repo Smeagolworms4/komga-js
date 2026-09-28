@@ -111,7 +111,8 @@ function listModules(dir: string): string[] {
     if (statSync(f).isDirectory()) {
       if (dir === SRC && (name === 'port' || name === 'flyway')) continue
       out.push(...listModules(f))
-    } else if (name.endsWith('.ts') && !name.endsWith('.d.ts')) out.push(f)
+    } else if (name.endsWith('.ts') && !name.endsWith('.d.ts') && !(dir === SRC && name === 'main.ts')) out.push(f)
+    // src/main.ts : point d'entrée exécutable (lance l'application), pas un composant
   }
   return out
 }
@@ -1698,8 +1699,8 @@ export function mockMvcTest(
   return springBootTest(properties, mocks, options)
 }
 
-export function closeContext(ctx: ApplicationContext): void {
-  closeSpringContext(ctx)
+export function closeContext(ctx: ApplicationContext): Promise<void> {
+  return closeSpringContext(ctx)
 }
 
 export type { Token }

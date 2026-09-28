@@ -1,6 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/ThumbnailSizeDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { ThumbnailSize } from '../../../../domain/model/ThumbnailSize.js'
-import { KEnum } from '../../../../port/kotlin.js'
+import { KEnum, NoWhenBranchMatchedException } from '../../../../port/kotlin.js'
 
 export class ThumbnailSizeDto extends KEnum {
   static readonly DEFAULT = new ThumbnailSizeDto('DEFAULT')
@@ -21,7 +21,7 @@ export function toDto(self: ThumbnailSize): ThumbnailSizeDto {
       return ThumbnailSizeDto.XLARGE
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }
 
 export function toDomain(self: ThumbnailSizeDto): ThumbnailSize {
@@ -36,5 +36,5 @@ export function toDomain(self: ThumbnailSizeDto): ThumbnailSize {
       return ThumbnailSize.XLARGE
   }
   // PORT: when exhaustif
-  throw new Error(`Unknown ${self}`)
+  throw new NoWhenBranchMatchedException()
 }

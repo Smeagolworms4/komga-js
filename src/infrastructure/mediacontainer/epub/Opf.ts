@@ -2,7 +2,7 @@
 import { EpubTocEntry } from '../../../domain/model/EpubTocEntry.js'
 import { urlDecode } from '../../../port/java-net-urldecoder.js'
 import { pathNormalize, pathResolve, pathsGet } from '../../../port/java-nio-file.js'
-import type { Document } from '../../../port/jsoup.js'
+import type { Document } from '../../../port/jsoup-parser.js'
 import { associate, isBlank, isNotBlank } from '../../../port/kotlin.js'
 import { ManifestItem } from './ManifestItem.js'
 

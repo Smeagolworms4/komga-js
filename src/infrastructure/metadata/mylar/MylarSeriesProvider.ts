@@ -8,7 +8,7 @@ import { SeriesMetadata } from '../../../domain/model/SeriesMetadata.js'
 import { SeriesMetadataPatch } from '../../../domain/model/SeriesMetadataPatch.js'
 import { Sidecar } from '../../../domain/model/Sidecar.js'
 import { ObjectMapper } from '../../../port/jackson-mapper.js'
-import { str } from '../../../port/kotlin.js'
+import { NoWhenBranchMatchedException, str } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
 import { SidecarSeriesConsumer } from '../../sidecar/SidecarSeriesConsumer.js'
@@ -49,7 +49,7 @@ export class MylarSeriesProvider implements SeriesMetadataProvider, SidecarSerie
           status = SeriesMetadata.Status.ONGOING
           break
         default:
-          throw new Error(`Unknown status ${str(metadata.status)}`)
+          throw new NoWhenBranchMatchedException()
       }
 
       return new SeriesMetadataPatch({

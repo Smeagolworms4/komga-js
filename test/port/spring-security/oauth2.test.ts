@@ -138,7 +138,7 @@ describe('oauth2Login', () => {
   afterAll(async () => {
     await ts?.close()
     await new Promise<void>((r) => provider.close(() => r()))
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   const cookieOf = (setCookie: string[] | undefined) => /KOMGA-SESSION=([^;]+)/.exec((setCookie ?? []).join('\n'))?.[1] ?? null

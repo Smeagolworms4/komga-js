@@ -3,6 +3,7 @@ import { SeriesMetadata } from '../../../../domain/model/SeriesMetadata.js'
 import { NullOrBlankOrBCP47 } from '../../../../infrastructure/validation/NullOrBlankOrBCP47.js'
 import { NullOrNotBlank } from '../../../../infrastructure/validation/NullOrNotBlank.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
+import { registerClass } from '../../../../port/jackson.js'
 import { Positive, PositiveOrZero, Valid, constraints } from '../../../../port/validation.js'
 import { AlternateTitleUpdateDto } from './AlternateTitleUpdateDto.js'
 import { WebLinkUpdateDto } from './BookMetadataUpdateDto.js'
@@ -203,3 +204,4 @@ jsonProperties(SeriesMetadataUpdateDto, {
   alternateTitles: { nullable: { list: { class: AlternateTitleUpdateDto } } },
   alternateTitlesLock: { nullable: 'Boolean' },
 })
+registerClass('org.gotson.komga.interfaces.api.rest.dto.SeriesMetadataUpdateDto', SeriesMetadataUpdateDto)

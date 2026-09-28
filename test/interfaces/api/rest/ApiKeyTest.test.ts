@@ -22,9 +22,9 @@ describe('ApiKeyTest', () => {
     apiKey = nn(komgaUserLifecycle.createApiKey(user1, 'test')).key
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     komgaUserLifecycle.deleteUser(user1)
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('when getting user information then unauthorized is thrown', async () => {

@@ -14,94 +14,396 @@ export class JsonNumber {
 // Objets : Map pour conserver l'ordre d'insertion des clés comme ObjectNode (un objet JS place les clés numériques en premier)
 export type JsonNode = null | boolean | string | JsonNumber | JsonNode[] | Map<string, JsonNode>
 
-/** `ObjectMapper().readTree(text)` */
-export function readTree(text: string, { allowTrailing = false }: { allowTrailing?: boolean } = {}): JsonNode {
+// ---------------------------------------------------------------------------
+// Lecture (UTF8StreamJsonParser de jackson-core 2.19, fonctionnalités par défaut : ni commentaires, ni guillemets simples,
+// ni zéros en tête, ni NaN ; messages d'erreur identiques)
+// ---------------------------------------------------------------------------
+
+/**
+ * Erreur de lecture différée : Jackson lit le flux au fil de la désérialisation, une erreur de syntaxe n'apparaît qu'au
+ * moment où le jeton fautif est lu (une erreur de type rencontrée avant l'emporte). En mode `lenient`, `readTree`
+ * place l'erreur dans l'arbre, là où le flux s'interrompt : à la place d'une valeur, ou après les entrées lues d'un
+ * objet ou d'un tableau (`deferredError`). `mismatch` : MismatchedInputException (document vide) au lieu de JsonParseException.
+ */
+export class JsonPoison {
+  constructor(
+    readonly message: string,
+    readonly mismatch = false,
+  ) {}
+}
+
+/** Erreur de lecture levée par `readTree` hors mode `lenient` */
+export class JsonReadError extends Error {
+  constructor(
+    message: string,
+    readonly mismatch = false,
+  ) {
+    super(message)
+  }
+}
+
+const deferred = new WeakMap<object, JsonPoison>()
+
+/** Erreur survenue après les entrées lues d'un objet (Map) ou d'un tableau */
+export function deferredError(container: object): JsonPoison | undefined {
+  return deferred.get(container)
+}
+
+const VALID_VALUES = "(JSON String, Number, Array, Object or token 'null', 'true' or 'false')"
+const MAX_ERROR_TOKEN_LENGTH = 256
+
+/** `Character.isISOControl` */
+function isIsoControl(c: number): boolean {
+  return c <= 0x1f || (c >= 0x7f && c <= 0x9f)
+}
+
+/** `Character.isJavaIdentifierStart` */
+function isJavaIdentifierStart(c: number): boolean {
+  return /[\p{L}\p{Nl}\p{Sc}\p{Pc}]/u.test(String.fromCodePoint(c))
+}
+
+/** `Character.isJavaIdentifierPart` */
+function isJavaIdentifierPart(c: number): boolean {
+  if ((c >= 0 && c <= 8) || (c >= 0x0e && c <= 0x1b) || (c >= 0x7f && c <= 0x9f)) return true
+  return /[\p{L}\p{Nl}\p{Sc}\p{Pc}\p{Nd}\p{Mn}\p{Mc}\p{Cf}]/u.test(String.fromCodePoint(c))
+}
+
+/** `ParserMinimalBase._getCharDesc` */
+function charDesc(c: number): string {
+  if (isIsoControl(c)) return `(CTRL-CHAR, code ${c})`
+  if (c > 255) return `'${String.fromCodePoint(c)}' (code ${c} / 0x${c.toString(16)})`
+  return `'${String.fromCharCode(c)}' (code ${c})`
+}
+
+/** `ObjectMapper().readTree(text)` ; `lenient` : erreurs de syntaxe placées dans l'arbre (JsonPoison) */
+export function readTree(text: string, { allowTrailing = false, lenient = false }: { allowTrailing?: boolean; lenient?: boolean } = {}): JsonNode {
   let i = 0
-  const ws = () => {
-    while (i < text.length && ' \t\n\r'.includes(text[i] as string)) i++
+  let aborted = false
+  const n = text.length
+  const cp = (at: number): number => text.codePointAt(at) as number
+  const width = (c: number): number => (c > 0xffff ? 2 : 1)
+  /** premier octet UTF-8 du caractère (le flux d'octets de Jackson rapporte parfois l'octet brut) */
+  const rawByte = (c: number): number => (c < 0x80 ? c : (Buffer.from(String.fromCodePoint(c), 'utf8')[0] as number))
+  const poison = (message: string, mismatch = false): JsonPoison => {
+    aborted = true
+    if (!lenient) throw new JsonReadError(message, mismatch)
+    return new JsonPoison(message, mismatch)
   }
-  const fail = (): never => {
-    throw new SyntaxError(`Unexpected character at ${i} in JSON`)
+  class Stop {
+    constructor(readonly p: JsonPoison) {}
   }
-  const value = (): JsonNode => {
-    ws()
-    const c = text[i]
-    if (c === '{') {
-      i++
-      const o = new Map<string, JsonNode>()
-      ws()
-      if (text[i] === '}') {
-        i++
-        return o
-      }
-      for (;;) {
-        ws()
-        if (text[i] !== '"') fail()
-        const k = str()
-        ws()
-        if (text[i++] !== ':') fail()
-        o.set(k, value())
-        ws()
-        if (text[i] === ',') i++
-        else if (text[i] === '}') {
-          i++
-          return o
-        } else fail()
+  const stop = (message: string): never => {
+    throw new Stop(poison(message))
+  }
+  const unexpected = (c: number, comment: string): never => stop(`Unexpected character (${charDesc(c)}): ${comment}`)
+  const unexpectedNumberChar = (c: number, comment: string): never => stop(`Unexpected character (${charDesc(c)}) in numeric value: ${comment}`)
+  /** JsonLocation d'un marqueur d'ouverture : ligne et colonne (octets) */
+  const location = (at: number): string => {
+    let line = 1
+    let lineStart = 0
+    for (let k = 0; k < at; k++) {
+      const ch = text.charCodeAt(k)
+      if (ch === 0x0a || (ch === 0x0d && text.charCodeAt(k + 1) !== 0x0a)) {
+        line++
+        lineStart = k + 1
       }
     }
-    if (c === '[') {
-      i++
-      const a: JsonNode[] = []
-      ws()
-      if (text[i] === ']') {
-        i++
-        return a
-      }
-      for (;;) {
-        a.push(value())
-        ws()
-        if (text[i] === ',') i++
-        else if (text[i] === ']') {
-          i++
-          return a
-        } else fail()
+    const column = Buffer.byteLength(text.slice(lineStart, at), 'utf8') + 1
+    return `[Source: REDACTED (\`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION\` disabled); line: ${line}, column: ${column}]`
+  }
+  /** `_skipWS` / `_skipWSOrEnd` : -1 en fin d'entrée */
+  const skipWs = (): number => {
+    while (i < n) {
+      const c = text.charCodeAt(i)
+      if (c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0d) i++
+      else if (c === 0x2f) unexpected(c, "maybe a (non-standard) comment? (not recognized as one since Feature 'ALLOW_COMMENTS' not enabled for parser)")
+      else if (c < 0x20) stop(`Illegal character (${charDesc(c)}): only regular white space (\\r, \\n, \\t) is allowed between tokens`)
+      else return c
+    }
+    return -1
+  }
+  /** `_reportInvalidToken` : le jeton se prolonge tant que les caractères sont des parties d'identifiant Java */
+  const invalidToken = (matched: string): never => {
+    let sb = matched
+    while (i < n) {
+      const c = cp(i)
+      if (!isJavaIdentifierPart(c)) break
+      i += width(c)
+      sb += String.fromCodePoint(c)
+      if (sb.length >= MAX_ERROR_TOKEN_LENGTH) {
+        sb += '...'
+        break
       }
     }
-    if (c === '"') return str()
-    if (text.startsWith('true', i)) return (i += 4), true
-    if (text.startsWith('false', i)) return (i += 5), false
-    if (text.startsWith('null', i)) return (i += 4), null
-    const m = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/.exec(text.slice(i))
-    if (!m) return fail()
-    i += m[0].length
-    if (m[2] === undefined && m[3] === undefined) {
-      const b = BigInt(m[0])
+    return stop(`Unrecognized token '${sb}': was expecting ${VALID_VALUES}`)
+  }
+  /** `_matchToken` : `i` pointe sur le premier caractère (déjà reconnu) */
+  const matchToken = (token: string): void => {
+    for (let k = 1; k < token.length; k++) {
+      i++
+      if (i >= n || text[i] !== token[k]) invalidToken(token.slice(0, k))
+    }
+    i++
+    if (i < n) {
+      const c = cp(i)
+      if (c >= 0x30 && c !== 0x5d && c !== 0x7d && isJavaIdentifierPart(c)) invalidToken(token)
+    }
+  }
+  const str = (kind: 'VALUE_STRING' | 'field name'): string => {
+    // i sur le guillemet ouvrant
+    i++
+    let out = ''
+    for (;;) {
+      if (i >= n) stop(`Unexpected end-of-input in ${kind}`)
+      const c = cp(i)
+      if (c === 0x22) {
+        i++
+        return out
+      }
+      if (c === 0x5c) {
+        i++
+        if (i >= n) stop('Unexpected end-of-input in character escape sequence')
+        const e = cp(i)
+        i += width(e)
+        switch (e) {
+          case 0x62:
+            out += '\b'
+            break
+          case 0x74:
+            out += '\t'
+            break
+          case 0x6e:
+            out += '\n'
+            break
+          case 0x66:
+            out += '\f'
+            break
+          case 0x72:
+            out += '\r'
+            break
+          case 0x22:
+          case 0x2f:
+          case 0x5c:
+            out += String.fromCharCode(e)
+            break
+          case 0x75: {
+            let v = 0
+            for (let k = 0; k < 4; k++) {
+              if (i >= n) stop('Unexpected end-of-input in character escape sequence')
+              const h = cp(i)
+              const d = h >= 0x30 && h <= 0x39 ? h - 0x30 : h >= 0x61 && h <= 0x66 ? h - 0x57 : h >= 0x41 && h <= 0x46 ? h - 0x37 : -1
+              if (d < 0) unexpected(h, 'expected a hex-digit for character escape sequence')
+              v = (v << 4) | d
+              i += width(h)
+            }
+            out += String.fromCharCode(v)
+            break
+          }
+          default:
+            stop(`Unrecognized character escape ${charDesc(e)}`)
+        }
+        continue
+      }
+      if (c < 0x20) stop(`Illegal unquoted character (${charDesc(c)}): has to be escaped using backslash to be included in ${kind === 'field name' ? 'name' : 'string value'}`)
+      out += String.fromCodePoint(c)
+      i += width(c)
+    }
+  }
+  const digit = (at: number): boolean => at < n && text.charCodeAt(at) >= 0x30 && text.charCodeAt(at) <= 0x39
+  const charAt = (at: number): number => (at < n ? cp(at) : -1)
+  const number = (root: boolean): JsonNode => {
+    const start = i
+    if (text[i] === '-') {
+      i++
+      if (i >= n) stop('Unexpected end-of-input in a Number value')
+      if (!digit(i)) {
+        if (text.startsWith('Infinity', i)) stop("Non-standard token '-Infinity': enable `JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS` to allow")
+        unexpectedNumberChar(rawByte(cp(i)), 'expected digit (0-9) to follow minus sign, for valid numeric value')
+      }
+    }
+    // _verifyNoLeadingZeroes
+    if (text[i] === '0' && digit(i + 1)) stop('Invalid numeric value: Leading zeroes not allowed')
+    while (digit(i)) i++
+    let isInt = true
+    if (text[i] === '.') {
+      isInt = false
+      i++
+      if (!digit(i)) unexpectedNumberChar(i < n ? rawByte(cp(i)) : 0x2e, 'Decimal point not followed by a digit')
+      while (digit(i)) i++
+    }
+    if (text[i] === 'e' || text[i] === 'E') {
+      isInt = false
+      i++
+      if (text[i] === '+' || text[i] === '-') i++
+      if (!digit(i)) unexpectedNumberChar(i < n ? rawByte(cp(i)) : text.charCodeAt(i - 1), 'Exponent indicator not followed by a digit')
+      while (digit(i)) i++
+    }
+    // _verifyRootSpace
+    if (root && i < n) {
+      const c = text.charCodeAt(i)
+      if (!(c === 0x20 || c === 0x09 || c === 0x0a || c === 0x0d)) unexpected(rawByte(cp(i)), 'Expected space separating root-level values')
+    }
+    const literal = text.slice(start, i)
+    if (isInt) {
+      const b = BigInt(literal)
       return new JsonNumber('int', b >= BigInt(Number.MIN_SAFE_INTEGER) && b <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(b) : b)
     }
-    return new JsonNumber('double', Number(m[0]))
+    return new JsonNumber('double', Number(literal))
   }
-  const str = (): string => {
-    const start = i
-    i++
-    for (;;) {
-      if (i >= text.length) fail()
-      if (text[i] === '\\') i += 2
-      else if (text[i] === '"') break
-      else i++
+  /** `_nextTokenNotInObject` / valeur d'un champ, `c` : premier caractère (non blanc) */
+  const value = (c: number, ctx: 'root' | 'object' | 'array'): JsonNode => {
+    try {
+      switch (c) {
+        case 0x22:
+          return str('VALUE_STRING')
+        case 0x7b:
+          return object()
+        case 0x5b:
+          return array()
+        case 0x2d:
+          return number(ctx === 'root')
+        case 0x74:
+          matchToken('true')
+          return true
+        case 0x66:
+          matchToken('false')
+          return false
+        case 0x6e:
+          matchToken('null')
+          return null
+        case 0x2b:
+          return unexpectedNumberChar(c, 'JSON spec does not allow numbers to have plus signs: enable `JsonReadFeature.ALLOW_LEADING_PLUS_SIGN_FOR_NUMBERS` to allow')
+      }
+      if (c >= 0x30 && c <= 0x39) return number(ctx === 'root')
+      // _handleUnexpectedValue
+      switch (c) {
+        case 0x5d:
+          if (ctx === 'array') unexpected(c, 'expected a value')
+          break
+        case 0x2c:
+        case 0x7d:
+          unexpected(c, 'expected a value')
+          break
+        case 0x4e:
+          matchToken('NaN')
+          stop("Non-standard token 'NaN': enable `JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS` to allow")
+          break
+        case 0x49:
+          matchToken('Infinity')
+          stop("Non-standard token 'Infinity': enable `JsonReadFeature.ALLOW_NON_NUMERIC_NUMBERS` to allow")
+          break
+      }
+      // l'octet brut est pris pour un caractère ISO-8859-1 ; la suite d'un caractère multi-octets est alors un octet de
+      // continuation, rejeté comme début de séquence UTF-8
+      const b = rawByte(c)
+      if (isJavaIdentifierStart(b)) {
+        if (c >= 0x80) stop(`Invalid UTF-8 start byte 0x${(Buffer.from(String.fromCodePoint(c), 'utf8')[1] as number).toString(16)}`)
+        i += 1
+        return invalidToken(String.fromCharCode(b))
+      }
+      return unexpected(b, `expected a valid value ${VALID_VALUES}`)
+    } catch (e) {
+      if (e instanceof Stop) return e.p as unknown as JsonNode
+      throw e
     }
+  }
+  const closeMarker = (c: number, expected: '}' | ']', type: 'Object' | 'Array', startAt: number): never =>
+    stop(`Unexpected close marker '${String.fromCharCode(c)}': expected '${expected}' (for ${type} starting at ${location(startAt)})`)
+  const object = (): Map<string, JsonNode> => {
+    const startAt = i
     i++
-    return JSON.parse(text.slice(start, i)) as string
+    const o = new Map<string, JsonNode>()
+    try {
+      let c = skipWs()
+      let first = true
+      for (;;) {
+        if (c < 0) stop(`Unexpected end-of-input: expected close marker for Object (start marker at ${location(startAt)})`)
+        if (c === 0x7d) {
+          i++
+          return o
+        }
+        if (c === 0x5d) closeMarker(c, '}', 'Object', startAt)
+        if (!first) {
+          if (c !== 0x2c) unexpected(rawByte(c), 'was expecting comma to separate Object entries')
+          i++
+          c = skipWs()
+          if (c < 0) stop('Unexpected end-of-input within/between Object entries')
+        }
+        first = false
+        if (c !== 0x22) unexpected(c, 'was expecting double-quote to start field name')
+        const k = str('field name')
+        c = skipWs()
+        if (c < 0) stop('Unexpected end-of-input within/between Object entries')
+        if (c !== 0x3a) unexpected(rawByte(c), 'was expecting a colon to separate field name and value')
+        i++
+        c = skipWs()
+        if (c < 0) stop('Unexpected end-of-input within/between Object entries')
+        o.set(k, value(c, 'object'))
+        if (aborted) return o
+        c = skipWs()
+      }
+    } catch (e) {
+      if (e instanceof Stop) {
+        deferred.set(o, e.p)
+        return o
+      }
+      throw e
+    }
   }
-  const v = value()
+  const array = (): JsonNode[] => {
+    const startAt = i
+    i++
+    const a: JsonNode[] = []
+    try {
+      let c = skipWs()
+      let first = true
+      for (;;) {
+        if (c < 0) stop(`Unexpected end-of-input: expected close marker for Array (start marker at ${location(startAt)})`)
+        if (c === 0x5d) {
+          i++
+          return a
+        }
+        if (c === 0x7d) closeMarker(c, ']', 'Array', startAt)
+        if (!first) {
+          if (c !== 0x2c) unexpected(rawByte(c), 'was expecting comma to separate Array entries')
+          i++
+          c = skipWs()
+          if (c < 0) stop('Unexpected end-of-input within/between Array entries')
+        }
+        first = false
+        a.push(value(c, 'array'))
+        if (aborted) return a
+        c = skipWs()
+      }
+    } catch (e) {
+      if (e instanceof Stop) {
+        deferred.set(a, e.p)
+        return a
+      }
+      throw e
+    }
+  }
+  let v: JsonNode
+  try {
+    const c = skipWs()
+    // ObjectMapper._initForReading : document vide
+    if (c < 0) return poison('No content to map due to end-of-input', true) as unknown as JsonNode
+    if (c === 0x7d || c === 0x5d) stop(`Unexpected close marker '${String.fromCharCode(c)}': no open ${c === 0x5d ? 'Array' : 'Object'} to close`)
+    v = value(c, 'root')
+  } catch (e) {
+    if (e instanceof Stop) return e.p as unknown as JsonNode
+    throw e
+  }
   // allowTrailing : DeserializationFeature.FAIL_ON_TRAILING_TOKENS désactivé (ObjectMapper) : le contenu après la
-  // valeur racine n'est pas lu ; un nombre ou un littéral doit toutefois être suivi d'un délimiteur
-  if (allowTrailing) {
-    const scalarToken = v === null || typeof v === 'boolean' || v instanceof JsonNumber
-    if (scalarToken && /[A-Za-z0-9_.+-]/.test(text[i] ?? ' ')) fail()
-    return v
+  // valeur racine n'est pas lu
+  if (allowTrailing || aborted) return v
+  try {
+    const c = skipWs()
+    if (c >= 0) stop(`Unexpected character (${charDesc(c)}): expected end-of-input`)
+  } catch (e) {
+    if (e instanceof Stop) return e.p as unknown as JsonNode
+    throw e
   }
-  ws()
-  if (i !== text.length) fail()
   return v
 }
 

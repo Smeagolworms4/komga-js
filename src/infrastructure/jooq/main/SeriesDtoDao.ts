@@ -23,7 +23,7 @@ import { DSL, DSLContext, count, countDistinct, lower, substring } from '../../.
 import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
 import { URL } from '../../../port/java-net.js'
-import { firstOrNull, mapNotNull, require } from '../../../port/kotlin.js'
+import { NoWhenBranchMatchedException, firstOrNull, mapNotNull, require } from '../../../port/kotlin.js'
 
 export const BOOKS_UNREAD_COUNT = 'booksUnreadCount'
 export const BOOKS_IN_PROGRESS_COUNT = 'booksInProgressCount'
@@ -393,7 +393,7 @@ export class SeriesDtoDao extends SplitDslDaoBase implements SeriesDtoRepository
       case SearchField.TITLE_SORT:
         return this.d.TITLE_SORT
     }
-    throw new Error('unreachable')
+    throw new NoWhenBranchMatchedException()
   }
 
   // PORT: fonction d'extension SeriesRecord.toDto()

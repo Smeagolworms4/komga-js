@@ -30,9 +30,9 @@ describe('KomgaUserDaoTest', () => {
     expect(komgaUserDao.count()).toBe(0)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a user when saving it then it is persisted', () => {

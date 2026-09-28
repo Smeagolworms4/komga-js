@@ -1,17 +1,22 @@
-// Support de portage : sous-ensemble de jsoup 1.23.1 utilisé par EpubMetadataProvider. Ce fichier n'a pas de jumeau Kotlin.
-// PORT: port/jsoup.ts (écrit en parallèle, analyse XML par htmlparser2 / HTML par parse5) couvre d'autres usages ;
-// ce fichier porte à plat l'analyseur de jsoup lui-même, pour un comportement identique sur les entrées mal formées :
+// Support de portage : sous-ensemble de jsoup 1.23.1 utilisé par Komga (mediacontainer/epub, EpubMetadataProvider).
+// Ce fichier n'a pas de jumeau Kotlin. Il porte à plat l'analyseur de jsoup lui-même, pour un comportement identique
+// sur les entrées mal formées :
 //  - parser.{CharacterReader (tampon de 2048 caractères), Token, Tokeniser, TokeniserState, TreeBuilder, XmlTreeBuilder,
-//    HtmlTreeBuilder, HtmlTreeBuilderState, HtmlTagOptions, Tag, TagSet, ParseSettings}, nodes.{Entities (décodage,
-//    tables EntitiesData recopiées), Attributes, Node, Element, Document...}, sans suivi des positions ni des erreurs ;
-//  - `Jsoup.parse(xml, "", Parser.xmlParser())` ; `Element.select` / `selectFirst` (select.QueryParser limité aux
-//    sélecteurs de type, `*|type`, `*`, combinateurs ` ` et `>`, `,` et attributs `[k]`, `[k=v]` ; les autres lèvent
-//    SelectorParseException : PORT) ; `Element.text()`, `attr()`, `hasAttr()`, `id()` ;
+//    HtmlTreeBuilder, HtmlTreeBuilderState, HtmlTagOptions, Tag, TagSet, ParseSettings, Parser}, nodes.{Entities
+//    (décodage, tables EntitiesData recopiées), Attributes, Node, Element, Document, Range...}, sans suivi des erreurs ;
+//  - positions de source (`Parser.setTrackPosition(true)`, `Node.sourceRange()`, `Element.endSourceRange()`) :
+//    Token.startPos/endPos, Tokeniser.markupStartPos/charStartPos, TreeBuilder.trackNodePosition (sans LineMap : PORT) ;
+//  - `Jsoup.parse(String, [baseUri,] Parser)`, `Jsoup.parse(InputStream, charsetName?, baseUri[, Parser])`
+//    (helper.DataUtil : BOM, puis meta charset / déclaration XML dans les 5 premiers Kio, UTF-8 par défaut) ;
+//  - `Element.select` / `selectFirst` (select.QueryParser : type, `*|type`, `*`, `#id`, `.classe`, `[k]`, `[k=v]`,
+//    `:root`, combinateurs ` ` et `>`, combinateur initial, `,` ; les autres lèvent SelectorParseException : PORT),
+//    `getElementsByTag`, `getElementsByClass`, `hasClass`, `text()`, `attr()`, `hasAttr()`, `id()`, `body()` ;
 //  - `Jsoup.clean(html, Safelist.none())` : Parser.parseBodyFragment (HtmlTreeBuilder), Cleaner (Safelist.none : seuls
 //    les TextNode sont recopiés) et sortie `body().html()` (Printer.Pretty, Entities.escape en mode base, UTF-8).
-// Vérifié contre jsoup-1.23.1.jar (jshell) : test/port/jsoup-parser.test.ts et
-// test/infrastructure/metadata/epub/EpubOracle.test.ts.
+// Vérifié contre jsoup-1.23.1.jar (jshell) : test/port/jsoup-parser.test.ts,
+// test/infrastructure/metadata/epub/EpubOracle.test.ts et test/infrastructure/mediacontainer/epub/EpubExtractorOracle.test.ts.
 import { IllegalArgumentException, IllegalStateException } from './kotlin.js'
+import type { InputStream } from './java-io.js'
 
 // ---------------------------------------------------------------------------
 // Utilitaires Java
@@ -486,7 +491,13 @@ class TokenData {
 
 type TokenType = 'Doctype' | 'StartTag' | 'EndTag' | 'Comment' | 'Character' | 'XmlDecl' | 'EOF'
 
+const UnsetPos = -1
+
 abstract class Token {
+  // `int startPos, endPos = UnsetPos` : seul endPos est initialisé à UnsetPos (startPos vaut 0)
+  startPos_ = 0
+  endPos_ = UnsetPos // position in CharacterReader this token was read from
+
   constructor(readonly type: TokenType) {}
 
   tokenType(): string {
@@ -494,7 +505,21 @@ abstract class Token {
   }
 
   reset(): this {
+    this.startPos_ = UnsetPos
+    this.endPos_ = UnsetPos
     return this
+  }
+
+  // PORT: surcharges startPos() / startPos(int) fusionnées
+  startPos(pos?: number): number {
+    if (pos !== undefined) this.startPos_ = pos
+    return this.startPos_
+  }
+
+  // PORT: surcharges endPos() / endPos(int) fusionnées
+  endPos(pos?: number): number {
+    if (pos !== undefined) this.endPos_ = pos
+    return this.endPos_
   }
 
   isDoctype(): boolean {
@@ -564,6 +589,7 @@ class DoctypeToken extends Token {
   }
 
   override reset(): this {
+    super.reset()
     this.name.reset()
     this.pubSysKey = null
     this.publicIdentifier.reset()
@@ -614,6 +640,7 @@ abstract class TagToken extends Token {
   }
 
   override reset(): this {
+    super.reset()
     this.tagName.reset()
     this.normalName_ = null as unknown as string
     this.selfClosing = false
@@ -748,6 +775,7 @@ class CommentToken extends Token {
   }
 
   override reset(): this {
+    super.reset()
     this.data.reset()
     this.bogus = false
     return this
@@ -768,10 +796,16 @@ class CharacterToken extends Token {
 
   constructor(source?: CharacterToken) {
     super('Character')
-    if (source !== undefined) this.data.set(source.getData())
+    if (source !== undefined) {
+      // Deep copy
+      this.startPos_ = source.startPos_
+      this.endPos_ = source.endPos_
+      this.data.set(source.getData())
+    }
   }
 
   override reset(): this {
+    super.reset()
     this.data.reset()
     return this
   }
@@ -839,6 +873,8 @@ class Tokeniser {
   private lastStartTag: string | null = null
   private lastStartCloseSeq: string | null = null
   private readonly reader: CharacterReader
+  private markupStartPos = 0 // reader pos at the start of markup / characters. markup updated on state transition, char on token emit.
+  private charStartPos = 0
 
   constructor(private readonly treeBuilder: TreeBuilder) {
     this.syntax = treeBuilder instanceof XmlTreeBuilder ? 'xml' : 'html'
@@ -865,7 +901,10 @@ class Tokeniser {
   emit(token: Token | string | number[]): void {
     if (typeof token === 'string') {
       // buffer strings up until last string token found, to emit only one token for a run of character refs etc.
+      // does not set isEmitPending; read checks that
       this.charPending.append(token)
+      this.charPending.startPos(this.charStartPos)
+      this.charPending.endPos(this.reader.pos())
       return
     }
     if (Array.isArray(token)) {
@@ -875,6 +914,10 @@ class Tokeniser {
     if (this.isEmitPending) throw new IllegalArgumentException('Must be false')
     this.emitPending = token
     this.isEmitPending = true
+    token.startPos(this.markupStartPos)
+    token.endPos(this.reader.pos())
+    this.charStartPos = this.reader.pos() // update char start when we complete a token emit
+
     if (token.type === 'StartTag') {
       const startTag = token as StartTagToken
       this.lastStartTag = startTag.name()
@@ -883,6 +926,9 @@ class Tokeniser {
   }
 
   transition(newState: State): void {
+    // track markup position on state transitions
+    if (newState === S.TagOpen) this.markupStartPos = this.reader.pos()
+
     this.state = newState
   }
 
@@ -3560,8 +3606,46 @@ const FormSubmitTags = ['input', 'keygen', 'object', 'select', 'textarea']
 // nodes
 // ---------------------------------------------------------------------------
 
+/** `nodes.Range` (sans LineMap : PORT, positions seules) */
+export class Range {
+  static readonly Untracked = new Range(-1, -1)
+
+  constructor(
+    private readonly startPos_: number,
+    private readonly endPos_: number,
+  ) {}
+
+  startPos(): number {
+    return this.startPos_
+  }
+
+  endPos(): number {
+    return this.endPos_
+  }
+
+  isTracked(): boolean {
+    return this.startPos_ !== -1
+  }
+
+  isImplicit(): boolean {
+    return this.isTracked() && this.startPos_ === this.endPos_
+  }
+}
+
 export abstract class Node {
   parentNode: Element | null = null
+  // PORT: les positions de source sont conservées sur le nœud (jsoup : données internes des attributs)
+  private sourceRange_: Range | null = null
+
+  /** `sourceRange()` : position de la balise ouvrante (ou du nœud) dans la source, si Parser.setTrackPosition(true) */
+  sourceRange(): Range {
+    return this.sourceRange_ ?? Range.Untracked
+  }
+
+  /** `NodeInternals.sourceRange` */
+  setSourceRange(range: Range): void {
+    this.sourceRange_ = range
+  }
 
   parent(): Element | null {
     return this.parentNode
@@ -3655,9 +3739,30 @@ export class Comment extends Node {
   nodeName(): string {
     return '#comment'
   }
+
+  getData(): string {
+    return this.data
+  }
+
+  /** `isXmlDeclaration()` : commentaire « bogus » `<?xml ...?>` ou `<!...>` d'un document HTML */
+  isXmlDeclaration(): boolean {
+    const data = this.getData()
+    return data.length > 1 && (data.startsWith('!') || data.startsWith('?'))
+  }
+
+  /** `asXmlDeclaration()` */
+  asXmlDeclaration(): XmlDeclaration | null {
+    const fragment = '<' + this.getData() + '>'
+    const parser = Parser.xmlParser()
+    const nodes = parser.parseFragmentInput(fragment, null, '')
+    if (nodes.length > 0 && nodes[0] instanceof XmlDeclaration) return nodes[0]
+    return null
+  }
 }
 
 export class XmlDeclaration extends Node {
+  private attributes_: Attributes | null = null
+
   constructor(
     readonly name: string,
     readonly isDeclaration: boolean,
@@ -3667,6 +3772,17 @@ export class XmlDeclaration extends Node {
 
   nodeName(): string {
     return '#declaration'
+  }
+
+  attributes(): Attributes {
+    if (this.attributes_ === null) this.attributes_ = new Attributes()
+    return this.attributes_
+  }
+
+  /** `LeafNode.attr` / `Node.attr` : insensible à la casse, "" si absent */
+  attr(key: string): string {
+    if (this.attributes_ === null) return this.nodeName() === key ? this.name : ''
+    return this.attributes_.getIgnoreCase(key)
   }
 }
 
@@ -3701,6 +3817,7 @@ export class DocumentType extends Node {
 export class Element extends Node {
   readonly childNodes_: Node[] = []
   private attributes_: Attributes | null
+  private endSourceRange_: Range | null = null
 
   constructor(
     readonly tag_: Tag,
@@ -3713,6 +3830,16 @@ export class Element extends Node {
 
   tag(): Tag {
     return this.tag_
+  }
+
+  /** `endSourceRange()` : position de la balise fermante, si Parser.setTrackPosition(true) */
+  endSourceRange(): Range {
+    return this.endSourceRange_ ?? Range.Untracked
+  }
+
+  /** `NodeInternals.endSourceRange` */
+  setEndSourceRange(range: Range): void {
+    this.endSourceRange_ = range
   }
 
   nodeName(): string {
@@ -3849,6 +3976,47 @@ export class Element extends Node {
     return this.attributes_ !== null ? this.attributes_.getIgnoreCase('id') : ''
   }
 
+  /** `hasClass(className)` : insensible à la casse */
+  hasClass(className: string): boolean {
+    if (this.attributes_ === null) return false
+
+    const classAttr = this.attributes_.getIgnoreCase('class')
+    const len = classAttr.length
+    const wantLen = className.length
+
+    if (len === 0 || len < wantLen) return false
+
+    // if both lengths are equal, only need to compare the className with the attribute
+    if (len === wantLen) return equalsIgnoreCase(className, classAttr)
+
+    // otherwise, scan for whitespace and compare regions (with no string or list allocations)
+    for (let i = 0; i < len; ) {
+      const start = nextClassStart(classAttr, i, len)
+      if (start === len) return false
+
+      const end = nextClassEnd(classAttr, start, len)
+      if (end - start === wantLen && equalsIgnoreCase(classAttr.substring(start, end), className)) return true
+      i = end
+    }
+
+    return false
+  }
+
+  /** `getElementsByTag(tagName)` : cet élément et ses descendants */
+  getElementsByTag(tagName: string): Element[] {
+    if (tagName.length === 0) throw new IllegalArgumentException('String must not be empty')
+    tagName = normalize(tagName)
+
+    return collect(new TagEvaluator(tagName), this)
+  }
+
+  /** `getElementsByClass(className)` : cet élément et ses descendants */
+  getElementsByClass(className: string): Element[] {
+    if (className.length === 0) throw new IllegalArgumentException('String must not be empty')
+
+    return collect(new ClassEvaluator(className), this)
+  }
+
   hasText(): boolean {
     for (const child of this.childNodes_) {
       if (child instanceof TextNode) {
@@ -3867,10 +4035,7 @@ export class Element extends Node {
   }
 
   select(cssQuery: string): Element[] {
-    const evaluator = QueryParser.parse(cssQuery)
-    const out: Element[] = []
-    for (const el of this.allElements()) if (evaluator.matches(this, el)) out.push(el)
-    return out
+    return collect(QueryParser.parse(cssQuery), this)
   }
 
   selectFirst(cssQuery: string): Element | null {
@@ -3906,6 +4071,25 @@ export class Element extends Node {
     traverse(this)
     return javaTrim(accum.join(''))
   }
+}
+
+/** Find the next class token start. */
+function nextClassStart(classAttr: string, offset: number, len: number): number {
+  while (offset < len && isWhitespaceChar(classAttr.charCodeAt(offset))) offset++
+  return offset
+}
+
+/** Find the next class token end. */
+function nextClassEnd(classAttr: string, offset: number, len: number): number {
+  while (offset < len && !isWhitespaceChar(classAttr.charCodeAt(offset))) offset++
+  return offset
+}
+
+/** `select.Collector.collect(eval, root)` */
+function collect(evaluator: Evaluator, root: Element): Element[] {
+  const out: Element[] = []
+  for (const el of root.allElements()) if (evaluator.matches(root, el)) out.push(el)
+  return out
 }
 
 function needsLeadingTextSeparator(element: Element): boolean {
@@ -4003,6 +4187,8 @@ abstract class TreeBuilder {
   maxDepth = 512
   private start!: StartTagToken
   private readonly end = new EndTagToken(null)
+  parser!: Parser
+  trackSourceRange = false // optionally tracks source ranges of nodes and attributes
 
   abstract defaultSettings(): ParseSettings
 
@@ -4014,10 +4200,14 @@ abstract class TreeBuilder {
     return NamespaceHtml
   }
 
-  initialiseParse(input: string, baseUri: string): void {
+  // PORT: le Parser est passé à initialiseParse / parse / parseFragment ; paramètres (settings, tagSet) par défaut
+  initialiseParse(input: string, baseUri: string, parser: Parser): void {
     this.doc = new Document(this.defaultNamespace(), baseUri)
+    this.parser = parser
     this.settings = this.defaultSettings()
     this.reader = new CharacterReader(input)
+    this.trackSourceRange = parser.isTrackPosition()
+    // PORT: numéros de ligne / colonne (LineMap) non suivis : seules les positions (pos) sont relevées
     this.tokeniser = new Tokeniser(this)
     this.stack = []
     this.tagSet = this.defaultTagSet()
@@ -4025,16 +4215,17 @@ abstract class TreeBuilder {
     this.start = new StartTagToken(this)
     this.currentToken = this.start // init current token to the virtual start token.
     this.baseUri = baseUri
+    this.onNodeInserted(this.doc)
   }
 
-  parse(input: string, baseUri: string): Document {
-    this.initialiseParse(input, baseUri)
+  parse(input: string, baseUri: string, parser: Parser): Document {
+    this.initialiseParse(input, baseUri, parser)
     this.runParser()
     return this.doc
   }
 
-  parseFragment(inputFragment: string, context: Element | null, baseUri: string): Node[] {
-    this.initialiseParse(inputFragment, baseUri)
+  parseFragment(inputFragment: string, context: Element | null, baseUri: string, parser: Parser): Node[] {
+    this.initialiseParse(inputFragment, baseUri, parser)
     this.initialiseParseFragment(context)
     this.runParser()
     return this.completeParseFragment()
@@ -4057,6 +4248,7 @@ abstract class TreeBuilder {
         return false
       }
       if (this.stack.length === 0) {
+        this.onNodeClosed(this.doc) // the root doc is not on the stack, so let this final step close it
         ;(this as { stack: unknown }).stack = null
         return true
       }
@@ -4097,13 +4289,18 @@ abstract class TreeBuilder {
     return this.process(this.end.reset().name(name))
   }
 
+  /** Removes the last Element from the stack, hits onNodeClosed, and then returns it. */
   pop(): Element {
     const size = this.stack.length
-    return this.stack.splice(size - 1, 1)[0] as Element
+    const removed = this.stack.splice(size - 1, 1)[0] as Element
+    this.onNodeClosed(removed)
+    return removed
   }
 
+  /** Adds the specified Element to the end of the stack, and hits onNodeInserted. */
   push(element: Element): void {
     this.stack.push(element)
+    this.onNodeInserted(element)
   }
 
   enforceStackDepthLimit(): void {
@@ -4140,10 +4337,55 @@ abstract class TreeBuilder {
     return this.tagSet.valueOf(tagNameOrToken, normalName as string, namespace as string, (settings as ParseSettings).preserveTagCase())
   }
 
-  // PORT: positions de source non suivies
-  onNodeInserted(_node: Node): void {}
+  /**
+   Called by implementing TreeBuilders when a node has been inserted. This implementation includes optionally tracking
+   the source range of the node.  @param node the node that was just inserted
+   */
+  // PORT: nodeListener non porté
+  onNodeInserted(node: Node): void {
+    this.trackNodePosition(node, true)
+  }
 
-  trackNodePosition(_node: Node | null, _isStart: boolean): void {}
+  /**
+   Called by implementing TreeBuilders when a node is explicitly closed. This implementation includes optionally
+   tracking the closing source range of the node.  @param node the node being closed
+   */
+  onNodeClosed(node: Node): void {
+    this.trackNodePosition(node, false)
+  }
+
+  trackNodePosition(node: Node | null, isStart: boolean): void {
+    if (!this.trackSourceRange) return
+    if (node === null) return // (sans effet en Java : ni sourceRange ni endSourceRange pour null)
+
+    const token = this.currentToken
+    let startPos = token.startPos()
+    let endPos = token.endPos()
+
+    // handle implicit element open / closes.
+    if (node instanceof Element) {
+      const el = node
+      if (token.isEOF()) {
+        if (el.endSourceRange().isTracked()) return // /body and /html are left on stack until EOF, don't reset them
+        startPos = endPos = this.reader.pos()
+      } else if (isStart) {
+        // opening tag
+        if (!token.isStartTag() || el.normalName() !== token.asStartTag().normalName_) {
+          endPos = startPos
+        }
+      } else {
+        // closing tag
+        if (!el.tag().isEmpty() && !el.tag().isSelfClosing()) {
+          if (!token.isEndTag() || el.normalName() !== token.asEndTag().normalName_) {
+            endPos = startPos
+          }
+        }
+      }
+    }
+
+    if (isStart) node.setSourceRange(new Range(startPos, endPos))
+    else if (node instanceof Element) node.setEndSourceRange(new Range(startPos, endPos))
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -4173,8 +4415,8 @@ class XmlTreeBuilder extends TreeBuilder {
     return NamespaceXml
   }
 
-  override initialiseParse(input: string, baseUri: string): void {
-    super.initialiseParse(input, baseUri)
+  override initialiseParse(input: string, baseUri: string, parser: Parser): void {
+    super.initialiseParse(input, baseUri, parser)
     this.namespacesStack.length = 0
     const ns = new Map<string, string>()
     ns.set('xml', NamespaceXml)
@@ -4212,7 +4454,9 @@ class XmlTreeBuilder extends TreeBuilder {
       }
       case 'XmlDecl': {
         const x = token.asXmlDecl()
-        this.insertLeafNode(new XmlDeclaration(x.name(), x.isDeclaration))
+        const decl = new XmlDeclaration(x.name(), x.isDeclaration)
+        if (x.attributes !== null) decl.attributes().addAll(x.attributes)
+        this.insertLeafNode(decl)
         break
       }
       case 'EOF': // could put some normalisation here if desired
@@ -4280,6 +4524,7 @@ class XmlTreeBuilder extends TreeBuilder {
 
   private insertLeafNode(node: Node): void {
     this.currentElement().appendChild(node)
+    this.onNodeInserted(node)
   }
 
   private insertCharacterFor(token: CharacterToken): void {
@@ -4384,8 +4629,8 @@ class HtmlTreeBuilder extends TreeBuilder {
     return 512
   }
 
-  override initialiseParse(input: string, baseUri: string): void {
-    super.initialiseParse(input, baseUri)
+  override initialiseParse(input: string, baseUri: string, parser: Parser): void {
+    super.initialiseParse(input, baseUri, parser)
 
     // this is a bit mucky. todo - probably just create new parser objects to ensure all reset.
     this.state = HS.Initial
@@ -4700,6 +4945,7 @@ class HtmlTreeBuilder extends TreeBuilder {
   insertCommentNode(token: CommentToken): void {
     const node = new Comment(token.getData())
     this.currentElement().appendChild(node)
+    this.onNodeInserted(node)
   }
 
   /** Inserts the provided character token into the current element. */
@@ -4718,6 +4964,7 @@ class HtmlTreeBuilder extends TreeBuilder {
     else if (el.tag().is(TagOpt.Data)) node = new DataNode(data)
     else node = new TextNode(data)
     el.appendChild(node) // doesn't use insertNode, because we don't foster these; and will always have a stack.
+    this.onNodeInserted(node)
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -4761,6 +5008,7 @@ class HtmlTreeBuilder extends TreeBuilder {
       const next = this.stack[pos]
       if (next === el) {
         this.stack.splice(pos, 1)
+        this.onNodeClosed(el)
         return true
       }
     }
@@ -7141,6 +7389,43 @@ class TagEndsWith extends Evaluator {
   }
 }
 
+/** `Evaluator.Id` */
+class IdEvaluator extends Evaluator {
+  constructor(private readonly id: string) {
+    super()
+  }
+
+  matches(_root: Element, element: Element): boolean {
+    return this.id === element.id()
+  }
+}
+
+/** `Evaluator.Class` */
+class ClassEvaluator extends Evaluator {
+  constructor(private readonly className: string) {
+    super()
+  }
+
+  matches(_root: Element, element: Element): boolean {
+    return element.hasClass(this.className)
+  }
+}
+
+/** `Evaluator.IsRoot` */
+class IsRoot extends Evaluator {
+  matches(root: Element, element: Element): boolean {
+    const r = root instanceof Document ? root.firstElementChild() : root
+    return element === r
+  }
+}
+
+/** `StructuralEvaluator.Root` */
+class Root extends Evaluator {
+  matches(root: Element, element: Element): boolean {
+    return root === element
+  }
+}
+
 class AllElements extends Evaluator {
   matches(): boolean {
     return true
@@ -7308,6 +7593,27 @@ class TokenQueue {
     return this.q.substring(start, this.pos)
   }
 
+  /** `consumeCssIdentifier` (PORT: séquences d'échappement CSS non portées : SelectorParseException) */
+  consumeCssIdentifier(): string {
+    if (this.isEmpty()) throw new IllegalArgumentException('CSS identifier expected, but end of input found')
+    const start = this.pos
+    while (!this.isEmpty() && TokenQueue.isIdent(this.current())) this.pos++
+    const identifier = this.q.substring(start, this.pos)
+    const c = this.current()
+    if (c === '\\' || c === '\u0000') throw new SelectorParseException('PORT: CSS escape sequences not supported')
+    return identifier
+  }
+
+  // https://www.w3.org/TR/css-syntax-3/#ident-start-code-point
+  private static isIdentStart(c: string): boolean {
+    return c === '_' || isAsciiLetter(c) || c.charCodeAt(0) >= 0x80
+  }
+
+  // https://www.w3.org/TR/css-syntax-3/#ident-code-point
+  private static isIdent(c: string): boolean {
+    return c === '-' || isDigit(c) || TokenQueue.isIdentStart(c)
+  }
+
   consumeToAny(...seq: string[]): string {
     const start = this.pos
     out: while (!this.isEmpty()) {
@@ -7407,8 +7713,13 @@ class QueryParser {
 
   private parseSelector(): Evaluator {
     this.tq.consumeWhitespace()
-    if (this.tq.matchesAny(...Combinators)) throw new SelectorParseException('PORT: Root combinator not supported')
-    let left = this.parseSimpleSequence()
+    let left: Evaluator
+    if (this.tq.matchesAny(...Combinators)) {
+      // e.g. query is "> div"; left side is root element
+      left = new Root()
+    } else {
+      left = this.parseSimpleSequence()
+    }
     for (;;) {
       let combinator = ''
       if (this.tq.consumeWhitespace()) combinator = ' ' // maybe descendant?
@@ -7455,9 +7766,36 @@ class QueryParser {
   }
 
   private parseSubclass(): Evaluator | null {
-    if (this.tq.matches('[')) return this.byAttribute()
-    if (this.tq.matchesAny('#', '.', ':')) throw new SelectorParseException(`PORT: selector not supported: ${this.query}`)
-    return null
+    //  Subclass: ID | Class | Attribute | Pseudo
+    if (this.tq.matchChomp('#')) return this.byId()
+    else if (this.tq.matchChomp('.')) return this.byClass()
+    else if (this.tq.matches('[')) return this.byAttribute()
+    else if (this.tq.matchChomp('::')) throw new SelectorParseException(`PORT: node selector not supported: ${this.query}`)
+    else if (this.tq.matchChomp(':')) return this.parsePseudoSelector()
+    else return null
+  }
+
+  private parsePseudoSelector(): Evaluator {
+    const pseudo = this.tq.consumeCssIdentifier()
+    switch (pseudo) {
+      case 'root':
+        return new IsRoot()
+      default:
+        // PORT: seul :root est porté (les autres pseudo-sélecteurs ne sont pas utilisés par Komga)
+        throw new SelectorParseException(`PORT: pseudo selector not supported: :${pseudo}`)
+    }
+  }
+
+  private byId(): Evaluator {
+    const id = this.tq.consumeCssIdentifier()
+    if (id.length === 0) throw new IllegalArgumentException('String must not be empty')
+    return new IdEvaluator(id)
+  }
+
+  private byClass(): Evaluator {
+    const className = this.tq.consumeCssIdentifier()
+    if (className.length === 0) throw new IllegalArgumentException('String must not be empty')
+    return new ClassEvaluator(javaTrim(className))
   }
 
   private static and(left: Evaluator | null, right: Evaluator): Evaluator {
@@ -7508,7 +7846,7 @@ class QueryParser {
 function parseBodyFragment(bodyHtml: string, baseUri: string): Document {
   const doc = Document.createShell(baseUri)
   const body = doc.body()
-  const nodeList = new HtmlTreeBuilder().parseFragment(bodyHtml, body, baseUri)
+  const nodeList = Parser.htmlParser().parseFragmentInput(bodyHtml, body, baseUri)
   body.appendChildren(nodeList)
   return doc
 }
@@ -7634,17 +7972,213 @@ export class Safelist {
 }
 
 export class Parser {
-  private constructor() {}
+  private trackPosition = false
 
+  private constructor(private readonly treeBuilder: TreeBuilder) {}
+
+  /** `parseInput(html, baseUri)` */
+  parseInput(html: string, baseUri: string): Document {
+    return this.treeBuilder.parse(html, baseUri, this)
+  }
+
+  /** `parseFragmentInput(fragment, context, baseUri)` */
+  parseFragmentInput(fragment: string, context: Element | null, baseUri: string): Node[] {
+    return this.treeBuilder.parseFragment(fragment, context, baseUri, this)
+  }
+
+  /** Test if position tracking is enabled. */
+  isTrackPosition(): boolean {
+    return this.trackPosition
+  }
+
+  /** Enable or disable source position tracking. */
+  setTrackPosition(trackPosition: boolean): this {
+    this.trackPosition = trackPosition
+    return this
+  }
+
+  /** Create a new HTML parser. */
+  static htmlParser(): Parser {
+    return new Parser(new HtmlTreeBuilder())
+  }
+
+  /** Create a new XML parser. */
   static xmlParser(): Parser {
-    return new Parser()
+    return new Parser(new XmlTreeBuilder())
   }
 }
 
+// ---------------------------------------------------------------------------
+// helper.DataUtil : lecture d'un InputStream avec détection du jeu de caractères
+// ---------------------------------------------------------------------------
+
+const charsetPattern = /\bcharset=\s*(?:["'])?([^\s,;"']*)/i
+const defaultCharsetName = 'UTF-8' // used if not found in header or meta charset
+const firstReadBufferSize = 1024 * 5
+
+/**
+ * `Charset.isSupported` / `Charset.forName(..).decode` : PORT: jeux de caractères de TextDecoder (WHATWG), plus
+ * ISO-8859-1 / US-ASCII (octet = caractère, comme Java, là où WHATWG lit windows-1252) et UTF-32 (BOM).
+ */
+function decoderFor(charsetName: string): ((bytes: Uint8Array) => string) | null {
+  const cs = charsetName.toLowerCase()
+  if (['iso-8859-1', 'iso8859_1', 'iso_8859_1', 'latin1', 'l1', 'iso8859-1', 'iso_8859-1', 'cp819', 'ibm819', '819', 'csisolatin1', 'iso-ir-100'].includes(cs))
+    return (b) => {
+      let out = ''
+      for (let i = 0; i < b.length; i++) out += String.fromCharCode(b[i] as number)
+      return out
+    }
+  if (['us-ascii', 'ascii', 'iso646-us', 'default', 'ascii7', '646', 'cp367', 'csascii', 'ibm367', 'iso_646.irv:1983', 'iso_646.irv:1991', 'us'].includes(cs))
+    return (b) => {
+      let out = ''
+      for (let i = 0; i < b.length; i++) out += (b[i] as number) < 0x80 ? String.fromCharCode(b[i] as number) : replacementChar
+      return out
+    }
+  if (cs === 'utf-32')
+    return (b) => {
+      // décodeur UTF-32 : BOM consommé, gros-boutiste par défaut
+      let le = false
+      let i = 0
+      if (b[0] === 0x00 && b[1] === 0x00 && b[2] === 0xfe && b[3] === 0xff) i = 4
+      else if (b[0] === 0xff && b[1] === 0xfe && b[2] === 0x00 && b[3] === 0x00) {
+        le = true
+        i = 4
+      }
+      let out = ''
+      for (; i + 3 < b.length; i += 4) {
+        const cp = le
+          ? ((b[i] as number) | ((b[i + 1] as number) << 8) | ((b[i + 2] as number) << 16) | ((b[i + 3] as number) << 24)) >>> 0
+          : (((b[i] as number) << 24) | ((b[i + 1] as number) << 16) | ((b[i + 2] as number) << 8) | (b[i + 3] as number)) >>> 0
+        out += cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : replacementChar
+      }
+      if (i < b.length) out += replacementChar
+      return out
+    }
+  if (cs === 'utf-16')
+    return (b) => {
+      // décodeur UTF-16 : BOM consommé, gros-boutiste par défaut
+      if (b[0] === 0xff && b[1] === 0xfe) return new TextDecoder('utf-16le').decode(b.subarray(2))
+      if (b[0] === 0xfe && b[1] === 0xff) return new TextDecoder('utf-16be', { ignoreBOM: true }).decode(b.subarray(2))
+      return new TextDecoder('utf-16be', { ignoreBOM: true }).decode(b)
+    }
+  try {
+    const decoder = new TextDecoder(cs, { ignoreBOM: true })
+    return (b) => decoder.decode(b)
+  } catch {
+    return null
+  }
+}
+
+function validateCharset(cs: string | null): string | null {
+  if (cs === null || cs.length === 0) return null
+  cs = javaTrim(cs).replace(/["']/g, '')
+  if (decoderFor(cs) !== null) return cs
+  cs = cs.toUpperCase()
+  if (decoderFor(cs) !== null) return cs
+  return null
+}
+
+/** `DataUtil.getCharsetFromContentType` */
+function getCharsetFromContentType(contentType: string | null): string | null {
+  if (contentType === null) return null
+  const m = charsetPattern.exec(contentType)
+  if (m !== null) {
+    let charset = javaTrim(m[1] as string)
+    charset = charset.replace('charset=', '')
+    return validateCharset(charset)
+  }
+  return null
+}
+
+/** `DataUtil.detectCharsetFromBom` : le BOM UTF-8 est consommé, ceux d'UTF-16/32 sont laissés au décodeur */
+function detectCharsetFromBom(bom: Uint8Array): { charset: string; skip: number } | null {
+  if ((bom[0] === 0x00 && bom[1] === 0x00 && bom[2] === 0xfe && bom[3] === 0xff) || (bom[0] === 0xff && bom[1] === 0xfe && bom[2] === 0x00 && bom[3] === 0x00)) {
+    return { charset: 'UTF-32', skip: 0 } // and I hope it's on your system
+  } else if ((bom[0] === 0xfe && bom[1] === 0xff) || (bom[0] === 0xff && bom[1] === 0xfe)) {
+    return { charset: 'UTF-16', skip: 0 } // in all Javas
+  } else if (bom[0] === 0xef && bom[1] === 0xbb && bom[2] === 0xbf) {
+    return { charset: 'UTF-8', skip: 3 } // consume the UTF-8 BOM
+  }
+  return null
+}
+
+const metaCharset = 'meta[http-equiv=content-type], meta[charset]'
+
+/**
+ * `DataUtil.parseInputStream(input, charsetName, baseUri, parser)`.
+ * PORT: le flux est lu en entier ; la détection analyse les 5 premiers Kio décodés en UTF-8, comme jsoup, puis le
+ * document est analysé en entier dans le jeu de caractères retenu (jsoup réutilise l'analyse de détection quand le flux
+ * tient dans le premier tampon : même résultat).
+ */
+function parseInputStream(input: InputStream | null, charsetName: string | null, baseUri: string, parser: Parser): Document {
+  if (input === null) return new Document(NamespaceHtml, baseUri) // empty body
+  let bytes = input.readAllBytes()
+  // read the start of the stream and look for a BOM or meta charset:
+  // look for BOM - overrides any other header or input
+  const bomCharset = detectCharsetFromBom(bytes.subarray(0, 4))
+  if (bomCharset !== null) {
+    charsetName = bomCharset.charset
+    bytes = bytes.subarray(bomCharset.skip)
+  }
+
+  if (charsetName === null) {
+    // read ahead and determine from meta. safe first parse as UTF-8
+    const doc = parser.parseInput(new TextDecoder('utf-8').decode(bytes.subarray(0, firstReadBufferSize)), baseUri)
+
+    // look for <meta http-equiv="Content-Type" content="text/html;charset=gb2312"> or HTML5 <meta charset="gb2312">
+    const metaElements = doc.select(metaCharset)
+    let foundCharset: string | null = null // if not found, will keep utf-8 as best attempt
+    for (const meta of metaElements) {
+      if (meta.hasAttr('http-equiv')) foundCharset = getCharsetFromContentType(meta.attr('content'))
+      if (foundCharset === null && meta.hasAttr('charset')) foundCharset = meta.attr('charset')
+      if (foundCharset !== null) break
+    }
+
+    // look for <?xml encoding='ISO-8859-1'?>
+    if (foundCharset === null && doc.childNodeSize() > 0) {
+      const first = doc.childNodes_[0] as Node
+      let decl: XmlDeclaration | null = null
+      if (first instanceof XmlDeclaration) decl = first
+      else if (first instanceof Comment) {
+        const comment = first
+        if (comment.isXmlDeclaration()) decl = comment.asXmlDeclaration()
+      }
+      if (decl !== null && equalsIgnoreCase(decl.name, 'xml')) {
+        foundCharset = decl.attr('encoding')
+      }
+    }
+    foundCharset = validateCharset(foundCharset)
+    if (foundCharset !== null && !equalsIgnoreCase(foundCharset, defaultCharsetName)) {
+      // need to re-decode. (case-insensitive check here to match how validate works)
+      foundCharset = javaTrim(foundCharset).replace(/["']/g, '')
+      charsetName = foundCharset
+    }
+  } else if (charsetName.length === 0) {
+    // specified by content type header (or by user on file load)
+    throw new IllegalArgumentException('Must set charset arg to character set of file to parse. Set to null to attempt to detect from HTML')
+  }
+
+  // finally: prepare the return struct
+  if (charsetName === null) charsetName = defaultCharsetName
+  const decode = charsetName === defaultCharsetName ? (b: Uint8Array) => new TextDecoder('utf-8', { ignoreBOM: true }).decode(b) : decoderFor(charsetName)
+  // Charset.forName : UnsupportedCharsetException pour un jeu de caractères inconnu
+  if (decode === null) throw new IllegalArgumentException(charsetName)
+  return parser.parseInput(decode(bytes), baseUri)
+}
+
 export const Jsoup = {
-  /** `Jsoup.parse(html, baseUri, Parser.xmlParser())` */
-  parse(html: string, baseUri: string, _parser: Parser): Document {
-    return new XmlTreeBuilder().parse(html, baseUri)
+  /**
+   * PORT: surcharges fusionnées :
+   *  - `Jsoup.parse(String html, String baseUri, Parser parser)` / `Jsoup.parse(String html, Parser parser)` ;
+   *  - `Jsoup.parse(InputStream in, String? charsetName, String baseUri)` (analyseur HTML) /
+   *    `Jsoup.parse(InputStream in, String? charsetName, String baseUri, Parser parser)`.
+   */
+  parse(input: string | InputStream, ...args: (string | Parser | null)[]): Document {
+    if (typeof input === 'string') {
+      if (args.length === 1) return (args[0] as Parser).parseInput(input, '')
+      return (args[1] as Parser).parseInput(input, args[0] as string)
+    }
+    return parseInputStream(input, args[0] as string | null, args[1] as string, (args[2] as Parser | undefined) ?? Parser.htmlParser())
   },
 
   /** `Jsoup.clean(bodyHtml, Safelist.none())` */

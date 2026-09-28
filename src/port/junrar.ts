@@ -28,7 +28,23 @@ const logger = KotlinLogging.logger('com.github.junrar.Archive')
 
 // PORT: async imposé par l'instanciation du module WebAssembly, faite une seule fois au chargement du module
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const unrar: any = await getUnrar()
+const unrar: any = await withoutEmscriptenProcessHandlers(() => getUnrar())
+
+/**
+ * PORT: le module Emscripten de node-unrar-js installe à son initialisation des gestionnaires globaux
+ * `process.on('uncaughtException' | 'unhandledRejection')` qui relancent l'erreur (et tuent le processus) : junrar
+ * n'a aucun effet de ce genre sur la JVM. Les gestionnaires ajoutés pendant l'initialisation sont retirés.
+ */
+async function withoutEmscriptenProcessHandlers<T>(init: () => Promise<T>): Promise<T> {
+  const events = ['uncaughtException', 'unhandledRejection'] as const
+  const before = new Map(events.map((e) => [e, new Set(process.listeners(e))]))
+  try {
+    return await init()
+  } finally {
+    for (const e of events)
+      for (const l of process.listeners(e)) if (!(before.get(e) as Set<unknown>).has(l)) process.removeListener(e, l as (...args: unknown[]) => void)
+  }
+}
 
 export class RarException extends Exception {}
 export class WrongPasswordException extends RarException {}

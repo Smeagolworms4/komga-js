@@ -42,10 +42,10 @@ describe('BookDaoTest', () => {
     expect(bookDao.count()).toBe(0)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     seriesRepository.deleteAll()
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a book when inserting then it is persisted', () => {

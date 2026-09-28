@@ -57,12 +57,12 @@ describe('ReadProgressDaoTest', () => {
     readProgressDao.deleteAll()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     userRepository.deleteAll()
     bookRepository.deleteAll()
     seriesRepository.deleteAll()
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given book without user progress when saving progress then progress is saved', () => {

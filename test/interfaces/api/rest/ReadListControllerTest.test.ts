@@ -59,11 +59,11 @@ describe('ReadListControllerTest', () => {
     seriesLifecycle.addBooks(seriesLib2, booksLibrary2)
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     for (const it of libraryRepository.findAll()) {
       libraryLifecycle.deleteLibrary(it)
     }
-    closeContext(ctx)
+    await closeContext(ctx)
     for (const d of tempDirs) rmSync(d, { recursive: true, force: true })
   })
 

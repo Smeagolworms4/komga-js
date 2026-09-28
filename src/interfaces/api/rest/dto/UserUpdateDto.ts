@@ -1,7 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/UserUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { AllowExclude } from '../../../../domain/model/AgeRestriction.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
-import { DataClass, IllegalArgumentException, KEnum } from '../../../../port/kotlin.js'
+import { DataClass, IllegalArgumentException, KEnum, NoWhenBranchMatchedException } from '../../../../port/kotlin.js'
 import { PositiveOrZero, Valid, constraints } from '../../../../port/validation.js'
 
 type UserUpdateDtoParams = {
@@ -118,7 +118,7 @@ export class AllowExcludeDto extends KEnum {
         throw new IllegalArgumentException()
     }
     // PORT: when exhaustif
-    throw new Error(`Unknown ${this}`)
+    throw new NoWhenBranchMatchedException()
   }
 }
 

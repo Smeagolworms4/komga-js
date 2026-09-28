@@ -26,7 +26,7 @@ import { epub } from '../../infrastructure/mediacontainer/epub/Epub.js'
 import { PdfExtractor } from '../../infrastructure/mediacontainer/pdf/PdfExtractor.js'
 import { ByteArrayOutputStream, ImageIO } from '../../port/imageio-codecs.js'
 import { ByteArrayInputStream } from '../../port/java-io.js'
-import { IllegalArgumentException, IndexOutOfBoundsException, NoSuchElementException, filterNotNull, isBlank, isNullOrBlank, nn, partition } from '../../port/kotlin.js'
+import { IllegalArgumentException, IndexOutOfBoundsException, NoSuchElementException, NoWhenBranchMatchedException, filterNotNull, isBlank, isNullOrBlank, nn, partition } from '../../port/kotlin.js'
 import { AccessDeniedException, NoSuchFileException, extension, translateNodeError } from '../../port/kotlin-io-path.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { type Token, component } from '../../port/spring.js'
@@ -84,7 +84,7 @@ export class BookAnalyzer {
           media = this.analyzeEpub(book, analyzeDimensions)
           break
         default:
-          throw new Error('unreachable')
+          throw new NoWhenBranchMatchedException()
       }
       result = media.copy({ mediaType: mediaType.type })
     } catch (e) {

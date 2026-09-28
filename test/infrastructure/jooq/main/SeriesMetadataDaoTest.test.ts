@@ -45,9 +45,9 @@ describe('SeriesMetadataDaoTest', () => {
     seriesRepository.deleteAll()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a seriesMetadata when inserting then it is persisted', () => {

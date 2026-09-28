@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { EpubTocEntry } from '../../../../src/domain/model/EpubTocEntry.js'
 import { processOpfGuide } from '../../../../src/infrastructure/mediacontainer/epub/Opf.js'
 import { pathsGet } from '../../../../src/port/java-nio-file.js'
-import { Jsoup, Parser } from '../../../../src/port/jsoup.js'
+import { Jsoup, Parser } from '../../../../src/port/jsoup-parser.js'
 import { isBlank } from '../../../../src/port/kotlin.js'
 
 describe('OpfTest', () => {

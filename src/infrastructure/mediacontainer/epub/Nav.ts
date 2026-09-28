@@ -2,7 +2,7 @@
 import { EpubTocEntry } from '../../../domain/model/EpubTocEntry.js'
 import { urlDecode } from '../../../port/java-net-urldecoder.js'
 import { pathParent } from '../../../port/java-nio-file.js'
-import { type Element, Jsoup, Parser } from '../../../port/jsoup.js'
+import { type Element, Jsoup, Parser } from '../../../port/jsoup-parser.js'
 import { firstOrNull, mapNotNull } from '../../../port/kotlin.js'
 import { getEntryBytes } from '../../util/ZipFileUtils.js'
 import type { EpubPackage } from './Epub.js'
@@ -25,7 +25,7 @@ export function processNav(document: ResourceContent, navElement: Epub3Nav): Epu
   const nav = firstOrNull(
     doc.select('nav'),
     // Jsoup selectors cannot find an attribute with namespace
-    (it) => it.attributes().some((attr) => attr.key.endsWith('type') && attr.value === navElement.value),
+    (it) => it.attributes().asList().some((attr) => attr.getKey().endsWith('type') && attr.getValue() === navElement.value),
   )
   return nav !== null ? mapNotNull(nav.select(':root > ol > li'), (it) => navLiElementToTocEntry(it, pathParent(document.path))) : []
 }

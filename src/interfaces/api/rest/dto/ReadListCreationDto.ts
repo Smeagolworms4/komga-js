@@ -1,5 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/ReadListCreationDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
+import { registerClass } from '../../../../port/jackson.js'
 import { DataClass } from '../../../../port/kotlin.js'
 import { NotBlank, NotEmpty, UniqueElements, constraints } from '../../../../port/validation.js'
 
@@ -30,3 +31,4 @@ constraints(ReadListCreationDto, {
   bookIds: [NotEmpty(), UniqueElements()],
 })
 jsonProperties(ReadListCreationDto, { name: 'String', summary: 'String', ordered: 'Boolean', bookIds: { list: 'String' } }, [], { required: ['name', 'bookIds'] })
+registerClass('org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto', ReadListCreationDto)

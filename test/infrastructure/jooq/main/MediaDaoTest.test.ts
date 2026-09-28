@@ -65,11 +65,11 @@ describe('MediaDaoTest', () => {
     })
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     bookRepository.deleteAll()
     seriesRepository.deleteAll()
     libraryRepository.deleteAll()
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   it('given a media when inserting then it is persisted', () => {

@@ -165,11 +165,11 @@ describe('LibraryContentLifecycleTest', () => {
     every(() => mockTaskEmitter.refreshSeriesMetadata(any())).justRuns()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
     userRepository.findAll().forEach((it) => {
       userLifecycle.deleteUser(it)
     })
-    closeContext(ctx)
+    await closeContext(ctx)
   })
 
   afterEach(() => {

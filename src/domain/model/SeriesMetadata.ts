@@ -2,6 +2,7 @@
 import { LocalDateTime } from '@js-joda/core'
 import { lowerNotBlank } from '../../language/LanguageUtils.js'
 import { trim } from '../../port/extra-metadata.js'
+import { registerClass } from '../../port/jackson.js'
 import { KEnum, distinctSet, str } from '../../port/kotlin.js'
 import type { AlternateTitle } from './AlternateTitle.js'
 import type { Auditable } from './Auditable.js'
@@ -231,3 +232,5 @@ export namespace SeriesMetadata {
     static readonly WEBTOON = new ReadingDirection('WEBTOON')
   }
 }
+
+registerClass('org.gotson.komga.domain.model.SeriesMetadata$Status', SeriesMetadata.Status as never)
