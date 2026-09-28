@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/UserController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { nn } from '../../../port/kotlin.js'
 import { AgeRestriction } from '../../../domain/model/AgeRestriction.js'
 import { ContentRestrictions } from '../../../domain/model/ContentRestrictions.js'
 import { DuplicateNameException, UserEmailAlreadyExistsException } from '../../../domain/model/Exceptions.js'
@@ -170,12 +171,12 @@ export class UserController {
     if (existing !== null) {
       const updatedUser = ((it: UserUpdateDto) =>
         existing.copy({
-          roles: it.isSet('roles') ? UserRoles.valuesOf(it.roles as ReadonlySet<string>) : existing.roles,
-          sharedAllLibraries: it.isSet('sharedLibraries') ? (it.sharedLibraries as NonNullable<UserUpdateDto['sharedLibraries']>).all : existing.sharedAllLibraries,
+          roles: it.isSet('roles') ? UserRoles.valuesOf(nn(it.roles)) : existing.roles,
+          sharedAllLibraries: it.isSet('sharedLibraries') ? nn(it.sharedLibraries).all : existing.sharedAllLibraries,
           sharedLibrariesIds: it.isSet('sharedLibraries')
-            ? (it.sharedLibraries as NonNullable<UserUpdateDto['sharedLibraries']>).all
+            ? nn(it.sharedLibraries).all
               ? new Set()
-              : new Set(this.libraryRepository.findAllByIds((it.sharedLibraries as NonNullable<UserUpdateDto['sharedLibraries']>).libraryIds).map((it) => it.id))
+              : new Set(this.libraryRepository.findAllByIds(nn(it.sharedLibraries).libraryIds).map((it) => it.id))
             : existing.sharedLibrariesIds,
           restrictions: new ContentRestrictions({
             ageRestriction: it.isSet('ageRestriction')

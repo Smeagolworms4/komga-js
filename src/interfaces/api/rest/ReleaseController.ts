@@ -2,7 +2,7 @@
 import { LRUCache } from 'lru-cache'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { ObjectMapper } from '../../../port/jackson-mapper.js'
-import { HttpStatus, MediaType, ResponseStatusException, WebClientResponseException, restController } from '../../../port/spring-web.js'
+import { HttpStatus, MediaType, DecodingException, ResponseStatusException, WebClientResponseException, restController } from '../../../port/spring-web.js'
 import { GithubReleaseDto } from './dto/GithubReleaseDto.js'
 import { ReleaseDto } from './dto/ReleaseDto.js'
 
@@ -57,9 +57,14 @@ export class ReleaseController {
     const url = `${this.webClient.baseUrl}?per_page=20`
     const response = await fetch(url)
     // retrieve() : WebClientResponseException pour un statut 4xx / 5xx
-    if (!response.ok) throw new WebClientResponseException(`${response.status} ${response.statusText} from GET ${url}`)
+    if (!response.ok) throw WebClientResponseException.create(response.status, 'GET', url)
     const body = await response.text()
-    return (body.length > 0 ? this.objectMapper.readValue<GithubReleaseDto[] | null>(body, { list: { class: GithubReleaseDto } }) : null) ?? []
+    // PORT: Jackson2JsonDecoder : une erreur de lecture devient une DecodingException ; un corps vide donne null
+    try {
+      return (body.length > 0 ? this.objectMapper.readValue<GithubReleaseDto[] | null>(body, { list: { class: GithubReleaseDto } }) : null) ?? []
+    } catch (e) {
+      throw new DecodingException(`JSON decoding error: ${(e as Error).message}`, e)
+    }
   }
 }
 
