@@ -1,0 +1,25 @@
+{"file":"not-a-rar.rar","error":"BadRarArchiveException"}
+{"file":"r4-bad-file-crc.rar","entries":[{"name":"a.png","mediaType":"application/octet-stream","fileSize":3108,"comment":null,"len":0,"crc":0},{"name":"b.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-bad-main-crc.rar","entries":[{"name":"a.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-badcrc.rar","entries":[{"name":"a.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":3965283031},{"name":"b.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-dirs.rar","entries":[{"name":"dir\\sub\\p 2.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"dir\\sub\\p 10.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"notes.txt","mediaType":"text/plain","fileSize":12,"comment":null,"len":12,"crc":2936552237},{"name":"root.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-dups.rar","entries":[{"name":"a.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"a.png","mediaType":"text/plain","fileSize":10,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-empty-entry.rar","entries":[{"name":"a.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"empty.bin","mediaType":"application/octet-stream","fileSize":0,"comment":null,"len":0,"crc":0}]}
+{"file":"r4-encfile.rar","unsupported":"ERR_1002"}
+{"file":"r4-future-version.rar","error":"UnsupportedRarVersionException"}
+{"file":"r4-latin1name.rar","entries":[{"name":"café.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-marker-only.rar","error":"MainHeaderNullException"}
+{"file":"r4-multivolume.rar","unsupported":"ERR_1004"}
+{"file":"r4-truncated-data.rar","entries":[{"name":"a.png","mediaType":"application/octet-stream","fileSize":3108,"comment":null,"len":0,"crc":0}]}
+{"file":"r4-truncated-header.rar","error":"CorruptHeaderException"}
+{"file":"r4-unix-slash.rar","entries":[{"name":"dir/p1.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r4-utf8name.rar","entries":[{"name":"é/ü 1.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"日本.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"r5-solid-truncated.rar","entries":[{"name":"komga-1.png","mediaType":"application/octet-stream","fileSize":3108,"comment":null,"len":0,"crc":0}]}
+{"file":"r5-truncated-tail.rar","entries":[{"name":"komga.png","mediaType":"application/octet-stream","fileSize":3108,"comment":null,"len":0,"crc":0}]}
+{"file":"r5-truncated.rar","entries":[{"name":"komga.png","mediaType":"application/octet-stream","fileSize":3108,"comment":null,"len":0,"crc":0}]}
+{"file":"rar4-encrypted.rar","unsupported":"ERR_1002"}
+{"file":"rar4-solid.rar","entries":[{"name":"komga-1.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-2.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-3.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"rar4.rar","entries":[{"name":"komga-1.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-2.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-3.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"rar5-encrypted.rar","unsupported":"ERR_1002"}
+{"file":"rar5-solid.rar","entries":[{"name":"komga-1.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-2.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955},{"name":"komga-3.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}
+{"file":"rar5.rar","entries":[{"name":"komga.png","mediaType":"image/png","fileSize":3108,"comment":null,"len":3108,"crc":796688955}]}

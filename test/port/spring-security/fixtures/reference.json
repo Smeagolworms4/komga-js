@@ -1,0 +1,950 @@
+{
+  "anonymous api request creates a session (request cache) and returns basic challenge": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "anonymous api request accepting json does not create a session": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "anonymous api request accepting html falls back to the OPDS entry point": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "link": "<<base>/opds/v2/auth>; rel=\"http://opds-spec.org/auth/document\"; type=\"application/opds-authentication+json\"",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/opds-authentication+json;charset=UTF-8"
+      },
+      "body": {
+        "authentication": [
+          {
+            "type": "http://opds-spec.org/auth/basic",
+            "labels": {
+              "login": "Email",
+              "password": "Password"
+            }
+          }
+        ],
+        "title": "Komga",
+        "id": "<base>/opds/v2/auth",
+        "description": "Enter your email and password to authenticate.",
+        "links": [
+          {
+            "rel": "help",
+            "href": "https://komga.org"
+          },
+          {
+            "rel": "logo",
+            "href": "<base>/android-chrome-512x512.png"
+          }
+        ]
+      }
+    }
+  ],
+  "anonymous XMLHttpRequest gets basic challenge": [
+    {
+      "status": 401,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      },
+      "body": ""
+    }
+  ],
+  "anonymous OPDS v2 request gets the OPDS authentication document": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "link": "<<base>/opds/v2/auth>; rel=\"http://opds-spec.org/auth/document\"; type=\"application/opds-authentication+json\"",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/opds-authentication+json;charset=UTF-8"
+      },
+      "body": {
+        "authentication": [
+          {
+            "type": "http://opds-spec.org/auth/basic",
+            "labels": {
+              "login": "Email",
+              "password": "Password"
+            }
+          }
+        ],
+        "title": "Komga",
+        "id": "<base>/opds/v2/auth",
+        "description": "Enter your email and password to authenticate.",
+        "links": [
+          {
+            "rel": "help",
+            "href": "https://komga.org"
+          },
+          {
+            "rel": "logo",
+            "href": "<base>/android-chrome-512x512.png"
+          }
+        ]
+      }
+    }
+  ],
+  "anonymous OPDS v1 request gets basic challenge": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/opds/v1.2/catalog"
+      }
+    }
+  ],
+  "valid basic credentials create a session cookie": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    }
+  ],
+  "invalid basic credentials return 401 and cancel remember-me": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "unknown user returns 401": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "malformed basic header returns 401": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "remember-me parameter returns a remember-me cookie usable for login": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=<token>; Max-Age=31536000; Expires=<date>; Path=/; HttpOnly",
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    }
+  ],
+  "invalid remember-me cookie is cancelled": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "X-Auth-Token header session, reuse and exchange for a cookie": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "x-auth-token": "<uuid>"
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 204,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "logout with header session": [
+    {
+      "status": 204,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "x-auth-token": "",
+        "set-cookie": [
+          "KOMGA-SESSION=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ]
+      },
+      "body": ""
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "logout with cookie session (POST, as the webui)": [
+    {
+      "status": 204,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "KOMGA-SESSION=; Max-Age=0; Expires=Thu, 1 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      },
+      "body": ""
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "logout without session": [
+    {
+      "status": 204,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ]
+      },
+      "body": ""
+    }
+  ],
+  "api key authentication": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    }
+  ],
+  "invalid api key": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "kobo url token": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "DENY",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "DENY",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/kobo/bad-token/v1/user/profile"
+      }
+    }
+  ],
+  "koreader header token": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "DENY",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    },
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "DENY",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/koreader/users/auth"
+      }
+    },
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "DENY",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/koreader/users/create"
+      }
+    }
+  ],
+  "admin endpoint is forbidden to a regular user": [
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/api/v2/users"
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    }
+  ],
+  "expired session after sessions are expired for the user": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "x-auth-token": "",
+        "set-cookie": [
+          "KOMGA-SESSION=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/",
+          "komga-remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/"
+        ]
+      },
+      "body": "This session has been expired (possibly due to multiple concurrent logins being attempted as the same user)."
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/api/v2/users/me"
+      }
+    }
+  ],
+  "actuator endpoints": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/actuator/info"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/actuator"
+      }
+    },
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/actuator/info"
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    }
+  ],
+  "firewall rejects malicious urls": [
+    {
+      "status": 400,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 400,
+        "error": "Bad Request",
+        "message": "No message available",
+        "path": "/api/v1/books;x"
+      }
+    },
+    {
+      "status": 400,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 400,
+        "error": "Bad Request",
+        "message": "No message available",
+        "path": "/api/v1//books"
+      }
+    },
+    {
+      "status": 400,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 400,
+        "error": "Bad Request",
+        "message": "No message available",
+        "path": "/api/v1/books%25"
+      }
+    },
+    {
+      "status": 400,
+      "headers": {
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 400,
+        "error": "Bad Request",
+        "message": "No message available",
+        "path": "/api/v1/%2e%2e/x"
+      }
+    }
+  ],
+  "oauth2 endpoints without client registrations": [
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 401,
+        "error": "Unauthorized",
+        "message": "Unauthorized",
+        "path": "/oauth2/authorization/foo"
+      }
+    },
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ],
+        "content-type": "application/json"
+      },
+      "body": {
+        "timestamp": "<timestamp>",
+        "status": 403,
+        "error": "Forbidden",
+        "message": "Forbidden",
+        "path": "/login/oauth2/code/foo"
+      }
+    }
+  ],
+  "cors without allowed origins: pre-flight rejected, simple requests unchanged": [
+    {
+      "status": 403,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      },
+      "body": "Invalid CORS request"
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
+        "set-cookie": [
+          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
+        ]
+      }
+    }
+  ],
+  "permitted endpoints are reachable anonymously": [
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 200,
+      "headers": {
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    }
+  ]
+}

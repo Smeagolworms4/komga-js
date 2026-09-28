@@ -55,10 +55,9 @@ export class Environment {
     const explicit = new Map<string, unknown>()
     flatten(opts.properties ?? {}, '', explicit)
     this.sources.push(explicit)
-    // 2. variables d'environnement (KOMGA_DATABASE_FILE -> komga.database.file)
-    const envMap = new Map<string, unknown>()
-    for (const [k, v] of Object.entries(env)) envMap.set(canonicalKey(k.replaceAll('_', '.')), v)
-    this.sources.push(envMap)
+    // 2. variables d'environnement : SystemEnvironmentPropertyMapper de Spring Boot. Une propriété
+    // komga.cors.allowed-origins est cherchée sous KOMGA_CORS_ALLOWEDORIGINS puis, forme historique, KOMGA_CORS_ALLOWED_ORIGINS
+    this.env = new Map(Object.entries(env).map(([k, v]) => [k.toUpperCase(), v]))
     // 3. propriétés système Java utilisées par Komga
     this.sources.push(
       new Map<string, unknown>([
@@ -82,9 +81,16 @@ export class Environment {
     this.sources.push(m)
   }
 
+  private readonly env: Map<string, unknown>
+
   private raw(key: string): unknown {
     const k = canonicalKey(key)
-    for (const s of this.sources) if (s.has(k)) return s.get(k)
+    // priorité : propriétés explicites, puis environnement, puis le reste
+    const [explicit, ...rest] = this.sources
+    if (explicit?.has(k)) return explicit.get(k)
+    for (const envName of [key.toUpperCase().replaceAll('-', '').replaceAll('.', '_'), key.toUpperCase().replaceAll('-', '_').replaceAll('.', '_')])
+      if (this.env.has(envName)) return this.env.get(envName)
+    for (const s of rest) if (s.has(k)) return s.get(k)
     return undefined
   }
 
@@ -107,6 +113,8 @@ export class Environment {
     const p = `${canonicalKey(prefix)}.`
     const keys = new Set<string>()
     for (const s of this.sources) for (const k of s.keys()) if (k.startsWith(p)) keys.add(k)
+    const envPrefix = prefix.toUpperCase().replaceAll('-', '').replaceAll('.', '_') + '_'
+    for (const k of this.env.keys()) if (k.startsWith(envPrefix)) keys.add(canonicalKey(k.replaceAll('_', '.')))
     return [...keys]
   }
 

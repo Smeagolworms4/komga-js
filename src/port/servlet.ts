@@ -230,7 +230,7 @@ export class HttpServletRequest {
 
   get remoteAddr(): string {
     // ForwardedHeaderFilter ne modifie pas remoteAddr ; RemoteIpValve n'est pas activé en mode framework
-    return this.raw.socket.remoteAddress ?? ''
+    return javaHostAddress(this.raw.socket.remoteAddress ?? '')
   }
 
   getInputStream(): Readable {
@@ -272,7 +272,6 @@ export function decodeURIComponentSafe(s: string): string {
 export class HttpServletResponse {
   status = 200
   private readonly headers = new Map<string, string[]>()
-  private readonly cookieHeaders: string[] = []
   private committed = false
   /** Hooks exécutés juste avant l'envoi des en-têtes (SessionRepositoryFilter, en-têtes de sécurité…) */
   readonly beforeCommit: (() => void)[] = []
@@ -318,7 +317,9 @@ export class HttpServletResponse {
   }
 
   addCookie(c: Cookie): void {
-    this.cookieHeaders.push(c.toHeader())
+    // comme Tomcat : addCookie = addHeader("Set-Cookie"), dans l'ordre avec les Set-Cookie écrits directement
+    // (DefaultCookieSerializer de Spring Session)
+    this.addHeader('Set-Cookie', c.toHeader())
   }
 
   get isCommitted(): boolean {
@@ -331,7 +332,6 @@ export class HttpServletResponse {
     for (const h of this.beforeCommit.splice(0)) h()
     this.committed = true
     for (const [k, v] of this.headers) this.raw.setHeader(canonicalHeaderName(k), v.length === 1 ? (v[0] as string) : v)
-    if (this.cookieHeaders.length) this.raw.setHeader('Set-Cookie', this.cookieHeaders)
     this.raw.statusCode = this.status
   }
 
@@ -418,4 +418,23 @@ export function buildFilterChain(
     },
   })
   return at(0)
+}
+
+/**
+ * `InetAddress.getHostAddress()` : IPv6 en 8 groupes hexadécimaux non compressés ("0:0:0:0:0:0:0:1"),
+ * IPv4 mappée ("::ffff:1.2.3.4") rendue en IPv4 comme le fait Java.
+ */
+export function javaHostAddress(addr: string): string {
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(addr)
+  if (mapped) return mapped[1] as string
+  if (!addr.includes(':')) return addr
+  const [head, tail] = addr.split('%') as [string, string | undefined]
+  let groups: string[]
+  if (head.includes('::')) {
+    const [l, r] = head.split('::') as [string, string]
+    const left = l ? l.split(':') : []
+    const right = r ? r.split(':') : []
+    groups = [...left, ...Array(8 - left.length - right.length).fill('0'), ...right]
+  } else groups = head.split(':')
+  return groups.map((g) => parseInt(g, 16).toString(16)).join(':') + (tail !== undefined ? `%${tail}` : '')
 }

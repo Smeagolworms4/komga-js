@@ -1,0 +1,21 @@
+{"file":"enc-owner-rc4.pdf","pages":[["1",612,792,400,518],["2",612,792,400,518],["3",612,792,400,518],["4",612,792,400,518],["5",1000,10,40000,400]],"pagesNoDim":["1:null","2:null","3:null","4:null","5:null"],"images":["image/jpeg 400x517","image/jpeg 517x400","image/jpeg 517x400","image/jpeg 400x517","image/jpeg 40000x400"],"pdf":"application/pdf [Dimension(width=612, height=792)]"}
+{"file":"enc-owner.pdf","pages":[["1",595,842,400,566],["2",595,842,400,566],["3",290,380,400,524],["4",595,842,400,566],["5",612,792,400,518],["6",101,201,400,796],["7",99,51,776,400]],"pagesNoDim":["1:null","2:null","3:null","4:null","5:null","6:null","7:null"],"images":["image/jpeg 400x565","image/jpeg 565x400","image/jpeg 400x524","image/jpeg 400x565","image/jpeg 400x517","image/jpeg 400x798","image/jpeg 788x400"],"pdf":"application/pdf [Dimension(width=595, height=842)]"}
+{"file":"enc-user.pdf","error":"InvalidPasswordException"}
+{"file":"inherited.pdf","pages":[["1",595,842,400,566],["2",595,842,400,566],["3",290,380,400,524],["4",595,842,400,566],["5",612,792,400,518],["6",101,201,400,796],["7",99,51,776,400]],"pagesNoDim":["1:null","2:null","3:null","4:null","5:null","6:null","7:null"],"images":["image/jpeg 400x565","image/jpeg 565x400","image/jpeg 400x524","image/jpeg 400x565","image/jpeg 400x517","image/jpeg 400x798","image/jpeg 788x400"],"pdf":"application/pdf [Dimension(width=595, height=842)]"}
+{"file":"komga.pdf","pages":[["1",512,512,400,400]],"pagesNoDim":["1:null"],"images":["image/jpeg 400x400"],"pdf":"application/pdf [Dimension(width=512, height=512)]"}
+{"file":"no-xref.pdf","pages":[["1",595,842,400,566],["2",595,842,400,566],["3",290,380,400,524],["4",595,842,400,566],["5",612,792,400,518],["6",101,201,400,796],["7",99,51,776,400]],"pagesNoDim":["1:null","2:null","3:null","4:null","5:null","6:null","7:null"],"images":["image/jpeg 400x565","image/jpeg 565x400","image/jpeg 400x524","image/jpeg 400x565","image/jpeg 400x517","image/jpeg 400x798","image/jpeg 788x400"],"pdf":"application/pdf [Dimension(width=595, height=842)]"}
+{"file":"nomediabox.pdf","pages":[["1",612,792,400,518],["2",612,792,400,518],["3",612,792,400,518],["4",612,792,400,518],["5",1000,10,40000,400]],"pagesNoDim":["1:null","2:null","3:null","4:null","5:null"],"images":["image/jpeg 400x517","image/jpeg 517x400","image/jpeg 517x400","image/jpeg 400x517","image/jpeg 40000x400"],"pdf":"application/pdf [Dimension(width=612, height=792)]"}
+{"file":"not-a-pdf.pdf","error":"IOException"}
+{"file":"rotate-inherited.pdf","pages":[["1",300,500,400,667],["2",200,100,800,400]],"pagesNoDim":["1:null","2:null"],"images":["image/jpeg 400x666","image/jpeg 400x800"],"pdf":"application/pdf [Dimension(width=300, height=500)]"}
+{"file":"weird-0.pdf","pages":[["1",-100,-100,400,400]],"pagesNoDim":["1:null"],"images":["image/jpeg 400x400"],"pdf":"application/pdf [Dimension(width=0, height=0)]"}
+{"file":"weird-1.pdf","error":"IllegalArgumentException"}
+{"file":"weird-10.pdf","pages":[["1",400,600,400,600]],"pagesNoDim":["1:null"],"images":["image/jpeg 400x600"],"pdf":"application/pdf [Dimension(width=400, height=600)]"}
+{"file":"weird-2.pdf","error":"IllegalArgumentException"}
+{"file":"weird-3.pdf","pages":[["1",400,600,400,600]],"pagesNoDim":["1:null"],"images":["image/jpeg 400x600"],"pdf":"application/pdf [Dimension(width=400, height=600)]"}
+{"file":"weird-4.pdf","error":"IllegalArgumentException"}
+{"file":"weird-5.pdf","pages":[["1",1000,5,80000,400]],"pagesNoDim":["1:null"],"images":["EXC IIOException"],"pdf":"application/pdf [Dimension(width=1000, height=5)]"}
+{"file":"weird-6.pdf","pages":[["1",1,1,400,400]],"pagesNoDim":["1:null"],"images":["image/jpeg 400x400"],"pdf":"application/pdf [Dimension(width=1, height=1)]"}
+{"file":"weird-7.pdf","pages":[["1",100000,20,2000000,400]],"pagesNoDim":["1:null"],"images":["EXC IIOException"],"pdf":"application/pdf [Dimension(width=100000, height=20)]"}
+{"file":"weird-8.pdf","pages":[["1",400,600,400,600]],"pagesNoDim":["1:null"],"images":["image/jpeg 600x400"],"pdf":"application/pdf [Dimension(width=400, height=600)]"}
+{"file":"weird-9.pdf","pages":[["1",400,600,400,600]],"pagesNoDim":["1:null"],"images":["image/jpeg 600x400"],"pdf":"application/pdf [Dimension(width=400, height=600)]"}
+{"file":"weird-boxes.pdf","error":"IllegalArgumentException"}
