@@ -44,7 +44,9 @@ the web server keeps answering during a scan (10 ms median, 45 ms at the 99th pe
 measured during a scan); the worker adds about 60–100 MB while it runs and stops after 60 s
 without tasks. The benchmarks are `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`;
 run them on your own library. In a container, each thread's V8 heap is capped at 40 % of the
-memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly);
+memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_IMAGE_THREADS` sets the number of native
+libvips threads per image operation (default 1, the lowest memory; 2–4 make thumbnails and
+conversions faster; 0 lets libvips use every core);
 `KOMGAJS_TASK_WORKER=false` runs the tasks on the main thread.
 
 ## Features

@@ -46,7 +46,7 @@ thread, comme le pool de tâches de Komga : le serveur web continue de répondre
 100 Mo pendant qu'il tourne et s'arrête après 60 s sans tâche. Les bancs d'essai sont
 `tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ; lancez-les sur votre propre
 bibliothèque. Dans un conteneur, le tas V8 de chaque thread est limité à 40 % de la mémoire
-allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_TASK_WORKER=false`
+allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS` fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de mémoire ; 2 à 4 accélèrent miniatures et conversions ; 0 laisse libvips utiliser tous les cœurs) ; `KOMGAJS_TASK_WORKER=false`
 exécute les tâches dans le thread principal.
 
 ## Fonctionnalités
