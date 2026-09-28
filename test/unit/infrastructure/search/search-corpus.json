@@ -1,0 +1,572 @@
+{
+ "texts": [
+  "",
+  " ",
+  "Batman",
+  "Batman: Year One",
+  "BATMAN year one 1987",
+  "Spider-Man",
+  "spider_man",
+  "O'Neil's",
+  "l'été",
+  "L'Été meurtrier",
+  "Ça marche – très bien",
+  "Straße",
+  "ﬁnal ﬂow",
+  "Ærøskøbing",
+  "Łódź",
+  "Œuvre",
+  "été",
+  "Ｆｕｌｌｗｉｄｔｈ ＡＢＣ １２３",
+  "ｶﾀｶﾅ ﾃｽﾄ",
+  "進撃の巨人",
+  "進撃の巨人 1",
+  "東京大学",
+  "ひらがなテキスト",
+  "カタカナ",
+  "한국어 텍스트",
+  "中文字符串测试",
+  "ไทย ภาษา",
+  "Ελληνικά ΚΕΙΜΕΝΟ",
+  "Русский Текст",
+  "العربية نص",
+  "עברית",
+  "😀 emoji 🎉 test",
+  "𝔘𝔫𝔦𝔠𝔬𝔡𝔢",
+  "a‍b",
+  "1.5",
+  "3,000",
+  "v1.2.3",
+  "#1",
+  "C++ & C#",
+  "vol.01",
+  "01",
+  "2020-01-02",
+  "john.doe@example.com",
+  "https://komga.org/docs?x=1",
+  "hello world  multiple   spaces",
+  "tab\tseparated\nlines",
+  "under_score and-hyphen",
+  "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "ab",
+  "a",
+  "abc",
+  "abcdefghijklmnopqrstuvwxyz",
+  "Mixed中文And日本語",
+  "ǅemal",
+  "İstanbul",
+  "ΣΑΣ"
+ ],
+ "queries": [
+  null,
+  "",
+  " ",
+  "batman",
+  "Batman",
+  "BATMAN",
+  "bat",
+  "ba",
+  "man",
+  "batman robin",
+  "title:batman",
+  "isbn:9781401207526",
+  "9781401207526",
+  "tag:superhero",
+  "author:miller",
+  "writer:\"frank miller\"",
+  "penciller:sale",
+  "cover:adams",
+  "release_date:1987",
+  "release_date:[1990 TO 2010]",
+  "deleted:true",
+  "oneshot:true",
+  "status:ready",
+  "status:error",
+  "\"year one\"",
+  "bat*",
+  "b?tman",
+  "batman AND robin",
+  "batman OR spider",
+  "batman -robin",
+  "NOT batman",
+  "(",
+  ")",
+  "[",
+  "title:",
+  "*",
+  "*:*",
+  "~",
+  "batman~",
+  "batmn~1",
+  "進撃",
+  "巨人",
+  "進撃の巨人",
+  "été",
+  "ete",
+  "l'été",
+  "meurtrier",
+  "Spider-Man",
+  "spider man",
+  "spider",
+  "complete:true",
+  "complete:false",
+  "age_rating:13",
+  "age_rating:[10 TO 18]",
+  "book_count:3",
+  "total_book_count:40",
+  "publisher:dc",
+  "publisher:\"dc comics\"",
+  "genre:action",
+  "series_tag:superhero",
+  "book_tag:dark",
+  "sharing_label:kids",
+  "language:fr",
+  "language:fr-fr",
+  "reading_direction:right_to_left",
+  "status:ongoing",
+  "asterix",
+  "astérix",
+  "Attack on Titan",
+  "dark knight",
+  "best",
+  "Été 2020",
+  "マンガ",
+  "reading order",
+  "crisis",
+  "ordre",
+  "日本語",
+  "fullwidth",
+  "ｆｕｌｌｗｉｄｔｈ",
+  "strasse",
+  "straße",
+  "o'neil",
+  "green lantern",
+  "green/arrow",
+  "42",
+  "numéro",
+  "ça",
+  "a",
+  "zzzz",
+  "title:(batman OR spider)",
+  "+batman +robin",
+  "batman^2 robin",
+  "\"batman robin\"~2",
+  "type:book",
+  "book_id:B1"
+ ],
+ "books": [
+  {
+   "id": "B1",
+   "seriesId": "S1",
+   "title": "Batman: Year One",
+   "isbn": "9781401207526",
+   "tags": [
+    "superhero",
+    "dark"
+   ],
+   "authors": [
+    [
+     "Frank Miller",
+     "writer"
+    ],
+    [
+     "David Mazzucchelli",
+     "penciller"
+    ]
+   ],
+   "releaseDate": "1987-02-01",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B2",
+   "seriesId": "S1",
+   "title": "Batman & Robin",
+   "isbn": "",
+   "tags": [
+    "superhero"
+   ],
+   "authors": [
+    [
+     "Grant Morrison",
+     "writer"
+    ]
+   ],
+   "releaseDate": "2009-06-03",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B3",
+   "seriesId": "S3",
+   "title": "L'Été meurtrier",
+   "isbn": "",
+   "tags": [
+    "roman"
+   ],
+   "authors": [
+    [
+     "Sébastien Japrisot",
+     "writer"
+    ]
+   ],
+   "releaseDate": null,
+   "status": "ERROR",
+   "deleted": true,
+   "oneshot": false
+  },
+  {
+   "id": "B4",
+   "seriesId": "S2",
+   "title": "Spider-Man: Blue",
+   "isbn": "",
+   "tags": [],
+   "authors": [
+    [
+     "Jeph Loeb",
+     "writer"
+    ],
+    [
+     "Tim Sale",
+     "penciller"
+    ]
+   ],
+   "releaseDate": "2002-07-01",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B5",
+   "seriesId": "S5",
+   "title": "進撃の巨人 1",
+   "isbn": "9784063842760",
+   "tags": [
+    "manga",
+    "アクション"
+   ],
+   "authors": [
+    [
+     "諫山創",
+     "writer"
+    ]
+   ],
+   "releaseDate": "2010-03-17",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": true
+  },
+  {
+   "id": "B6",
+   "seriesId": "S1",
+   "title": "Ｆｕｌｌｗｉｄｔｈ Ｔｉｔｌｅ",
+   "isbn": "",
+   "tags": [],
+   "authors": [],
+   "releaseDate": null,
+   "status": "UNKNOWN",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B7",
+   "seriesId": "S1",
+   "title": "The Straße Crew",
+   "isbn": "",
+   "tags": [
+    "german"
+   ],
+   "authors": [],
+   "releaseDate": "1999-12-31",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B8",
+   "seriesId": "S1",
+   "title": "",
+   "isbn": "",
+   "tags": [],
+   "authors": [],
+   "releaseDate": null,
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B9",
+   "seriesId": "S1",
+   "title": "Numéro 42 – ça marche",
+   "isbn": "",
+   "tags": [
+    "french",
+    "Superhero"
+   ],
+   "authors": [
+    [
+     "Anne",
+     "translator"
+    ]
+   ],
+   "releaseDate": "0999-01-01",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "B10",
+   "seriesId": "S1",
+   "title": "O'Neil's Green Lantern/Green Arrow",
+   "isbn": "0-306-40615-2",
+   "tags": [],
+   "authors": [
+    [
+     "Dennis O'Neil",
+     "writer"
+    ],
+    [
+     "Neal Adams",
+     "cover"
+    ]
+   ],
+   "releaseDate": "1970-04-01",
+   "status": "READY",
+   "deleted": false,
+   "oneshot": false
+  }
+ ],
+ "series": [
+  {
+   "id": "S1",
+   "title": "Batman",
+   "titleSort": "Batman",
+   "alternateTitles": [
+    [
+     "en",
+     "The Dark Knight"
+    ]
+   ],
+   "publisher": "DC Comics",
+   "status": "ONGOING",
+   "readingDirection": "LEFT_TO_RIGHT",
+   "ageRating": 13,
+   "language": "en",
+   "tags": [
+    "superhero"
+   ],
+   "booksTags": [
+    "dark"
+   ],
+   "genres": [
+    "Action"
+   ],
+   "sharingLabels": [
+    "kids"
+   ],
+   "totalBookCount": 2,
+   "booksCount": 2,
+   "authors": [
+    [
+     "Frank Miller",
+     "writer"
+    ]
+   ],
+   "releaseDate": "1987-02-01",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "S2",
+   "title": "The Amazing Spider-Man",
+   "titleSort": "Amazing Spider-Man, The",
+   "alternateTitles": [],
+   "publisher": "Marvel",
+   "status": "ENDED",
+   "readingDirection": "",
+   "ageRating": null,
+   "language": "",
+   "tags": [],
+   "booksTags": [],
+   "genres": [
+    "Action",
+    "Superhero"
+   ],
+   "sharingLabels": [],
+   "totalBookCount": 3,
+   "booksCount": 3,
+   "authors": [
+    [
+     "Stan Lee",
+     "writer"
+    ],
+    [
+     "Steve Ditko",
+     "penciller"
+    ]
+   ],
+   "releaseDate": "1963-03-01",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "S3",
+   "title": "L'Attaque des Titans",
+   "titleSort": "L'Attaque des Titans",
+   "alternateTitles": [
+    [
+     "ja",
+     "進撃の巨人"
+    ],
+    [
+     "en",
+     "Attack on Titan"
+    ]
+   ],
+   "publisher": "Pika",
+   "status": "ENDED",
+   "readingDirection": "RIGHT_TO_LEFT",
+   "ageRating": 16,
+   "language": "fr",
+   "tags": [],
+   "booksTags": [
+    "manga"
+   ],
+   "genres": [
+    "Dark Fantasy"
+   ],
+   "sharingLabels": [],
+   "totalBookCount": null,
+   "booksCount": 34,
+   "authors": [],
+   "releaseDate": null,
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "S4",
+   "title": "Astérix",
+   "titleSort": "Asterix",
+   "alternateTitles": [],
+   "publisher": "Dargaud",
+   "status": "ONGOING",
+   "readingDirection": "LEFT_TO_RIGHT",
+   "ageRating": 0,
+   "language": "fr-FR",
+   "tags": [
+    "humour"
+   ],
+   "booksTags": [],
+   "genres": [],
+   "sharingLabels": [
+    "family",
+    "kids"
+   ],
+   "totalBookCount": 40,
+   "booksCount": 38,
+   "authors": [
+    [
+     "René Goscinny",
+     "writer"
+    ],
+    [
+     "Albert Uderzo",
+     "penciller"
+    ]
+   ],
+   "releaseDate": "1961-10-29",
+   "deleted": false,
+   "oneshot": false
+  },
+  {
+   "id": "S5",
+   "title": "進撃の巨人",
+   "titleSort": "進撃の巨人",
+   "alternateTitles": [],
+   "publisher": "講談社",
+   "status": "ENDED",
+   "readingDirection": "VERTICAL",
+   "ageRating": 18,
+   "language": "ja",
+   "tags": [],
+   "booksTags": [],
+   "genres": [
+    "アクション"
+   ],
+   "sharingLabels": [],
+   "totalBookCount": 1,
+   "booksCount": 1,
+   "authors": [],
+   "releaseDate": null,
+   "deleted": false,
+   "oneshot": true
+  },
+  {
+   "id": "S6",
+   "title": "Deleted Series",
+   "titleSort": "Deleted Series",
+   "alternateTitles": [],
+   "publisher": "",
+   "status": "HIATUS",
+   "readingDirection": "WEBTOON",
+   "ageRating": null,
+   "language": "",
+   "tags": [],
+   "booksTags": [],
+   "genres": [],
+   "sharingLabels": [],
+   "totalBookCount": null,
+   "booksCount": 0,
+   "authors": [],
+   "releaseDate": null,
+   "deleted": true,
+   "oneshot": false
+  }
+ ],
+ "collections": [
+  [
+   "C1",
+   "Best of DC"
+  ],
+  [
+   "C2",
+   "Été 2020"
+  ],
+  [
+   "C3",
+   "マンガ"
+  ],
+  [
+   "C4",
+   "Spider-Verse"
+  ],
+  [
+   "C5",
+   ""
+  ]
+ ],
+ "readLists": [
+  [
+   "R1",
+   "Batman Reading Order"
+  ],
+  [
+   "R2",
+   "Crisis on Infinite Earths"
+  ],
+  [
+   "R3",
+   "L'ordre de lecture"
+  ],
+  [
+   "R4",
+   "日本語リスト"
+  ],
+  [
+   "R5",
+   "reading order 2"
+  ]
+ ]
+}

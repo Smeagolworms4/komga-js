@@ -6,6 +6,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { join } from 'node:path'
 import { isMainThread, threadId } from 'node:worker_threads'
 import { gzipSync } from 'node:zlib'
+import { LocalDate, Month } from '@js-joda/core'
 
 // URL / URI Java et conversions Path <-> URL : voir java-net.ts
 export { URI, URL, pathToUri, pathToUrl, urlToPath } from './java-net.js'
@@ -114,5 +115,21 @@ export class AtomicLong {
 
   toString(): string {
     return String(this.value)
+  }
+}
+
+/**
+ * `java.time.LocalDate.of(year, month, dayOfMonth)` : js-joda, avec le message de java.time pour un jour qui
+ * n'existe pas dans le mois (« Invalid date 'FEBRUARY 30' » au lieu de « Invalid date '2020' '2' '30' »).
+ * PORT: js-joda limite les années à ±999 999 (±999 999 999 en Java).
+ */
+export function localDateOf(year: number, month: number, dayOfMonth: number): LocalDate {
+  try {
+    return LocalDate.of(year, month, dayOfMonth)
+  } catch (e) {
+    if (e instanceof Error && /^Invalid date '-?\d+' '\d+' '\d+'$/.test(e.message)) {
+      e.message = `Invalid date '${Month.of(month).name()} ${dayOfMonth}'`
+    }
+    throw e
   }
 }

@@ -475,8 +475,10 @@ export function minByOrNull<T>(a: Iterable<T>, sel: (t: T) => unknown): T | null
   return best
 }
 /** `first()` */
-export function first<T>(a: Iterable<T>, p: (t: T) => boolean = () => true): T {
-  for (const x of a) if (p(x)) return x
+export function first<T>(a: Iterable<T>, p?: (t: T) => boolean): T {
+  for (const x of a) if (p === undefined || p(x)) return x
+  // `first()` sans prédicat : « List is empty. » pour une List (tableau), « Collection is empty. » sinon
+  if (p === undefined) throw new NoSuchElementException(Array.isArray(a) ? 'List is empty.' : 'Collection is empty.')
   throw new NoSuchElementException('Collection contains no element matching the predicate.')
 }
 /** `firstOrNull()` */

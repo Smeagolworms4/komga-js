@@ -20,8 +20,8 @@ import { closeSync, fstatSync, openSync, readSync, statSync } from 'node:fs'
 import { crc32 } from 'node:zlib'
 import { Extractor } from 'node-unrar-js/dist/js/Extractor.js'
 import { getUnrar } from 'node-unrar-js/dist/js/unrar.singleton.js'
-import { Exception } from './kotlin.js'
-import { ByteArrayInputStream, EOFException, IOException, InputStream } from './java-io.js'
+import { Exception, NullPointerException } from './kotlin.js'
+import { ByteArrayInputStream, EOFException, IOException, InputStream, openForRead } from './java-io.js'
 import { KotlinLogging } from './logging.js'
 
 const logger = KotlinLogging.logger('com.github.junrar.Archive')
@@ -744,7 +744,8 @@ export class Archive {
 
   constructor(file: string) {
     this.file = file
-    const ch = new Channel(openSync(file, 'r'))
+    // PORT: RandomAccessFile(file, "r") : FileNotFoundException pour un fichier absent ou un répertoire
+    const ch = new Channel(openForRead(file))
     let res: ReadResult
     try {
       res = readHeaders(ch)
@@ -793,7 +794,8 @@ export class Archive {
 
   /** Extrait l'entrée ; junrar ignore les erreurs d'extraction : flux vide ou tronqué */
   getInputStream(hd: FileHeader | null | undefined): InputStream {
-    if (hd === null || hd === undefined) throw new IOException('Cannot invoke "com.github.junrar.rarfile.FileHeader.getFullUnpackSize()" because "hd" is null')
+    // PORT: junrar déréférence l'en-tête null : NullPointerException (message de la JVM)
+    if (hd === null || hd === undefined) throw new NullPointerException('Cannot invoke "com.github.junrar.rarfile.FileHeader.getFullUnpackSize()" because "hd" is null')
     if (hd.fullUnpackSize <= 0) return new ByteArrayInputStream(new Uint8Array(0))
     return new ByteArrayInputStream(this.extractFile(hd))
   }

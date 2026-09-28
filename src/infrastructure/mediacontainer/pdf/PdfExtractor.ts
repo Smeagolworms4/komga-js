@@ -6,7 +6,8 @@ import { MediaContainerEntry } from '../../../domain/model/MediaContainerEntry.j
 import { MediaType } from '../../../domain/model/MediaType.js'
 import { TypedBytes } from '../../../domain/model/TypedBytes.js'
 import { IOException } from '../../../port/java-io.js'
-import { IllegalArgumentException } from '../../../port/kotlin.js'
+import { IllegalArgumentException, IndexOutOfBoundsException } from '../../../port/kotlin.js'
+import { translateError } from '../../../port/java-nio-file.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
 import type { ImageType } from '../../image/ImageType.js'
@@ -88,9 +89,28 @@ function roundToInt(x: number): number {
   return Math.round(x)
 }
 
+/** Conversion `(int) x` de Java : NaN donne 0, valeurs bornées à l'intervalle des Int */
+function javaInt(x: number): number {
+  if (Number.isNaN(x)) return 0
+  if (x >= 2147483647) return 2147483647
+  if (x <= -2147483648) return -2147483648
+  return Math.trunc(x)
+}
+
+/** `PDDocument.getPage(pageIndex)` : IndexOutOfBoundsException hors de l'arbre des pages */
+function checkPageIndex(pdf: mupdf.PDFDocument, pageIndex: number): void {
+  if (pageIndex < 0 || pageIndex >= pdf.countPages()) throw new IndexOutOfBoundsException(`Index out of bounds: ${pageIndex}`)
+}
+
 /** `Loader.loadPDF(file)` : lecture à la demande du fichier (mupdf.Stream sur fs.readSync) */
 function loadPDF(path: string): mupdf.PDFDocument {
-  const fd = openSync(path, 'r')
+  let fd: number
+  try {
+    fd = openSync(path, 'r')
+  } catch (e) {
+    // PORT: RandomAccessReadBufferedFile (Files.newByteChannel) : NoSuchFileException, AccessDeniedException...
+    throw translateError(e, path)
+  }
   const size = fstatSync(fd).size
   let closed = false
   const stream = new mupdf.Stream({
@@ -147,16 +167,20 @@ export class PdfExtractor {
 
   getPageContentAsImage(path: string, pageNumber: number): TypedBytes {
     return use(loadPDF(path), (pdf) => {
+      checkPageIndex(pdf, pageNumber - 1)
       const page = pdf.loadPage(pageNumber - 1) as mupdf.PDFPage
       const scale = this.getPageScale(page.getObject())
       // PDFRenderer.renderImage(pageIndex, scale, RGB)
       const cropBox = cropBoxOf(page.getObject())
-      let widthPx = Math.trunc(Math.max(Math.floor(f(width(cropBox) * scale)), 1))
-      let heightPx = Math.trunc(Math.max(Math.floor(f(height(cropBox) * scale)), 1))
+      // PORT: `(int) Math.max(Math.floor(...), 1)` : NaN (0 × ∞) donne 0, ∞ donne Int.MAX_VALUE
+      let widthPx = javaInt(Math.max(Math.floor(f(width(cropBox) * scale)), 1))
+      let heightPx = javaInt(Math.max(Math.floor(f(height(cropBox) * scale)), 1))
       const rotationAngle = rotationOf(page.getObject())
       if (rotationAngle === 90 || rotationAngle === 270) [widthPx, heightPx] = [heightPx, widthPx]
       // PDFRenderer : image de plus de Integer.MAX_VALUE pixels refusée ; ImageIO JPEG : 65500 pixels au plus par côté
       if (widthPx * heightPx > 2147483647) throw new IOException(`Maximum size of image exceeded (w * h * scale) = ${widthPx * heightPx} > ${2147483647}`)
+      // new BufferedImage(widthPx, heightPx, type)
+      if (widthPx <= 0 || heightPx <= 0) throw new IllegalArgumentException(`Width (${widthPx}) and height (${heightPx}) cannot be <= 0`)
       if (this.imageType.imageIOFormat === 'JPEG' && (widthPx > 65500 || heightPx > 65500)) throw new IIOException('Maximum supported image dimension is 65500 pixels')
       const bounds = page.getBounds('CropBox')
       const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, widthPx, heightPx], false)
@@ -181,9 +205,23 @@ export class PdfExtractor {
   getPageContentAsPdf(path: string, pageNumber: number): TypedBytes {
     return use(loadPDF(path), (pdf) => {
       // PageExtractor(pdf, pageNumber, pageNumber).extract().save(out)
+      // PORT: PageExtractor.extract() hors des pages du document : IllegalArgumentException
+      if (pageNumber < 1 || pageNumber > pdf.countPages()) throw new IllegalArgumentException(`Page ${pageNumber} does not exist`)
       const out = new mupdf.PDFDocument()
       try {
         out.graftPage(0, pdf, pageNumber - 1)
+        // PORT: PDDocument.importPage fixe la CropBox (limitée à la MediaBox), la MediaBox et la rotation de la page
+        // source sur la page importée
+        const source = (pdf.loadPage(pageNumber - 1) as mupdf.PDFPage).getObject()
+        const imported = out.findPage(0)
+        const box = (r: PDRectangle) => {
+          const a = out.newArray()
+          for (const v of [r.llx, r.lly, r.urx, r.ury]) a.push(out.newReal(v))
+          return a
+        }
+        imported.put('CropBox', box(cropBoxOf(source)))
+        imported.put('MediaBox', box(mediaBoxOf(source)))
+        imported.put('Rotate', out.newInteger(rotationOf(source)))
         const bytes = out.saveToBuffer('compress').asUint8Array()
         return new TypedBytes({ bytes: new Uint8Array(bytes), mediaType: MediaType.PDF.type })
       } finally {

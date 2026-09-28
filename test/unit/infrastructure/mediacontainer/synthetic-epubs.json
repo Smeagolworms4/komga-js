@@ -1,0 +1,591 @@
+[
+ [
+  "epub3",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "OEBPS/content.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"id\">\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>T</dc:title><meta property=\"rendition:layout\">reflowable</meta></metadata>\n<manifest>\n<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>\n<item id=\"cover\" href=\"images/cover%20art.png\" media-type=\"image/png\" properties=\"cover-image\"/>\n<item id=\"p1\" href=\"text/page1.xhtml\" media-type=\"application/xhtml+xml\"/>\n<item id=\"p2\" href=\"text/page%202.xhtml\" media-type=\"application/xhtml+xml\" properties=\"svg scripted\"/>\n<item id=\"css\" href=\"style.css\" media-type=\"text/css\"/>\n<item id=\"ghost\" href=\"missing.xhtml\" media-type=\"application/xhtml+xml\"/>\n</manifest>\n<spine><itemref idref=\"p1\"/><itemref idref=\"p2\"/><itemref idref=\"unknown\"/><itemref idref=\"ghost\"/></spine>\n<guide><reference type=\"cover\" title=\"Cover\" href=\"text/page1.xhtml#top\"/><reference type=\"toc\" title=\"\" href=\"\"/><reference type=\"text\" title=\"Text %C3%A9\" href=\"text/page%202.xhtml\"/></guide>\n</package>"
+   ],
+   [
+    "OEBPS/nav.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><nav epub:type=\"toc\" id=\"toc\"><h1>Contents</h1><ol>\n<li><a href=\"text/page1.xhtml\">Chapter 1</a><ol><li><a href=\"text/page1.xhtml#s1\">Section 1.1</a></li><li><span>Unlinked</span><ol><li><a href=\"text/page%202.xhtml#deep\">Deep</a></li></ol></li></ol></li>\n<li><a href=\"text/page%202.xhtml\">Chapter  2 &amp; more</a></li>\n<li><a href=\"../outside.xhtml\">Outside</a></li>\n<li><ol><li><a href=\"x.xhtml\">No title parent</a></li></ol></li>\n</ol></nav>\n<nav epub:type=\"page-list\" hidden=\"\"><ol><li><a href=\"text/page1.xhtml#p1\">1</a></li><li><a href=\"text/page%202.xhtml#p2\">2</a></li></ol></nav>\n<nav epub:type=\"landmarks\"><ol><li><a epub:type=\"cover\" href=\"text/page1.xhtml\">Cover</a></li><li><a epub:type=\"bodymatter\" href=\"text/page%202.xhtml\">Start</a></li></ol></nav></body></html>"
+   ],
+   [
+    "OEBPS/images/cover art.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "OEBPS/text/page1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p id=\"top\">Hello</p><img src=\"../images/cover%20art.png\"/></body></html>"
+   ],
+   [
+    "OEBPS/text/page 2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p><p>World</p></body></html>"
+   ],
+   [
+    "OEBPS/style.css",
+    "p { margin: 0 }"
+   ]
+  ]
+ ],
+ [
+  "epub2 ncx",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"2.0\" unique-identifier=\"id\">\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf\"><dc:title>T</dc:title><meta name=\"cover\" content=\"img\"/><meta name=\"fixed-layout\" content=\"true\"/></metadata>\n<manifest>\n<item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>\n<item id=\"img\" href=\"images/c.gif\" media-type=\"image/gif\"/>\n<item id=\"p1\" href=\"text/p1.html\" media-type=\"application/xhtml+xml\"/>\n<item id=\"p2\" href=\"text/p2.html\" media-type=\"application/xhtml+xml\"/>\n</manifest>\n<spine toc=\"ncx\"><itemref idref=\"p1\"/><itemref idref=\"p2\"/></spine>\n<guide><reference type=\"cover\" title=\"Cover page\" href=\"text/p1.html\"/></guide>\n</package>"
+   ],
+   [
+    "toc.ncx",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\"><head/><docTitle><text>T</text></docTitle>\n<navMap>\n<navPoint id=\"n1\" playOrder=\"1\"><navLabel><text>Part 1</text></navLabel><content src=\"text/p1.html\"/>\n  <navPoint id=\"n11\" playOrder=\"2\"><navLabel><text>Sub 1.1</text></navLabel><content src=\"text/p1.html#a%20b\"/></navPoint>\n  <navPoint id=\"n12\" playOrder=\"3\"><navLabel><text/></navLabel></navPoint>\n</navPoint>\n<navPoint id=\"n2\" playOrder=\"4\"><navLabel><text>Part 2</text></navLabel><content src=\"../p2.html\"/></navPoint>\n<navPoint id=\"n3\" playOrder=\"5\"><content src=\"text/p3.html\"/></navPoint>\n</navMap>\n<pageList><pageTarget id=\"pt1\" type=\"normal\" value=\"1\"><navLabel><text>1</text></navLabel><content src=\"text/p1.html#pg1\"/></pageTarget><pageTarget id=\"pt2\"><navLabel><text>ii</text></navLabel><content src=\"text/p2.html\"/></pageTarget></pageList>\n</ncx>"
+   ],
+   [
+    "images/c.gif",
+    {
+     "resource": "hashpage/tr.gif/1.gif"
+    }
+   ],
+   [
+    "text/p1.html",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>one</p></body></html>"
+   ],
+   [
+    "text/p2.html",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>two</p></body></html>"
+   ]
+  ]
+ ],
+ [
+  "divina",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OPS/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "OPS/package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"image/png\"/><item id=\"pg2\" href=\"pages/p2.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im2\" href=\"images/002.png\" media-type=\"image/png\"/><item id=\"pg3\" href=\"pages/p3.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im3\" href=\"images/003.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"pg1\"/><itemref idref=\"pg2\"/><itemref idref=\"pg3\"/></spine></package>"
+   ],
+   [
+    "OPS/pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><div><img src=\"../images/001.png\" alt=\"p\"/></div></body></html>"
+   ],
+   [
+    "OPS/pages/p2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><image xlink:href=\"../images/002.png\"/></svg></body></html>"
+   ],
+   [
+    "OPS/pages/p3.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><div><img src=\"../images/003.png\" alt=\"p\"/></div></body></html>"
+   ],
+   [
+    "OPS/images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "OPS/images/002.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "OPS/images/003.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "divina duplicated images",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"image/png\"/><item id=\"pg2\" href=\"pages/p2.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im2\" href=\"images/002.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"pg1\"/><itemref idref=\"pg2\"/></spine></package>"
+   ],
+   [
+    "pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/001.png\"/><img src=\"../images/001.png\"/></body></html>"
+   ],
+   [
+    "pages/p2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/002.png\"/></body></html>"
+   ],
+   [
+    "images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "images/002.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "divina with text",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"image/png\"/><item id=\"pg2\" href=\"pages/p2.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im2\" href=\"images/002.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"pg1\"/><itemref idref=\"pg2\"/></spine></package>"
+   ],
+   [
+    "pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>This page has way too much text for a comic</p><img src=\"../images/001.png\"/></body></html>"
+   ],
+   [
+    "pages/p2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/002.png\"/></body></html>"
+   ],
+   [
+    "images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "images/002.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "divina two images per page",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"image/png\"/><item id=\"pg2\" href=\"pages/p2.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im2\" href=\"images/002.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"pg1\"/><itemref idref=\"pg2\"/></spine></package>"
+   ],
+   [
+    "pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/001.png\"/><img src=\"../images/002.png\"/></body></html>"
+   ],
+   [
+    "pages/p2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/002.png\"/></body></html>"
+   ],
+   [
+    "images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "images/002.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "divina image not in manifest",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"image/png\"/></manifest><spine><itemref idref=\"pg1\"/></spine></package>"
+   ],
+   [
+    "pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../other/x.png\"/></body></html>"
+   ],
+   [
+    "other/x.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "divina non image media type",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata><meta property=\"rendition:layout\">pre-paginated</meta></metadata>\n<manifest><item id=\"pg1\" href=\"pages/p1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"im1\" href=\"images/001.png\" media-type=\"application/octet-stream\"/></manifest><spine><itemref idref=\"pg1\"/></spine></package>"
+   ],
+   [
+    "pages/p1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><img src=\"../images/001.png\"/></body></html>"
+   ],
+   [
+    "images/001.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "images in spine",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "package.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata/><manifest><item id=\"a\" href=\"img/a.png\" media-type=\"image/png\"/><item id=\"b\" href=\"img/./b.GIF\" media-type=\"IMAGE/GIF\"/></manifest><spine><itemref idref=\"a\"/><itemref idref=\"b\"/></spine></package>"
+   ],
+   [
+    "img/a.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "img/b.GIF",
+    {
+     "resource": "hashpage/tr.gif/1.gif"
+    }
+   ]
+  ]
+ ],
+ [
+  "kepub",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\"><metadata/><manifest><item id=\"k1\" href=\"k1.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"k2\" href=\"k2.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"k3\" href=\"k3.xhtml\" media-type=\"application/xhtml+xml\"/></manifest><spine><itemref idref=\"k1\"/><itemref idref=\"k2\"/><itemref idref=\"k3\"/></spine></package>"
+   ],
+   [
+    "k1.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>k</title></head><body><div id=\"book-columns\"><div id=\"book-inner\"><p><span class=\"koboSpan\" id=\"kobo.1.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.2.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.3.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.4.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.5.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.6.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.7.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.8.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.9.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.10.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.11.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p><p><span class=\"koboSpan\" id=\"kobo.12.1\">lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p></div></div></body></html>"
+   ],
+   [
+    "k2.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\"><head><title>k</title></head><body><div id=\"book-columns\"><div id=\"book-inner\"><p><span class=\"koboSpan\" id=\"kobo.1.1\">lorem ipsum dolor sit amet </span><span class=\"koboSpan\" id=\"\">empty id</span></p></div></div></body></html>"
+   ],
+   [
+    "k3.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p><p>no spans</p></body></html>"
+   ]
+  ]
+ ],
+ [
+  "prefixed opf",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "OEBPS/content.opf",
+    "<?xml version=\"1.0\"?><opf:package xmlns:opf=\"http://www.idpf.org/2007/opf\" version=\"2.0\"><opf:metadata><opf:meta name=\"cover\" content=\"  \"/></opf:metadata><opf:manifest><opf:item id=\"cover-image\" href=\"../cover.png\" media-type=\"image/png\"/><opf:item id=\"toc\" href=\"nav.ncx\" media-type=\"text/xml\"/><opf:item id=\"c\" href=\"c.xhtml\" media-type=\"application/xhtml+xml\"/></opf:manifest><opf:spine><opf:itemref idref=\"c\"/></opf:spine><opf:guide><opf:reference type=\"toc\" title=\"TOC\" href=\"c.xhtml#toc\"/></opf:guide></opf:package>"
+   ],
+   [
+    "cover.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ],
+   [
+    "OEBPS/nav.ncx",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\"><head/><docTitle><text>T</text></docTitle>\n<navMap>\n<navPoint id=\"n1\" playOrder=\"1\"><navLabel><text>Part 1</text></navLabel><content src=\"text/p1.html\"/>\n  <navPoint id=\"n11\" playOrder=\"2\"><navLabel><text>Sub 1.1</text></navLabel><content src=\"text/p1.html#a%20b\"/></navPoint>\n  <navPoint id=\"n12\" playOrder=\"3\"><navLabel><text/></navLabel></navPoint>\n</navPoint>\n<navPoint id=\"n2\" playOrder=\"4\"><navLabel><text>Part 2</text></navLabel><content src=\"../p2.html\"/></navPoint>\n<navPoint id=\"n3\" playOrder=\"5\"><content src=\"text/p3.html\"/></navPoint>\n</navMap>\n<pageList><pageTarget id=\"pt1\" type=\"normal\" value=\"1\"><navLabel><text>1</text></navLabel><content src=\"text/p1.html#pg1\"/></pageTarget><pageTarget id=\"pt2\"><navLabel><text>ii</text></navLabel><content src=\"text/p2.html\"/></pageTarget></pageList>\n</ncx>"
+   ],
+   [
+    "OEBPS/c.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><p>c</p></body></html>"
+   ]
+  ]
+ ],
+ [
+  "cover meta to missing item",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata><meta name=\"cover\" content=\"nope\"/></metadata><manifest><item id=\"cover-image\" href=\"c.png\" media-type=\"image/png\"/></manifest><spine/></package>"
+   ],
+   [
+    "c.png",
+    {
+     "resource": "barcode/komga.png"
+    }
+   ]
+  ]
+ ],
+ [
+  "cover entry missing",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata/><manifest><item id=\"c\" href=\"gone.png\" media-type=\"image/png\" properties=\"cover-image\"/></manifest><spine/></package>"
+   ]
+  ]
+ ],
+ [
+  "empty nav",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata/><manifest><item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/><item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/></manifest><spine/><guide><reference type=\"cover\" title=\"G\" href=\"g.xhtml\"/></guide></package>"
+   ],
+   [
+    "nav.xhtml",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"><head><title>t</title></head><body><nav epub:type=\"toc\"><ol></ol></nav></body></html>"
+   ],
+   [
+    "toc.ncx",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\"><head/><docTitle><text>T</text></docTitle>\n<navMap>\n<navPoint id=\"n1\" playOrder=\"1\"><navLabel><text>Part 1</text></navLabel><content src=\"text/p1.html\"/>\n  <navPoint id=\"n11\" playOrder=\"2\"><navLabel><text>Sub 1.1</text></navLabel><content src=\"text/p1.html#a%20b\"/></navPoint>\n  <navPoint id=\"n12\" playOrder=\"3\"><navLabel><text/></navLabel></navPoint>\n</navPoint>\n<navPoint id=\"n2\" playOrder=\"4\"><navLabel><text>Part 2</text></navLabel><content src=\"../p2.html\"/></navPoint>\n<navPoint id=\"n3\" playOrder=\"5\"><content src=\"text/p3.html\"/></navPoint>\n</navMap>\n<pageList><pageTarget id=\"pt1\" type=\"normal\" value=\"1\"><navLabel><text>1</text></navLabel><content src=\"text/p1.html#pg1\"/></pageTarget><pageTarget id=\"pt2\"><navLabel><text>ii</text></navLabel><content src=\"text/p2.html\"/></pageTarget></pageList>\n</ncx>"
+   ]
+  ]
+ ],
+ [
+  "nav missing entry",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata/><manifest><item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/><item id=\"ncxtoc\" href=\"t.ncx\" media-type=\"application/xml\"/></manifest><spine/></package>"
+   ],
+   [
+    "t.ncx",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\"><head/><docTitle><text>T</text></docTitle>\n<navMap>\n<navPoint id=\"n1\" playOrder=\"1\"><navLabel><text>Part 1</text></navLabel><content src=\"text/p1.html\"/>\n  <navPoint id=\"n11\" playOrder=\"2\"><navLabel><text>Sub 1.1</text></navLabel><content src=\"text/p1.html#a%20b\"/></navPoint>\n  <navPoint id=\"n12\" playOrder=\"3\"><navLabel><text/></navLabel></navPoint>\n</navPoint>\n<navPoint id=\"n2\" playOrder=\"4\"><navLabel><text>Part 2</text></navLabel><content src=\"../p2.html\"/></navPoint>\n<navPoint id=\"n3\" playOrder=\"5\"><content src=\"text/p3.html\"/></navPoint>\n</navMap>\n<pageList><pageTarget id=\"pt1\" type=\"normal\" value=\"1\"><navLabel><text>1</text></navLabel><content src=\"text/p1.html#pg1\"/></pageTarget><pageTarget id=\"pt2\"><navLabel><text>ii</text></navLabel><content src=\"text/p2.html\"/></pageTarget></pageList>\n</ncx>"
+   ]
+  ]
+ ],
+ [
+  "invalid utf8 nav",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"content.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\"?><package xmlns=\"http://www.idpf.org/2007/opf\"><metadata/><manifest><item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/></manifest><spine/></package>"
+   ],
+   [
+    "nav.xhtml",
+    {
+     "base64": "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPGh0bWwgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGh0bWwiIHhtbG5zOmVwdWI9Imh0dHA6Ly93d3cuaWRwZi5vcmcvMjAwNy9vcHMiIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj48aGVhZD48dGl0bGU+dDwvdGl0bGU+PC9oZWFkPjxib2R5PjxuYXYgZXB1Yjp0eXBlPSJ0b2MiIGlkPSJ0b2MiPjxoMT5Db250ZW50czwvaDE+PG9sPgo8bGk+PGEgaHJlZj0idGV4dC9wYWdlMS54aHRtbCI+Q2hhcP/+wzwvYT48b2w+PGxpPjxhIGhyZWY9InRleHQvcGFnZTEueGh0bWwjczEiPlNlY+KCdGlvbiAxLjE8L2E+PC9saT48bGk+PHNwYW4+VW5saW5rZWQ8L3NwYW4+PG9sPjxsaT48YSBocmVmPSJ0ZXh0L3BhZ2UlMjAyLnhodG1sI2RlZXAiPkRlZXA8L2E+PC9saT48L29sPjwvbGk+PC9vbD48L2xpPgo8bGk+PGEgaHJlZj0idGV4dC9wYWdlJTIwMi54aHRtbCI+Q2hhcHRlciAgMiAmYW1wOyBtb3JlPC9hPjwvbGk+CjxsaT48YSBocmVmPSIuLi9vdXRzaWRlLnhodG1sIj5PdXRzaWRlPC9hPjwvbGk+CjxsaT48b2w+PGxpPjxhIGhyZWY9IngueGh0bWwiPk5vIHRpdGxlIHBhcmVudDwvYT48L2xpPjwvb2w+PC9saT4KPC9vbD48L25hdj4KPG5hdiBlcHViOnR5cGU9InBhZ2UtbGlzdCIgaGlkZGVuPSIiPjxvbD48bGk+PGEgaHJlZj0idGV4dC9wYWdlMS54aHRtbCNwMSI+MTwvYT48L2xpPjxsaT48YSBocmVmPSJ0ZXh0L3BhZ2UlMjAyLnhodG1sI3AyIj4yPC9hPjwvbGk+PC9vbD48L25hdj4KPG5hdiBlcHViOnR5cGU9ImxhbmRtYXJrcyI+PG9sPjxsaT48YSBlcHViOnR5cGU9ImNvdmVyIiBocmVmPSJ0ZXh0L3BhZ2UxLnhodG1sIj5Db3ZlcjwvYT48L2xpPjxsaT48YSBlcHViOnR5cGU9ImJvZHltYXR0ZXIiIGhyZWY9InRleHQvcGFnZSUyMDIueGh0bWwiPlN0YXJ0PC9hPjwvbGk+PC9vbD48L25hdj48L2JvZHk+PC9odG1sPg=="
+    }
+   ]
+  ]
+ ],
+ [
+  "no container",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "content.opf",
+    "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"2.0\" unique-identifier=\"id\">\n<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:opf=\"http://www.idpf.org/2007/opf\"><dc:title>T</dc:title><meta name=\"cover\" content=\"img\"/><meta name=\"fixed-layout\" content=\"true\"/></metadata>\n<manifest>\n<item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>\n<item id=\"img\" href=\"images/c.gif\" media-type=\"image/gif\"/>\n<item id=\"p1\" href=\"text/p1.html\" media-type=\"application/xhtml+xml\"/>\n<item id=\"p2\" href=\"text/p2.html\" media-type=\"application/xhtml+xml\"/>\n</manifest>\n<spine toc=\"ncx\"><itemref idref=\"p1\"/><itemref idref=\"p2\"/></spine>\n<guide><reference type=\"cover\" title=\"Cover page\" href=\"text/p1.html\"/></guide>\n</package>"
+   ]
+  ]
+ ],
+ [
+  "no rootfile",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles/></container>"
+   ]
+  ]
+ ],
+ [
+  "missing opf",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"OEBPS/none.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ]
+  ]
+ ],
+ [
+  "rootfile without full-path",
+  [
+   [
+    "mimetype",
+    "application/epub+zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile media-type=\"x\"/></rootfiles></container>"
+   ]
+  ]
+ ],
+ [
+  "mimetype with whitespace",
+  [
+   [
+    "mimetype",
+    "  application/epub+zip\n"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"c.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "c.opf",
+    "<package><manifest/></package>"
+   ]
+  ]
+ ],
+ [
+  "wrong mimetype",
+  [
+   [
+    "mimetype",
+    "application/zip"
+   ],
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"c.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "c.opf",
+    "<package><manifest/></package>"
+   ]
+  ]
+ ],
+ [
+  "no mimetype",
+  [
+   [
+    "META-INF/container.xml",
+    "<?xml version=\"1.0\"?>\n<container version=\"1.0\" xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\"><rootfiles><rootfile full-path=\"c.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+   ],
+   [
+    "c.opf",
+    "<package><manifest/></package>"
+   ]
+  ]
+ ]
+]

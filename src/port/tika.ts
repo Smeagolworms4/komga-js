@@ -9,11 +9,14 @@
 // Vérifié contre la vraie bibliothèque (jshell, tools/jshell-komga.sh) : test/port/tika.test.ts.
 import { closeSync, openSync, readSync } from 'node:fs'
 import { Exception, IllegalArgumentException } from './kotlin.js'
-import { InputStream } from './java-io.js'
+import { IOException, InputStream } from './java-io.js'
 import { translateError } from './java-nio-file.js'
 import { TIKA_MIMETYPES_XML } from './tika-mimetypes.js'
 
 export class MimeTypeException extends Exception {}
+
+/** `org.apache.tika.io.TaggedIOException` : erreur d'entrée-sortie du flux d'un TikaInputStream (TaggedInputStream) */
+export class TaggedIOException extends IOException {}
 
 // ---------------------------------------------------------------------------
 // MediaType
@@ -762,7 +765,14 @@ export class TikaInputStream extends InputStream {
   read(b: Uint8Array, off = 0, len = b.length - off): number {
     if (this.fd === null) throw new Error('Stream Closed')
     if (len === 0) return 0
-    const n = readSync(this.fd, b, off, len, this.pos)
+    let n: number
+    try {
+      n = readSync(this.fd, b, off, len, this.pos)
+    } catch (e) {
+      // PORT: TikaInputStream est un TaggedInputStream : l'IOException de lecture (ex. « Is a directory ») est
+      // enveloppée dans une TaggedIOException de même message
+      throw new TaggedIOException(translateError(e, null).message, e)
+    }
     if (n === 0) return -1
     this.pos += n
     return n

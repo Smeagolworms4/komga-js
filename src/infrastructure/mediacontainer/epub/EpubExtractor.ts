@@ -11,7 +11,7 @@ import { use } from '../../../port/java-io.js'
 import { urlDecode } from '../../../port/java-net-urldecoder.js'
 import { deleteIfExists, pathNormalize, pathParent, pathResolve } from '../../../port/java-nio-file.js'
 import { Jsoup, Parser } from '../../../port/jsoup-parser.js'
-import { IllegalStateException, distinct, eq, firstOrNull, isNotBlank, kFloat, mapNotNull, minByOrNull, nn, sumOf } from '../../../port/kotlin.js'
+import { IllegalStateException, NullPointerException, distinct, eq, firstOrNull, isNotBlank, kFloat, mapNotNull, minByOrNull, nn, sumOf } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
 import { KomgaProperties } from '../../configuration/KomgaProperties.js'
@@ -190,7 +190,9 @@ export class EpubExtractor {
 
       // PORT: une entrée absente donne une NullPointerException en Kotlin (type plateforme)
       const dimension = analyzeDimensions ? use(epub.zip.getInputStream(nn(zipEntry)), (it) => this.imageAnalyzer.getDimension(it)) : null
-      const fileSize = nn(zipEntry).getSize() === ArchiveEntry.SIZE_UNKNOWN ? null : nn(zipEntry).getSize()
+      // PORT: message de la NullPointerException de la JVM (helpful NPE) quand l'entrée est absente
+      if (zipEntry === null) throw new NullPointerException('Cannot invoke "org.apache.commons.compress.archivers.zip.ZipArchiveEntry.getSize()" because "zipEntry" is null')
+      const fileSize = zipEntry.getSize() === ArchiveEntry.SIZE_UNKNOWN ? null : zipEntry.getSize()
       return new BookPage({ fileName: imagePath, mediaType: mediaType, dimension: dimension, fileSize: fileSize })
     })
 
