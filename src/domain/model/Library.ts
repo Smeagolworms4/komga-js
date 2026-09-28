@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Library.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { URL } from '../../port/java-net.js'
 import { LocalDateTime } from '@js-joda/core'
 import { urlToPath } from '../../port/java.js'
 import { DataClass, KEnum, lazy } from '../../port/kotlin.js'

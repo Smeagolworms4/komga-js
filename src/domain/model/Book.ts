@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Book.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { URL } from '../../port/java-net.js'
 import { LocalDateTime } from '@js-joda/core'
 import { urlToPath } from '../../port/java.js'
 import { DataClass, lazy } from '../../port/kotlin.js'

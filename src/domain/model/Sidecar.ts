@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Sidecar.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { URL } from '../../port/java-net.js'
 import type { LocalDateTime } from '@js-joda/core'
 import { DataClass, KEnum } from '../../port/kotlin.js'
 

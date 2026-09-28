@@ -6,7 +6,6 @@
 import type Database from 'better-sqlite3'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
 import { crc32 } from 'node:zlib'
 import { Exception } from './kotlin.js'
 import { KotlinLogging } from './logging.js'
@@ -37,8 +36,8 @@ type Resolved = {
 export type FlywayConfig = {
   /** Répertoires des scripts SQL `V<version>__<description>.sql` */
   sqlLocations: string[]
-  /** Répertoires des migrations TS `V<version>__<description>.(ts|js)` exportant une classe du même nom */
-  codeLocations?: string[]
+  /** Migrations « Java » (classes nommées `V<version>__<description>`) */
+  codeMigrations?: (new () => BaseJavaMigration)[]
   /** Paquet Java des migrations code, pour la colonne `script` (ex. `db.migration.sqlite`) */
   codePackage?: string
   placeholders?: Record<string, string>
@@ -88,7 +87,7 @@ export class Flyway {
     private readonly config: FlywayConfig,
   ) {}
 
-  private async resolve(): Promise<Resolved[]> {
+  private resolve(): Resolved[] {
     const out: Resolved[] = []
     for (const dir of this.config.sqlLocations) {
       if (!existsSync(dir)) continue
@@ -105,23 +104,17 @@ export class Flyway {
         })
       }
     }
-    for (const dir of this.config.codeLocations ?? []) {
-      if (!existsSync(dir)) continue
-      for (const f of readdirSync(dir).filter((f) => /\.(ts|js)$/.test(f) && !f.endsWith('.d.ts'))) {
-        const base = f.replace(/\.(ts|js)$/, '')
-        const n = parseName(base)
-        if (!n) continue
-        const mod = (await import(pathToFileURL(join(dir, f)).href)) as Record<string, new () => BaseJavaMigration>
-        const C = mod[base]
-        if (!C) throw new FlywayException(`Migration class ${base} not exported by ${f}`)
-        out.push({
-          ...n,
-          type: 'JDBC',
-          script: this.config.codePackage ? `${this.config.codePackage}.${base}` : base,
-          checksum: null,
-          run: (db) => new C().migrate({ connection: db }),
-        })
-      }
+    for (const C of this.config.codeMigrations ?? []) {
+      const base = C.name
+      const n = parseName(base)
+      if (!n) throw new FlywayException(`Invalid migration class name: ${base}`)
+      out.push({
+        ...n,
+        type: 'JDBC',
+        script: this.config.codePackage ? `${this.config.codePackage}.${base}` : base,
+        checksum: null,
+        run: (db) => new C().migrate({ connection: db }),
+      })
     }
     out.sort((a, b) => compareVersions(a.version, b.version))
     for (let i = 1; i < out.length; i++)
@@ -147,8 +140,8 @@ export class Flyway {
   }
 
   /** Applique les migrations en attente. Retourne le nombre de migrations appliquées. */
-  async migrate(): Promise<number> {
-    const resolved = await this.resolve()
+  migrate(): number {
+    const resolved = this.resolve()
     this.ensureTable()
     type Applied = { installed_rank: number; version: string | null; script: string; checksum: number | null; type: string; success: number }
     const applied = this.db.prepare(`SELECT installed_rank, version, script, checksum, type, success FROM "${TABLE}" ORDER BY installed_rank`).all() as Applied[]

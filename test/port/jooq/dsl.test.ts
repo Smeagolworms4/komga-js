@@ -5,6 +5,7 @@ import Database from 'better-sqlite3'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { DSL, DSLContext, transactional } from '../../../src/port/jooq/dsl.js'
 import { Keys, Tables } from '../../../src/port/jooq/generated/main/Tables.js'
+import { MAIN_CODE_MIGRATIONS } from '../../../src/port/flyway-migrations.js'
 import { Flyway } from '../../../src/port/flyway.js'
 import type { Condition } from '../../../src/port/jooq/core.js'
 
@@ -17,13 +18,13 @@ function sqlOf(c: Condition): string {
   return dsl.selectOne().from(l).where(c).getSQL()
 }
 
-beforeAll(async () => {
+beforeAll(() => {
   db = new Database(':memory:')
   db.loadExtension('build/komgasqlite.so')
   db.pragma('foreign_keys = ON')
-  await new Flyway(db, {
+  new Flyway(db, {
     sqlLocations: ['resources/db/migration/sqlite'],
-    codeLocations: ['src/flyway/db/migration/sqlite'],
+    codeMigrations: MAIN_CODE_MIGRATIONS,
     codePackage: 'db.migration.sqlite',
     placeholders: { 'library-file-hashing': 'true', 'library-scan-startup': 'false', 'delete-empty-collections': 'true', 'delete-empty-read-lists': 'true' },
   }).migrate()

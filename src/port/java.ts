@@ -3,17 +3,9 @@
 // Un `java.nio.file.Path` est représenté par une chaîne de chemin absolu ou relatif (module node:path).
 import { existsSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 
-/** `url.toURI().toPath()` */
-export function urlToPath(url: URL): string {
-  return fileURLToPath(url)
-}
-
-/** `path.toUri().toURL()` */
-export function pathToUrl(path: string): URL {
-  return pathToFileURL(path)
-}
+// URL / URI Java et conversions Path <-> URL : voir java-net.ts
+export { URI, URL, pathToUri, pathToUrl, urlToPath } from './java-net.js'
 
 /** `Files.exists(path)` */
 export function filesExists(path: string): boolean {

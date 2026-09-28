@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/PageHashMatch.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { URL } from '../../port/java-net.js'
 import { DataClass } from '../../port/kotlin.js'
 
 type PageHashMatchParams = {
