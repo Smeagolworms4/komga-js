@@ -223,8 +223,8 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
   accumulait des centaines de Mo de mémoire native : les instructions sont réutilisées par connexion
   (`prepareCached`, `src/port/jooq/core.ts`), et les noms des tables temporaires (`TempTable`) sont réutilisés par
   connexion pour que leurs requêtes le soient aussi.
-- Mémoire : `bin/komgajs` limite le tas V8 de chaque thread au quart de la mémoire du conteneur (cgroup), comme la JVM
-  (`MaxRAMPercentage` 25 %), ou à `KOMGAJS_MAX_HEAP_MB`.
+- Mémoire : `bin/komgajs` limite le tas V8 de chaque thread à 40 % de la mémoire du conteneur (cgroup), au moins 256 Mo
+  (25 %, le `MaxRAMPercentage` de la JVM, ne suffisait pas à reconstruire l'index de 6 600 livres), ou à `KOMGAJS_MAX_HEAP_MB`.
 
 | Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; à surveiller : RAM de l'index en mémoire |
 | Images (miniatures, conversions) | pixels légèrement différents (sharp lanczos3 contre Thumbnailator bilinéaire progressif, encodeur PNG différent) ; dimensions, formats, décisions identiques (122 fichiers, oracle Komga) | visuel négligeable |

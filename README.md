@@ -36,7 +36,7 @@ memory low. Background tasks (scan, analysis, hashing, thumbnails) run in a work
 like Komga's task pool, so the web server keeps answering during a scan; the worker adds
 about 60–100 MB while it runs and stops after 60 s without tasks. The benchmarks are
 `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`; run them on your own library.
-In a container, each thread's V8 heap is capped at a quarter of the memory limit
+In a container, each thread's V8 heap is capped at 40 % of the memory limit (at least 256 MB)
 (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_TASK_WORKER=false` runs the tasks on
 the main thread.
 
