@@ -84,16 +84,22 @@ export async function runApplication(argv: string[]): Promise<ApplicationContext
   for (const name of args.getOptionNames()) properties[name] = (args.getOptionValues(name) ?? []).join(',')
   const here = dirname(fileURLToPath(import.meta.url))
   const srcRoot = join(here, '..')
+  // version de Komga portée (package.json à la racine du projet, depuis src/ ou dist/src/)
   let version = 'unknown'
-  try {
-    version = (JSON.parse(readFileSync(join(srcRoot, '..', 'package.json'), 'utf8')) as { version: string }).version
-  } catch {
-    // version inconnue
+  let projectRoot = join(srcRoot, '..')
+  for (const candidate of [join(srcRoot, '..'), join(srcRoot, '..', '..')]) {
+    try {
+      version = (JSON.parse(readFileSync(join(candidate, 'package.json'), 'utf8')) as { version: string }).version
+      projectRoot = candidate
+      break
+    } catch {
+      // essai suivant
+    }
   }
   const environment = new Environment({
     resourcesDirs: [resourcesDir()],
     properties: nestProperties(properties),
-    buildProperties: { version, rootDir: join(srcRoot, '..') },
+    buildProperties: { version, rootDir: projectRoot },
   })
 
   // scan des composants : l'équivalent de @SpringBootApplication + auto-configuration

@@ -87,10 +87,10 @@ export class ActuatorEndpoints {
     return { contexts: { application: { beans } } }
   }
 
-  /** `/actuator/info` */
+  /** `/actuator/info` : build-info de Komga (groupe = nom du projet Gradle racine, « komga » dans les builds officiels) */
   info(): unknown {
     const version = this.ctx.environment.getProperty('application.version')
-    return version !== null ? { build: { artifact: 'komga', name: 'komga', version, group: 'komga-src' } } : {}
+    return version !== null ? { build: { artifact: 'komga', name: 'komga', version, group: 'komga' } } : {}
   }
 }
 
