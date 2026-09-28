@@ -190,3 +190,10 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
 - Les tâches (scan, analyse, miniatures…), exécutées par Komga dans un pool de threads, s'exécuteront dans des `worker_threads` avec leur propre contexte et leurs connexions, pour ne pas bloquer le serveur HTTP.
 
 | Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; à surveiller : RAM de l'index en mémoire |
+| Images (miniatures, conversions) | pixels légèrement différents (sharp lanczos3 contre Thumbnailator bilinéaire progressif, encodeurs JPEG/PNG différents) ; dimensions, formats, décisions identiques (122 fichiers, oracle Komga) | visuel négligeable |
+| Rendu PDF | mupdf au lieu de PDFBox : pixels différents | visuel |
+
+## À optimiser (mémoire)
+
+- Charger à la demande les modules lourds (sharp, mupdf wasm, libheif-js, @jsquash/jxl) : premier usage seulement.
+- Mesurer la RAM de l'index de recherche en mémoire sur une grosse bibliothèque.
