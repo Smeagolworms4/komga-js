@@ -83,10 +83,20 @@ export class IsbnBarcodeProvider implements BookMetadataProvider {
           const bitmap = new BinaryBitmap(new HybridBinarizer(source))
 
           let result
+          // PORT: @zxing/library lève une exception (avec pile, ts-custom-error) à chaque motif non trouvé et
+          // l'écrit sur la console (console.warn, « non-ReaderException ») ; ZXing Java utilise des exceptions sans
+          // pile et n'écrit rien. Décodage synchrone : piles désactivées et console.warn muet pendant l'appel.
+          const stackTraceLimit = Error.stackTraceLimit
+          const warn = console.warn
+          Error.stackTraceLimit = 0
+          console.warn = () => {}
           try {
             result = new MultiFormatReader().decode(bitmap, this.hints)
           } catch (e) {
             result = null
+          } finally {
+            Error.stackTraceLimit = stackTraceLimit
+            console.warn = warn
           }
 
           if (result === null || result.getText() === null) {

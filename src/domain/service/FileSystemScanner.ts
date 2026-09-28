@@ -28,7 +28,7 @@ import {
   walkFileTree,
 } from '../../port/java-nio-file.js'
 import { containsIgnoreCase, regexMatches } from '../../port/kotlin-text.js'
-import { DataClass, eq, equalsIgnoreCase, firstOrNull, hash, ifBlank, isNullOrBlank, mapNotNull, nn, sumOf } from '../../port/kotlin.js'
+import { DataClass, equalsIgnoreCase, firstOrNull, ifBlank, isNullOrBlank, LinkedHashMap, LinkedHashSet, mapNotNull, nn, sumOf } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 
@@ -112,26 +112,23 @@ export class FileSystemScanner {
       const pathToBookSidecars = new Map<string, TempSidecar[]>()
 
       // PORT: MutableMap.merge(key, value) { prev, one -> prev.union(one).toMutableList() }
-      // Même résultat qu'un union recalculé à chaque fichier, mais incrémental : un index par hashCode et par clé
+      // Même résultat qu'un union recalculé à chaque fichier, mais incrémental : un LinkedHashSet par clé
       // (prev est déjà dédoublonné), sinon le scan d'un dossier de milliers de livres devient quadratique.
-      const mergeIndexes = new Map<Map<string, unknown[]>, Map<string, Map<number, unknown[]>>>()
+      const mergeSets = new Map<Map<string, unknown[]>, Map<string, LinkedHashSet<unknown>>>()
       function merge<T>(map: Map<string, T[]>, key: string, value: T[]): void {
-        let indexes = mergeIndexes.get(map as Map<string, unknown[]>)
-        if (indexes === undefined) mergeIndexes.set(map as Map<string, unknown[]>, (indexes = new Map()))
+        let sets = mergeSets.get(map as Map<string, unknown[]>) as Map<string, LinkedHashSet<T>> | undefined
+        if (sets === undefined) mergeSets.set(map as Map<string, unknown[]>, (sets = new Map()) as Map<string, LinkedHashSet<unknown>>)
         let prev = map.get(key)
-        let index = indexes.get(key)
-        if (prev === undefined || index === undefined) {
+        let set = sets.get(key)
+        if (prev === undefined || set === undefined) {
           prev = []
-          index = new Map()
+          set = new LinkedHashSet()
           map.set(key, prev)
-          indexes.set(key, index)
+          sets.set(key, set)
         }
         for (const x of value) {
-          const h = hash(x)
-          const bucket = index.get(h)
-          if (bucket === undefined) index.set(h, [x])
-          else if (bucket.some((y) => eq(x, y))) continue
-          else bucket.push(x)
+          if (set.has(x)) continue
+          set.add(x)
           prev.push(x)
         }
       }
@@ -235,17 +232,16 @@ export class FileSystemScanner {
                 const bookSidecars = pathToBookSidecars.get(dir)
                 const sidecars =
                   bookSidecars !== undefined
-                    ? new Map(
+                    ? new LinkedHashMap(
                         mapNotNull(bookSidecars, (sidecar) => {
                           const it = firstOrNull(self.sidecarBookConsumers, (it) => it.isSidecarBookMatch(book.name, sidecar.name))
                           return it !== null ? ([sidecar, it.getSidecarBookType()] as const) : null
                         }),
                       )
-                    : new Map<TempSidecar, Sidecar.Type>()
-                // PORT: MutableList.minusAssign(keys) : retrait de tous les éléments égaux, sur place
+                    : new LinkedHashMap<TempSidecar, Sidecar.Type>()
+                // PORT: MutableList.minusAssign(keys) : retrait de tous les éléments égaux (keys : ensemble structurel), sur place
                 if (bookSidecars !== undefined) {
-                  const keys = [...sidecars.keys()]
-                  const kept = bookSidecars.filter((it) => !keys.some((k) => eq(k, it)))
+                  const kept = bookSidecars.filter((it) => !sidecars.has(it))
                   bookSidecars.length = 0
                   bookSidecars.push(...kept)
                 }

@@ -2,7 +2,7 @@
 import '@js-joda/timezone'
 import { ChronoUnit, LocalDate, LocalDateTime, ZoneId, ZoneOffset, ZonedDateTime, type TemporalUnit } from '@js-joda/core'
 import { SortedMap } from '../port/extra-metadata.js'
-import { NoSuchElementException, equalsIgnoreCase, isNotBlank, maxByOrNull, trim } from '../port/kotlin.js'
+import { NoSuchElementException, equalsIgnoreCase, isNotBlank, LinkedHashMap, maxByOrNull, trim } from '../port/kotlin.js'
 
 export function toIndexedMap<T>(list: readonly T[]): SortedMap<number, T> {
   const m = new SortedMap<number, T>()
@@ -33,8 +33,8 @@ export function toEnumeration<T>(list: readonly T[]): Enumeration<T> {
 }
 
 export function mostFrequent<T, R>(list: Iterable<T>, transform: (t: T) => R | null | undefined): R | null {
-  // PORT: groupingBy { it }.eachCount() -> Map (ordre d'insertion, comme LinkedHashMap)
-  const counts = new Map<R, number>()
+  // PORT: groupingBy { it }.eachCount() -> LinkedHashMap (ordre d'insertion, clés comparées par equals())
+  const counts = new LinkedHashMap<R, number>()
   for (const e of list) {
     const r = transform(e)
     if (r !== null && r !== undefined) counts.set(r, (counts.get(r) ?? 0) + 1)

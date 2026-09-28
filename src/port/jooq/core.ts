@@ -1637,17 +1637,24 @@ export class Select extends Query {
   /** `fetchGroups(keyField|keyMapper, valueField|valueMapper)` : ordre d'insertion conservé */
   fetchGroups<K, V>(key: Field<K> | RecordMapper<Record, K>, value?: Field<V> | RecordMapper<Record, V>): Map<K, V[]> {
     const m = new Map<K, V[]>()
-    const keys: K[] = []
+    // clés objets (records) : égalité par valeurs, comme les records jOOQ (LinkedHashMap : seaux par hash des valeurs)
+    const buckets = new Map<number, K[]>()
     for (const r of this.fetchResult()) {
       const k = key instanceof Field ? r.get(key) : key(r)
       const v = (value === undefined ? r : value instanceof Field ? r.get(value) : value(r)) as V
-      // clés objets (records) : égalité par valeurs, comme les records jOOQ
-      const existing = keys.find((x) => recordKeyEquals(x, k))
-      if (existing !== undefined) (m.get(existing) as V[]).push(v)
-      else {
-        keys.push(k)
-        m.set(k, [v])
+      let existing: K | undefined
+      if (m.has(k)) existing = k
+      else if (k instanceof TableRecordImpl) {
+        const h = recordKeyHash(k)
+        const bucket = buckets.get(h)
+        existing = bucket?.find((x) => recordKeyEquals(x, k))
+        if (existing === undefined) {
+          if (bucket === undefined) buckets.set(h, [k])
+          else bucket.push(k)
+        }
       }
+      if (existing !== undefined) (m.get(existing) as V[]).push(v)
+      else m.set(k, [v])
     }
     return m
   }
@@ -1696,6 +1703,27 @@ function recordKeyEquals(a: unknown, b: unknown): boolean {
   if (a instanceof TableRecordImpl && b instanceof TableRecordImpl)
     return a.table.sameTable(b.table) && a.values.length === b.values.length && a.values.every((v, i) => valueEquals(v, b.values[i]))
   return false
+}
+
+/** hash cohérent avec recordKeyEquals (valueEquals) */
+function recordKeyHash(r: TableRecordImpl<unknown>): number {
+  let h = 0
+  for (const v of r.values) h = (31 * h + valueHash(v)) | 0
+  return h
+}
+
+function valueHash(v: unknown): number {
+  if (v === null || v === undefined) return 0
+  if (typeof v === 'string') {
+    let h = 0
+    for (let i = 0; i < v.length; i++) h = (31 * h + v.charCodeAt(i)) | 0
+    return h
+  }
+  if (typeof v === 'number' || typeof v === 'bigint' || typeof v === 'boolean') return valueHash(String(v))
+  // objets à equals : hashCode s'il existe (java.time), sinon seau commun ; Uint8Array : comparés par contenu
+  if (typeof (v as { hashCode?: unknown }).hashCode === 'function') return (v as { hashCode(): number }).hashCode() | 0
+  if (v instanceof Uint8Array) return v.length
+  return 0
 }
 
 function valueEquals(a: unknown, b: unknown): boolean {

@@ -10,7 +10,7 @@ import { ReadListRequestRepository } from '../../../domain/persistence/ReadListR
 import type { Field, Record } from '../../../port/jooq/core.js'
 import { DSLContext, ltrim, row, value, values } from '../../../port/jooq/dsl.js'
 import { Tables } from '../../../port/jooq/generated/main/Tables.js'
-import { eq } from '../../../port/kotlin.js'
+import { LinkedHashMap } from '../../../port/kotlin.js'
 import { component } from '../../../port/spring.js'
 import { SplitDslDaoBase } from '../SplitDslDaoBase.js'
 import { noCase } from '../Utils.js'
@@ -88,13 +88,13 @@ function mapValues<K, V, R>(m: Map<K, V>, f: (v: V) => R): Map<K, R> {
   return new Map([...m].map(([k, v]) => [k, f(v)]))
 }
 
-// PORT: Iterable.groupBy(keySelector, valueTransform) de Kotlin, clés (data class) comparées par equals()
+// PORT: Iterable.groupBy(keySelector, valueTransform) de Kotlin, clés (data class) comparées par equals() (LinkedHashMap)
 function groupByStructural<T, K, V>(a: Iterable<T>, key: (t: T) => K, value: (t: T) => V): Map<K, V[]> {
-  const m = new Map<K, V[]>()
+  const m = new LinkedHashMap<K, V[]>()
   for (const x of a) {
     const k = key(x)
-    const existing = [...m.keys()].find((it) => eq(it, k))
-    if (existing !== undefined) (m.get(existing) as V[]).push(value(x))
+    const l = m.get(k)
+    if (l !== undefined) l.push(value(x))
     else m.set(k, [value(x)])
   }
   return m

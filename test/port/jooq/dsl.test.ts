@@ -106,4 +106,28 @@ describe('jooq port', () => {
     const sorted = dsl.select(l.NAME).from(l).where(l.ID.like('S%')).orderBy(l.NAME.collate('COLLATION_UNICODE_3')).fetch(l.NAME)
     expect(sorted).toEqual(['a', 'b', 'e', 'É', 'Z'])
   })
+
+  it('fetchGroups groups record keys by value, in first-seen order', () => {
+    for (const [id, e] of [
+      ['S1', 'x'],
+      ['S0', 'y'],
+      ['S1', 'z'],
+    ])
+      dsl.insertInto(le).set(le.LIBRARY_ID, id).set(le.EXCLUSION, e).execute()
+    const groups = dsl
+      .select()
+      .from(le)
+      .join(l)
+      .onKey()
+      .where(l.ID.in(['S0', 'S1']))
+      .orderBy(le.EXCLUSION)
+      .fetchGroups(
+        (it) => it.into(l),
+        (it) => it.get(le.EXCLUSION),
+      )
+    expect([...groups].map(([k, v]) => [k.id, v])).toEqual([
+      ['S1', ['x', 'z']],
+      ['S0', ['y']],
+    ])
+  })
 })

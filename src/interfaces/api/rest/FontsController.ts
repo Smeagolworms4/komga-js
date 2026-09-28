@@ -6,6 +6,7 @@ import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiCon
 import { containsString } from '../../../language/LanguageUtils.js'
 import { FilenameUtils } from '../../../port/commons-io.js'
 import { pathExtension, pathName, isDirectory, isReadable, listDirectoryEntries } from '../../../port/java-nio-file.js'
+import { DataClass, groupBy } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { resourcesDir } from '../../../port/resources.js'
 import { ByteArrayResource, FileSystemResource } from '../../../port/spring-core-io.js'
@@ -28,17 +29,6 @@ function embeddedFontResources(): FileSystemResource[] {
   }
   walk(root)
   return out.sort().map((it) => new FileSystemResource(it))
-}
-
-function groupBy<T>(list: T[], key: (t: T) => string): Map<string, T[]> {
-  const m = new Map<string, T[]>()
-  for (const it of list) {
-    const k = key(it)
-    const l = m.get(k)
-    if (l) l.push(it)
-    else m.set(k, [it])
-  }
-  return m
 }
 
 // @RestController
@@ -130,17 +120,10 @@ export class FontsController {
   getFontFamilyAsCss(fontFamily: string): ResponseEntity<Resource> {
     const files = this.fonts.get(fontFamily)
     if (files !== undefined) {
-      const groups = groupBy(files, (it) => {
-        const c = this.getFontCharacteristics(FilenameUtils.getName(it.uri.toString()))
-        // PORT: clé de groupBy = data class FontCharacteristics (égalité structurelle)
-        return `${c.style}|${c.weight}`
-      })
+      const groups = groupBy(files, (it) => this.getFontCharacteristics(FilenameUtils.getName(it.uri.toString())))
 
       const css = [...groups.entries()]
-        .map(([key, resources]) => {
-          const [style, weight] = key.split('|') as [string, string]
-          return this.buildFontFaceBlock(fontFamily, new FontCharacteristics(style, weight), resources)
-        })
+        .map(([styleWeight, resources]) => this.buildFontFaceBlock(fontFamily, styleWeight, resources))
         .join('\n')
 
       return ResponseEntity.ok()
@@ -174,15 +157,19 @@ export class FontsController {
   private getFontCharacteristics(filename: string): FontCharacteristics {
     const style = filename.toLowerCase().includes('italic') ? 'italic' : 'normal'
     const weight = filename.toLowerCase().includes('bold') ? 'bold' : 'normal'
-    return new FontCharacteristics(style, weight)
+    return new FontCharacteristics({ style: style, weight: weight })
   }
 }
 
-class FontCharacteristics {
-  constructor(
-    readonly style: string,
-    readonly weight: string,
-  ) {}
+class FontCharacteristics extends DataClass<{ style: string; weight: string }> {
+  readonly style: string
+  readonly weight: string
+
+  constructor({ style, weight }: { style: string; weight: string }) {
+    super()
+    this.style = style
+    this.weight = weight
+  }
 }
 
 /** `Map.toString()` Kotlin (valeurs : `toString()` des ressources) */

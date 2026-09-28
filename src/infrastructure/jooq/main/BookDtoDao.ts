@@ -23,7 +23,7 @@ import { DSL, DSLContext, falseCondition, noCondition } from '../../../port/jooq
 import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
 import { URL } from '../../../port/java-net.js'
-import { associate, firstOrNull, mapNotNull, nn, require } from '../../../port/kotlin.js'
+import { associate, LinkedHashMap, firstOrNull, mapNotNull, nn, require } from '../../../port/kotlin.js'
 import { BookCommonDao } from './BookCommonDao.js'
 
 export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
@@ -491,7 +491,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
 
 // PORT: Iterable.groupBy(keySelector, valueTransform) de Kotlin
 function groupByValues<T, K, V>(a: Iterable<T>, key: (t: T) => K, value: (t: T) => V): Map<K, V[]> {
-  const m = new Map<K, V[]>()
+  const m = new LinkedHashMap<K, V[]>()
   for (const x of a) {
     const k = key(x)
     const l = m.get(k)
