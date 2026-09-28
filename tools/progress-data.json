@@ -257,20 +257,44 @@
       "min": 29,
       "check": "Komga en marche",
       "result": "775/775 tests portés, 1 485 tests passent"
+    },
+    {
+      "lot": "Publication GitHub, README, licences",
+      "who": "moi",
+      "min": 25,
+      "check": "—",
+      "result": "github.com/Smeagolworms4/komga-js",
+      "status": "done"
+    },
+    {
+      "lot": "CI GitHub Actions + image Docker (ghcr.io)",
+      "who": "moi",
+      "min": 30,
+      "check": "CI GitHub",
+      "result": "Tests au vert, image publique 157 Mo, conteneur 163 Mo de RAM après scan",
+      "status": "done"
+    },
+    {
+      "lot": "Test avec la vraie interface web de Komga",
+      "who": "moi",
+      "min": 15,
+      "check": "Chrome",
+      "result": "Compte, bibliothèque, scan, couvertures, liseuse OK",
+      "status": "done"
     }
   ],
   "remaining": [
     {
-      "step": "Accélérer le scan (réglage mémoire / vitesse, worker threads)",
+      "step": "Accélérer le scan (worker threads, réglage mémoire / vitesse)",
       "estimate": "environ 1 h"
     },
     {
-      "step": "Test sur une vraie base Komga et avec le vrai frontend",
+      "step": "Test sur une copie de ta vraie base Komga, clients Kobo / Mihon",
       "estimate": "environ 1 h"
     },
     {
-      "step": "Image Docker KomgaJS",
-      "estimate": "environ 30 min"
+      "step": "Erreur JavaScript de la liseuse à comparer avec Komga Java",
+      "estimate": "environ 20 min"
     }
   ],
   "deviations": [
