@@ -2,44 +2,249 @@
   "sessionStart": "2026-09-28T10:12:00",
   "ramJavaMo": 505,
   "lots": [
-    { "lot": "Inventaire, outils de suivi, couverture de départ", "who": "moi", "min": 25, "check": "Tests Kotlin", "result": "967 exécutions, 64,6 % de lignes couvertes", "status": "done" },
-    { "lot": "Équivalents Kotlin, conventions, premiers modèles", "who": "moi", "min": 75, "check": "—", "result": "Conventions de traduction fixées", "status": "done" },
-    { "lot": "Collations ICU, Flyway, nombres Java", "who": "moi", "min": 15, "check": "Flyway, ICU4J", "result": "Schéma de base identique, 87 checksums identiques", "status": "done" },
-    { "lot": "jOOQ, conteneur Spring, URL Java, premier DAO", "who": "moi", "min": 20, "check": "jOOQ réel", "result": "54 tables générées, LibraryDao 8/8", "status": "done" },
-    { "lot": "ObjectMapper (Jackson)", "who": "moi", "min": 10, "check": "Classes Komga", "result": "JSON identique", "status": "done" },
-    { "lot": "Modèle du domaine (3 agents)", "who": "agents", "min": 32, "check": "ICU4J", "result": "69 fichiers, 21 000 cas BCP47 sans écart", "status": "done" },
-    { "lot": "DAO, vague A (3 agents)", "who": "agents", "min": 48, "check": "jOOQ réel", "result": "20 DAO, 23 interfaces", "status": "done" },
-    { "lot": "DAO médias, progression, Kobo", "who": "agent", "min": 9, "check": "Blobs Komga", "result": "Compatibles dans les deux sens", "status": "done" },
-    { "lot": "Tâches : modèle et DAO", "who": "agent", "min": 12, "check": "Base de tâches Komga", "result": "26 types de tâches identiques", "status": "done" },
-    { "lot": "81 DTO de l'API", "who": "agent", "min": 34, "check": "Jackson + classes Komga", "result": "110 écritures et 55 lectures sans écart", "status": "done" },
-    { "lot": "Recherche plein texte (Lucene)", "who": "agent", "min": 81, "check": "Lucene 9.9.1", "result": "7 148 recherches identiques, scores au bit près", "status": "done" },
-    { "lot": "DAO, vague C (2 agents)", "who": "agents", "min": 26, "check": "—", "result": "7 DAO, 66 tests", "status": "done" },
-    { "lot": "Images et hash", "who": "agent", "min": 73, "check": "Komga, JDK 23", "result": "122 images : dimensions et décisions identiques", "status": "done" },
-    { "lot": "Archives ZIP, RAR, PDF, EPUB", "who": "agent", "min": 80, "check": "Tika, extracteurs Komga", "result": "9 569 fichiers et 180 archives, 0 écart", "status": "done" },
-    { "lot": "Sécurité (Spring Security, sessions)", "who": "agent", "min": 72, "check": "Komga en marche", "result": "68 tests, cookies compatibles", "status": "done" },
-    { "lot": "Services qui lisent les fichiers", "who": "agent", "min": 22, "check": "BookAnalyzer Komga", "result": "Analyse identique sur toutes les archives", "status": "done" },
-    { "lot": "Scan du disque et import", "who": "agent", "min": 27, "check": "Scanner Kotlin", "result": "108 lignes identiques, même ordre", "status": "done" },
-    { "lot": "Services liés à la base", "who": "agent", "min": 31, "check": "—", "result": "12 services", "status": "done" },
-    { "lot": "Moteur Spring MVC", "who": "agent", "min": 78, "check": "Komga en marche", "result": "116 tests, erreurs et en-têtes identiques", "status": "done" },
-    { "lot": "Métadonnées (ComicInfo, EPUB, Mylar, ISBN)", "who": "agent", "min": 99, "check": "Classes Komga", "result": "Environ 7 000 cas, 0 écart", "status": "done" },
-    { "lot": "JSON des pages de résultats", "who": "moi", "min": 5, "check": "Komga en marche", "result": "Identique", "status": "done" },
-    { "lot": "Tâches de fond, planification, Kobo", "who": "agent", "min": 25, "check": "Komga", "result": "626 tests passent, plus aucun substitut", "status": "done" },
-    { "lot": "Codec JPEG compatible JDK (test de sharp d'abord)", "who": "agent", "start": "14:43", "status": "running" },
-    { "lot": "Contrôleurs 1 : MockMvc et petits contrôleurs", "who": "agent", "start": "15:00", "status": "running" },
-    { "lot": "Contrôleurs 2 : livres", "who": "agent", "start": "15:00", "status": "running" },
-    { "lot": "Contrôleurs 3 : séries, collections", "who": "agent", "start": "15:00", "status": "running" },
-    { "lot": "Contrôleurs 4 : listes de lecture, bibliothèques, OPDS", "who": "agent", "start": "15:00", "status": "running" },
-    { "lot": "Contrôleurs 5 : Kobo, KOReader, SSE, OpenAPI", "who": "agent", "start": "15:00", "status": "running" },
-    { "lot": "Démarrage de l'application", "who": "moi", "start": "15:10", "status": "running" }
+    {
+      "lot": "Inventaire, outils de suivi, couverture de départ",
+      "who": "moi",
+      "min": 25,
+      "check": "Tests Kotlin",
+      "result": "967 exécutions, 64,6 % de lignes couvertes",
+      "status": "done"
+    },
+    {
+      "lot": "Équivalents Kotlin, conventions, premiers modèles",
+      "who": "moi",
+      "min": 75,
+      "check": "—",
+      "result": "Conventions de traduction fixées",
+      "status": "done"
+    },
+    {
+      "lot": "Collations ICU, Flyway, nombres Java",
+      "who": "moi",
+      "min": 15,
+      "check": "Flyway, ICU4J",
+      "result": "Schéma de base identique, 87 checksums identiques",
+      "status": "done"
+    },
+    {
+      "lot": "jOOQ, conteneur Spring, URL Java, premier DAO",
+      "who": "moi",
+      "min": 20,
+      "check": "jOOQ réel",
+      "result": "54 tables générées, LibraryDao 8/8",
+      "status": "done"
+    },
+    {
+      "lot": "ObjectMapper (Jackson)",
+      "who": "moi",
+      "min": 10,
+      "check": "Classes Komga",
+      "result": "JSON identique",
+      "status": "done"
+    },
+    {
+      "lot": "Modèle du domaine (3 agents)",
+      "who": "agents",
+      "min": 32,
+      "check": "ICU4J",
+      "result": "69 fichiers, 21 000 cas BCP47 sans écart",
+      "status": "done"
+    },
+    {
+      "lot": "DAO, vague A (3 agents)",
+      "who": "agents",
+      "min": 48,
+      "check": "jOOQ réel",
+      "result": "20 DAO, 23 interfaces",
+      "status": "done"
+    },
+    {
+      "lot": "DAO médias, progression, Kobo",
+      "who": "agent",
+      "min": 9,
+      "check": "Blobs Komga",
+      "result": "Compatibles dans les deux sens",
+      "status": "done"
+    },
+    {
+      "lot": "Tâches : modèle et DAO",
+      "who": "agent",
+      "min": 12,
+      "check": "Base de tâches Komga",
+      "result": "26 types de tâches identiques",
+      "status": "done"
+    },
+    {
+      "lot": "81 DTO de l'API",
+      "who": "agent",
+      "min": 34,
+      "check": "Jackson + classes Komga",
+      "result": "110 écritures et 55 lectures sans écart",
+      "status": "done"
+    },
+    {
+      "lot": "Recherche plein texte (Lucene)",
+      "who": "agent",
+      "min": 81,
+      "check": "Lucene 9.9.1",
+      "result": "7 148 recherches identiques, scores au bit près",
+      "status": "done"
+    },
+    {
+      "lot": "DAO, vague C (2 agents)",
+      "who": "agents",
+      "min": 26,
+      "check": "—",
+      "result": "7 DAO, 66 tests",
+      "status": "done"
+    },
+    {
+      "lot": "Images et hash",
+      "who": "agent",
+      "min": 73,
+      "check": "Komga, JDK 23",
+      "result": "122 images : dimensions et décisions identiques",
+      "status": "done"
+    },
+    {
+      "lot": "Archives ZIP, RAR, PDF, EPUB",
+      "who": "agent",
+      "min": 80,
+      "check": "Tika, extracteurs Komga",
+      "result": "9 569 fichiers et 180 archives, 0 écart",
+      "status": "done"
+    },
+    {
+      "lot": "Sécurité (Spring Security, sessions)",
+      "who": "agent",
+      "min": 72,
+      "check": "Komga en marche",
+      "result": "68 tests, cookies compatibles",
+      "status": "done"
+    },
+    {
+      "lot": "Services qui lisent les fichiers",
+      "who": "agent",
+      "min": 22,
+      "check": "BookAnalyzer Komga",
+      "result": "Analyse identique sur toutes les archives",
+      "status": "done"
+    },
+    {
+      "lot": "Scan du disque et import",
+      "who": "agent",
+      "min": 27,
+      "check": "Scanner Kotlin",
+      "result": "108 lignes identiques, même ordre",
+      "status": "done"
+    },
+    {
+      "lot": "Services liés à la base",
+      "who": "agent",
+      "min": 31,
+      "check": "—",
+      "result": "12 services",
+      "status": "done"
+    },
+    {
+      "lot": "Moteur Spring MVC",
+      "who": "agent",
+      "min": 78,
+      "check": "Komga en marche",
+      "result": "116 tests, erreurs et en-têtes identiques",
+      "status": "done"
+    },
+    {
+      "lot": "Métadonnées (ComicInfo, EPUB, Mylar, ISBN)",
+      "who": "agent",
+      "min": 99,
+      "check": "Classes Komga",
+      "result": "Environ 7 000 cas, 0 écart",
+      "status": "done"
+    },
+    {
+      "lot": "JSON des pages de résultats",
+      "who": "moi",
+      "min": 5,
+      "check": "Komga en marche",
+      "result": "Identique",
+      "status": "done"
+    },
+    {
+      "lot": "Tâches de fond, planification, Kobo",
+      "who": "agent",
+      "min": 25,
+      "check": "Komga",
+      "result": "626 tests passent, plus aucun substitut",
+      "status": "done"
+    },
+    {
+      "lot": "Codec JPEG identique au JDK",
+      "who": "agent",
+      "status": "done",
+      "min": 56,
+      "check": "JVM Temurin 21/23",
+      "result": "208 cas identiques octet pour octet ; sharp seul ne suffit pas au décodage"
+    },
+    {
+      "lot": "Contrôleurs 1 : MockMvc et petits contrôleurs",
+      "who": "agent",
+      "status": "done",
+      "min": 43,
+      "check": "Komga en marche",
+      "result": "MockMvc prêt, 14 contrôleurs, 830 tests"
+    },
+    {
+      "lot": "Contrôleurs 2 : livres",
+      "who": "agent",
+      "status": "done",
+      "min": 43,
+      "check": "Komga en marche",
+      "result": "60/60 tests, 915 réponses sur 1 000 identiques (écarts : pixels)"
+    },
+    {
+      "lot": "Contrôleurs 3 : séries, collections",
+      "who": "agent",
+      "status": "done",
+      "min": 43,
+      "check": "Komga en marche",
+      "result": "57/57 tests, 66 réponses sur 67 identiques"
+    },
+    {
+      "lot": "Contrôleurs 4 : listes de lecture, bibliothèques, OPDS",
+      "who": "agent",
+      "start": "15:00",
+      "status": "running"
+    },
+    {
+      "lot": "Contrôleurs 5 : Kobo, KOReader, SSE, OpenAPI",
+      "who": "agent",
+      "start": "15:00",
+      "status": "running"
+    },
+    {
+      "lot": "Démarrage de l'application",
+      "who": "moi",
+      "start": "15:10",
+      "status": "running"
+    }
   ],
   "remaining": [
-    { "step": "Fin des contrôleurs et de leurs tests", "estimate": "1 h 30 à 2 h" },
-    { "step": "Démarrage de l'application, tests d'architecture", "estimate": "environ 30 min" },
-    { "step": "Premier lancement réel, frontend, mesure de la RAM", "estimate": "environ 1 h" }
+    {
+      "step": "Fin des contrôleurs et de leurs tests",
+      "estimate": "environ 45 min"
+    },
+    {
+      "step": "Démarrage de l'application, tests d'architecture",
+      "estimate": "environ 30 min"
+    },
+    {
+      "step": "Premier lancement réel, frontend, mesure de la RAM",
+      "estimate": "environ 1 h"
+    }
   ],
   "deviations": [
     "Index de recherche : format de fichier propre, reconstruit automatiquement s'il est absent",
-    "Hash des pages JPEG : pas encore identiques à Komga (en cours)",
     "Miniatures et rendu PDF : pixels légèrement différents, dimensions et formats identiques",
     "Blobs gzip : octets différents, contenu identique"
   ]
