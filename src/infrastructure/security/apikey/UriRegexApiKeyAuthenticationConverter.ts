@@ -27,7 +27,8 @@ export class UriRegexApiKeyAuthenticationConverter implements AuthenticationConv
     const uri = request.requestURI
     // tokenRegex.find(it)?.groupValues?.lastOrNull()
     const m = uri !== null ? this.tokenRegex.exec(uri) : null
-    const it = m !== null ? (m[m.length - 1] ?? null) : null
+    // PORT: groupValues donne "" pour un groupe non capturé
+    const it = m !== null ? (m[m.length - 1] ?? '') : null
     if (it === null) return null
     // PORT: Hasher.computeHash(String) -> computeHashOfString
     const maskedToken = this.hasher.computeHashOfString(it)

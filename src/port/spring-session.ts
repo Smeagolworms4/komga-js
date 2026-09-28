@@ -184,6 +184,11 @@ export class CaffeineSession implements Session {
 
   setAttribute(name: string, value: unknown): void {
     this.delegate.setAttribute(name, value)
+    // l'index du nom de principal est mis à jour quand le contexte de sécurité change (attribut "principalName")
+    if (name === SPRING_SECURITY_CONTEXT) {
+      const principal = value !== null && value !== undefined ? resolvePrincipalNameIndex(this) : null
+      this.delegate.setAttribute(CaffeineIndexedSessionRepository.PRINCIPAL_NAME_ATTRIBUTE, principal)
+    }
   }
 
   removeAttribute(name: string): void {
@@ -270,7 +275,7 @@ export class CaffeineIndexedSessionRepository extends FindByIndexNameSessionRepo
     if (indexName !== FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME) return new Map()
     this.cleanUp()
     const out = new Map<string, CaffeineSession>()
-    for (const s of this.sessions.values()) if (resolvePrincipalNameIndex(s) === indexValue) out.set(s.id, new CaffeineSession(s, false))
+    for (const s of this.sessions.values()) if (indexValue === s.getAttribute(CaffeineIndexedSessionRepository.PRINCIPAL_NAME_ATTRIBUTE)) out.set(s.id, new CaffeineSession(s, false))
     return out
   }
 

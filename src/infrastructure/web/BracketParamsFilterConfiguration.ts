@@ -1,12 +1,13 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/web/BracketParamsFilterConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { type FilterChain, FilterRegistrationBean, type HttpServletRequest, type HttpServletResponse, type Filter } from '../../port/servlet.js'
 import { configuration } from '../../port/spring.js'
+import { Ordered } from '../../port/spring-boot-web.js'
 import { BracketParamsRequestWrapper } from './BracketParamsRequestWrapper.js'
 
 export class BracketParamsFilterConfiguration {
   bracketParamsFilter(): FilterRegistrationBean {
-    // PORT: FilterRegistrationBean(filter).also { addUrlPatterns(...); setName(...) } -> constructeur (ordre par défaut : 0)
-    return new FilterRegistrationBean(new BracketParamsFilterConfiguration.BracketParamsFilter(), 0, ['/api/*'], 'queryParamsFilter')
+    // PORT: FilterRegistrationBean(filter).also { addUrlPatterns(...); setName(...) } -> constructeur (ordre par défaut de RegistrationBean : Ordered.LOWEST_PRECEDENCE)
+    return new FilterRegistrationBean(new BracketParamsFilterConfiguration.BracketParamsFilter(), Ordered.LOWEST_PRECEDENCE, ['/api/*'], 'queryParamsFilter')
   }
 }
 

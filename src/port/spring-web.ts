@@ -238,6 +238,29 @@ export class HttpHeaders {
   }
 }
 
+/**
+ * `HttpHeaders` construit sur une `LinkedMultiValueMap` (`ResponseEntity(body, LinkedMultiValueMap(...), status)`) :
+ * la lecture par nom (`headers[name]`, `getFirst`) est sensible à la casse.
+ */
+export class CaseSensitiveHttpHeaders extends HttpHeaders {
+  private readonly exact = new Map<string, string[]>()
+  override set(name: string, value: string): this {
+    super.set(name, value)
+    this.exact.set(name, [value])
+    return this
+  }
+  override add(name: string, value: string): this {
+    super.add(name, value)
+    const l = this.exact.get(name)
+    if (l) l.push(value)
+    else this.exact.set(name, [value])
+    return this
+  }
+  override getFirst(name: string): string | null {
+    return this.exact.get(name)?.[0] ?? null
+  }
+}
+
 /** `ContentDisposition.builder(type).filename(name[, UTF_8]).build().toString()` (format de Spring) */
 export function contentDisposition(type: string, filename?: string, utf8 = false): string {
   if (filename === undefined) return type

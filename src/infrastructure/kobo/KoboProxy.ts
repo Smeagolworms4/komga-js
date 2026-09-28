@@ -9,7 +9,7 @@ import { IllegalStateException, lazy } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import type { HttpServletRequest } from '../../port/servlet.js'
 import { component } from '../../port/spring.js'
-import { HttpHeaders, HttpStatus, ResponseEntity, ResponseStatusException } from '../../port/spring-web.js'
+import { CaseSensitiveHttpHeaders, HttpStatus, ResponseEntity, ResponseStatusException } from '../../port/spring-web.js'
 import { KoboHeaders } from './KoboHeaders.js'
 import { KomgaSyncTokenGenerator } from './KomgaSyncTokenGenerator.js'
 
@@ -107,7 +107,8 @@ export class KoboProxy {
     const syncToken = includeSyncToken ? this.komgaSyncTokenGenerator.fromRequestHeaders(request) : null
 
     // uriBuilder.path(path).query(request.queryString).build()
-    const uri = path + (request.queryString !== null ? `?${request.queryString}` : '')
+    // UriComponents.toUriString : un chemin non vide qui ne commence pas par / en reçoit un après l'hôte
+    const uri = (path.length > 0 && !path.startsWith('/') ? `/${path}` : path) + (request.queryString !== null ? `?${request.queryString}` : '')
     logger.debug(() => `Proxy URL: https://storeapi.kobo.com${uri}`)
     const headersOut: [string, string][] = []
     headerNames(request)
@@ -120,6 +121,12 @@ export class KoboProxy {
       if (syncToken !== null && syncToken.rawKoboSyncToken.trim().length > 0) {
         headersOut.push([X_KOBO_SYNCTOKEN, syncToken.rawKoboSyncToken])
       }
+    }
+    // PORT: RestClient.body(ByteArray) : ByteArrayHttpMessageConverter ajoute Content-Type (application/octet-stream
+    // s'il est absent) et Content-Length
+    if (body !== null) {
+      if (!headersOut.some(([k]) => k.toLowerCase() === 'content-type')) headersOut.push(['Content-Type', 'application/octet-stream'])
+      headersOut.push(['Content-Length', String(body.length)])
     }
     logger.debug(() => `Headers out: [${headersOut.map(([k, v]) => `${k}:"${v}"`).join(', ')}]`)
     const response = await this.koboApiClient.exchange(request.method, uri, headersOut, body)
@@ -142,7 +149,8 @@ export class KoboProxy {
       }
     }
 
-    const headers = new HttpHeaders()
+    // PORT: ResponseEntity(body, LinkedMultiValueMap(headersToReturn), status) : noms sensibles à la casse
+    const headers = new CaseSensitiveHttpHeaders()
     for (const [k, values] of headersToReturn) for (const v of values) headers.add(k, v)
     return new ResponseEntity<JsonNode>(responseBody, headers, response.statusCode)
   }
