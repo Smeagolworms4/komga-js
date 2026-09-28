@@ -1,6 +1,7 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/util/TempDirectoryChecker.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { accessSync, constants, existsSync, mkdirSync } from 'node:fs'
+import { accessSync, constants, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
+import { notExists } from '../../port/java-nio-file.js'
 import { check, IllegalStateException } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 
@@ -30,8 +31,7 @@ export function checkTempDirectory(): void {
   if (it !== null) {
     const tmpDir = it
 
-    // PORT: Files.notExists(tmpDir)
-    if (!existsSync(tmpDir)) {
+    if (notExists(tmpDir)) {
       logger.warn(() => `Temp directory does not exist, attempting to create it: ${tmpDir}`)
       try {
         mkdirSync(tmpDir, { recursive: true })

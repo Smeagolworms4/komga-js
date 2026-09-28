@@ -90,7 +90,8 @@ export function notExists(path: string): boolean {
     statSync(path)
     return false
   } catch (e) {
-    return (e as NodeJS.ErrnoException).code === 'ENOENT' || (e as NodeJS.ErrnoException).code === 'ENOTDIR'
+    // Files.notExists : seule NoSuchFileException (ENOENT) confirme l'absence ; ENOTDIR -> FileSystemException -> faux
+    return (e as NodeJS.ErrnoException).code === 'ENOENT'
   }
 }
 
