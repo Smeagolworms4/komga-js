@@ -142,6 +142,19 @@ function populate(db: OracleDb): void {
 
   db.readProgressDao.save(new ReadProgress({ bookId: 'B1', userId: 'U1', page: 3, completed: true, readDate: date.plusDays(1), createdDate: date }))
   db.readProgressDao.save(new ReadProgress({ bookId: 'B2', userId: 'U1', page: 3, completed: false, readDate: date.plusDays(2), createdDate: date }))
+  fixDates(db, 'SERIES', ['S1', 'S2', 'S3'], 2, 6)
+  fixDates(db, 'BOOK', ['B1', 'B2', 'B3', 'B4', 'B5', 'B6'], 3, 4)
+}
+
+/**
+ * dates fixes et distinctes (le n-ième id le plus récent) à la place de CURRENT_TIMESTAMP (posé par la base, à la seconde) :
+ * les tris « derniers ajouts / mises à jour » ne dépendent pas d'un changement de seconde pendant le remplissage
+ */
+function fixDates(db: OracleDb, table: string, ids: string[], createdMonth: number, modifiedMonth: number): void {
+  for (const id of ids) {
+    const day = id.slice(1)
+    db.dsl.execute(`update ${table} set CREATED_DATE = '2020-0${createdMonth}-0${day} 10:00:00', LAST_MODIFIED_DATE = '2020-0${modifiedMonth}-0${day} 10:00:00' where ID = '${id}'`)
+  }
 }
 
 /** CBZ avec les pages p1.png, p2.jpg, p3.gif (2x3 pixels) */
@@ -189,6 +202,7 @@ export function realBooks(db: OracleDb, dir: string): void {
   )
   db.bookMetadataDao.insert(new BookMetadata({ title: 'real', number: '7', numberSort: 7, bookId: 'B7', createdDate: date }))
   db.bookMetadataDao.insert(new BookMetadata({ title: 'real epub', number: '8', numberSort: 8, bookId: 'B8', createdDate: date }))
+  fixDates(db, 'BOOK', ['B7', 'B8'], 3, 4)
 }
 
 /** remplit `db` (à appeler dans un cas) */

@@ -66,6 +66,8 @@ func('insert', () => {
     dao.insert(col('zebra', 'C5', ['S6']))
     dao.insert(col('Ångström collection', 'C6', ['S4', 'S1']))
     dao.insert(col('heroes 2', 'C7'))
+    // dates fixes (CURRENT_TIMESTAMP à la seconde) : « sorted by dates » ne dépend pas d'un changement de seconde entre deux cas
+    db.dsl.execute("update COLLECTION set CREATED_DATE = '2021-01-01 00:00:00', LAST_MODIFIED_DATE = '2021-01-01 00:00:00' where ID in ('C4', 'C5', 'C6', 'C7')")
     return dao.count()
   })
   kase('stored values', () => db.rawQuery('select ID, NAME, ORDERED, SERIES_COUNT from COLLECTION order by ID'))

@@ -19,6 +19,8 @@ KOMGA="$(cd "$KOMGA" && pwd)"
 OUT="${ORACLE_OUT:-$ROOT/test/unit/fixtures}"
 mkdir -p "$OUT" "$ROOT/build/tmp"
 export TMPDIR="$ROOT/build/tmp"
+# UTF-8 file names (oracle cases with non-ASCII paths) whatever the locale of the caller
+export LC_ALL=C.UTF-8
 if [ -z "${JAVA_HOME:-}" ]; then
   for j in "$ROOT"/../.oracle-cache/jdk/jdk-21*; do [ -x "$j/bin/java" ] && export JAVA_HOME="$(cd "$j" && pwd)"; done
 fi
@@ -43,5 +45,6 @@ start=$(date +%s)
   -PoracleOut="$OUT" \
   -x runKtlintCheckOverMainSourceSet -x runKtlintCheckOverTestSourceSet \
   -Dorg.gradle.jvmargs="-Xmx1G -Djava.io.tmpdir=$TMPDIR" \
+  -Pkotlin.daemon.jvmargs=-Xmx2G \
   --console=plain -q
 echo "Kotlin oracles written to $OUT in $(($(date +%s) - start)) s"

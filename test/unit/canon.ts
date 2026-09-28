@@ -50,13 +50,14 @@ const TSID = /^[0-9A-HJKMNP-TV-Z]{13}$/
  * Neutralise, dans une valeur canonique, ce que le code testé génère à l'exécution (`Canon.stable` côté Kotlin) :
  * - une chaîne TSID (13 caractères Crockford base32, `TsidCreator.getTsid256()`) devient `"@id:<n>"`,
  *   n numérotant les ids distincts dans l'ordre de première apparition ;
- * - un `{"@time": ...}` commençant par une date à un jour près d'aujourd'hui devient `{"@time": "@now"}`.
+ * - un `{"@time": ...}` commençant par une date à deux jours près d'aujourd'hui devient `{"@time": "@now"}`
+ *   (deux jours : `LocalDate.now(UTC).minusDays(1)` peut tomber l'avant-veille en heure locale).
  * Les clés d'objet sont conservées.
  */
 export function stableCanon(v: Canon): Canon {
   const ids = new Map<string, string>()
   const today = LocalDate.now()
-  const near = new Set([today.minusDays(1), today, today.plusDays(1)].map((d) => d.toString()))
+  const near = new Set([today.minusDays(2), today.minusDays(1), today, today.plusDays(1), today.plusDays(2)].map((d) => d.toString()))
   const walk = (x: Canon): Canon => {
     if (typeof x === 'string') {
       if (!TSID.test(x)) return x

@@ -93,8 +93,13 @@ Rapides : pas de contexte Spring (ni côté Kotlin ni côté TS), SQLite en mém
 - **Ids et dates générés** : les cas fixent eux-mêmes ids et dates (`id = "L1"`, dates fixes loin d'aujourd'hui).
   Ce que le code testé génère (TSID, `LocalDateTime.now()`, dates par défaut de la base) est neutralisé par
   `stable(valeur)` (même aide des deux côtés, appliquée à la forme canonique) : chaque TSID devient `"@id:<n>"`
-  (numéroté par ordre d'apparition dans la valeur) et chaque `{"@time"}` à un jour près d'aujourd'hui devient
+  (numéroté par ordre d'apparition dans la valeur) et chaque `{"@time"}` à deux jours près d'aujourd'hui devient
   `{"@time": "@now"}`. Les messages des erreurs SQL (qui contiennent la requête) ne sont pas comparés : `exceptionType { }`.
+  Un ordre qui dépend de ces dates n'est pas reproductible : dates de la base (`CURRENT_TIMESTAMP`, à la seconde, un
+  changement de seconde pendant le remplissage suffit), `now()` (à la milliseconde côté JS, à la microseconde côté JVM :
+  ex æquo possibles d'un seul côté), tri explicite ou `GROUP BY` (SQLite rend les groupes triés sur leurs colonnes,
+  `CREATED_DATE` en tête). Les cas concernés fixent ces dates (`db.dsl.execute("update ... set CREATED_DATE = ...")`).
+  De même l'ordre brut de readdir dépend du système de fichiers (graine de hachage ext4) : l'enregistrer trié.
 - **Collaborateurs** des services / contrôleurs : de préférence les vrais DAO sur `OracleDb` ; un faux (mock) n'est
   admis que s'il est écrit de façon identique des deux côtés (même classe, mêmes réponses), dans le fichier de test.
 - Fuseau `Europe/Paris` et locale `en_US` des deux côtés (propriété Gradle `oracleOut`, `vitest.unit.config.ts`).

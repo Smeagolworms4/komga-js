@@ -35,8 +35,15 @@ async function attempt(block: () => unknown): Promise<unknown> {
 
 const hash = (bookId: string, h: string) => db.bookDao.update(db.bookDao.findByIdOrNull(bookId)!.copy({ fileHashKoreader: h }))
 
+/**
+ * la progression enregistrée juste avant est antidatée : markProgression exige une date strictement postérieure et
+ * `now()` n'a que la milliseconde côté JS (deux mises à jour dans la même milliseconde seraient « plus anciennes »)
+ */
 const update = (document: string, progress: string, percentage = 0.5, principal: KomgaPrincipal = admin) =>
-  attempt(() => controller().updateProgress(principal, new DocumentProgressDto({ document, percentage: f32(percentage), progress, device: 'KOReader dev', deviceId: 'dev-id' })))
+  attempt(() => {
+    db.dsl.execute("update READ_PROGRESS set READ_DATE = '2020-01-01 00:00:00' where READ_DATE >= '2025'")
+    return controller().updateProgress(principal, new DocumentProgressDto({ document, percentage: f32(percentage), progress, device: 'KOReader dev', deviceId: 'dev-id' }))
+  })
 
 const progress = (bookId: string) => stable(db.readProgressDao.findByBookIdAndUserIdOrNull(bookId, 'U1'))
 
