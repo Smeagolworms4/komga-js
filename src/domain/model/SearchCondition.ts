@@ -8,6 +8,7 @@ import { MediaProfile as DomainMediaProfile } from './MediaProfile.js'
 import { ReadStatus as DomainReadStatus } from './ReadStatus.js'
 import { SearchOperator } from './SearchOperator.js'
 import { SeriesMetadata } from './SeriesMetadata.js'
+import { openApiSchema } from '../../port/swagger-annotations.js'
 
 export class SearchCondition {}
 
@@ -385,7 +386,7 @@ jsonProperties(SearchCondition.TitleSort, { operator: { class: SearchOperator.St
 json(SearchCondition.ReleaseDate, { rename: { operator: 'releaseDate' } })
 jsonProperties(SearchCondition.ReleaseDate, { operator: { class: SearchOperator.Date } })
 json(SearchCondition.NumberSort, { rename: { operator: 'numberSort' } })
-jsonProperties(SearchCondition.NumberSort, { operator: { class: SearchOperator.Numeric, args: ['Number'] } })
+jsonProperties(SearchCondition.NumberSort, { operator: { class: SearchOperator.Numeric, args: ['Float'] } })
 json(SearchCondition.Tag, { rename: { operator: 'tag' } })
 jsonProperties(SearchCondition.Tag, { operator: { class: SearchOperator.EqualityNullable, args: ['String'] } })
 json(SearchCondition.SharingLabel, { rename: { operator: 'sharingLabel' } })
@@ -397,7 +398,7 @@ jsonProperties(SearchCondition.Language, { operator: { class: SearchOperator.Equ
 json(SearchCondition.Genre, { rename: { operator: 'genre' } })
 jsonProperties(SearchCondition.Genre, { operator: { class: SearchOperator.EqualityNullable, args: ['String'] } })
 json(SearchCondition.AgeRating, { rename: { operator: 'ageRating' } })
-jsonProperties(SearchCondition.AgeRating, { operator: { class: SearchOperator.NumericNullable, args: ['Number'] } })
+jsonProperties(SearchCondition.AgeRating, { operator: { class: SearchOperator.NumericNullable, args: ['Int'] } })
 json(SearchCondition.ReadStatus, { rename: { operator: 'readStatus' } })
 jsonProperties(SearchCondition.ReadStatus, { operator: { class: SearchOperator.Equality, args: [{ enum: DomainReadStatus }] } })
 json(SearchCondition.MediaStatus, { rename: { operator: 'mediaStatus' } })
@@ -414,3 +415,40 @@ json(SearchCondition.Poster, { rename: { operator: 'poster' } })
 jsonProperties(SearchCondition.Poster, { operator: { class: SearchOperator.Equality, args: [{ class: SearchCondition.PosterMatch }] } })
 json(SearchCondition.PosterMatch, { include: 'NON_NULL' })
 jsonProperties(SearchCondition.PosterMatch, { type: { enum: SearchCondition.PosterMatch.Type }, selected: 'Boolean' })
+
+// @Schema (document OpenAPI : port/swagger-annotations.ts)
+openApiSchema(SearchCondition.Book, {
+  name: 'SearchConditionBook',
+  oneOf: [SearchCondition.AnyOfBook, SearchCondition.AllOfBook, SearchCondition.LibraryId, SearchCondition.ReadListId, SearchCondition.SeriesId, SearchCondition.Deleted, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.NumberSort, SearchCondition.ReadStatus, SearchCondition.MediaStatus, SearchCondition.MediaProfile, SearchCondition.Author, SearchCondition.Poster],
+})
+openApiSchema(SearchCondition.Series, {
+  name: 'SearchConditionSeries',
+  oneOf: [SearchCondition.AnyOfSeries, SearchCondition.AllOfSeries, SearchCondition.LibraryId, SearchCondition.CollectionId, SearchCondition.Deleted, SearchCondition.Complete, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.TitleSort, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.SharingLabel, SearchCondition.Publisher, SearchCondition.Language, SearchCondition.Genre, SearchCondition.AgeRating, SearchCondition.ReadStatus, SearchCondition.SeriesStatus, SearchCondition.Author],
+})
+openApiSchema(SearchCondition.AnyOfBook, { name: 'SearchConditionAnyOfBook' })
+openApiSchema(SearchCondition.AllOfBook, { name: 'SearchConditionAllOfBook' })
+openApiSchema(SearchCondition.AnyOfSeries, { name: 'SearchConditionAnyOfSeries' })
+openApiSchema(SearchCondition.AllOfSeries, { name: 'SearchConditionAllOfSeries' })
+openApiSchema(SearchCondition.LibraryId, { name: 'SearchConditionLibraryId' })
+openApiSchema(SearchCondition.CollectionId, { name: 'SearchConditionCollectionId' })
+openApiSchema(SearchCondition.ReadListId, { name: 'SearchConditionReadListId' })
+openApiSchema(SearchCondition.SeriesId, { name: 'SearchConditionSeriesId' })
+openApiSchema(SearchCondition.Deleted, { name: 'SearchConditionDeleted' })
+openApiSchema(SearchCondition.Complete, { name: 'SearchConditionComplete' })
+openApiSchema(SearchCondition.OneShot, { name: 'SearchConditionOneShot' })
+openApiSchema(SearchCondition.Title, { name: 'SearchConditionTitle' })
+openApiSchema(SearchCondition.TitleSort, { name: 'SearchConditionTitleSort' })
+openApiSchema(SearchCondition.ReleaseDate, { name: 'SearchConditionReleaseDate' })
+openApiSchema(SearchCondition.NumberSort, { name: 'SearchConditionNumberSort' })
+openApiSchema(SearchCondition.Tag, { name: 'SearchConditionTag' })
+openApiSchema(SearchCondition.SharingLabel, { name: 'SearchConditionSharingLabel' })
+openApiSchema(SearchCondition.Publisher, { name: 'SearchConditionPublisher' })
+openApiSchema(SearchCondition.Language, { name: 'SearchConditionLanguage' })
+openApiSchema(SearchCondition.Genre, { name: 'SearchConditionGenre' })
+openApiSchema(SearchCondition.AgeRating, { name: 'SearchConditionAgeRating' })
+openApiSchema(SearchCondition.ReadStatus, { name: 'SearchConditionReadStatus' })
+openApiSchema(SearchCondition.MediaStatus, { name: 'SearchConditionMediaStatus' })
+openApiSchema(SearchCondition.SeriesStatus, { name: 'SearchConditionSeriesStatus' })
+openApiSchema(SearchCondition.MediaProfile, { name: 'SearchConditionMediaProfile' })
+openApiSchema(SearchCondition.Author, { name: 'SearchConditionAuthor' })
+openApiSchema(SearchCondition.Poster, { name: 'SearchConditionPoster' })

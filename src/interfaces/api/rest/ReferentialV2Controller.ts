@@ -3,10 +3,12 @@ import { FilterBy, FilterByEntity, FilterTags } from '../../../domain/model/Filt
 import { SearchContext } from '../../../domain/model/SearchContext.js'
 import { ReferentialRepository } from '../../../domain/persistence/ReferentialRepository.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
-import { type AuthorDto, toDto } from './dto/AuthorDto.js'
+import { AuthorDto, toDto } from './dto/AuthorDto.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
 import { registerClass } from '../../../port/jackson.js'
-import { type Page, PageRequest, Pageable } from '../../../port/spring-data.js'
-import { MediaType, authenticationPrincipal, pageable, requestParam, restController } from '../../../port/spring-web.js'
+import { type Page, PageImpl, PageRequest, Pageable } from '../../../port/spring-data.js'
+import { MediaType, authenticationPrincipal, pageable, requestParam, restController, withParameter } from '../../../port/spring-web.js'
 
 // @RestController
 // @RequestMapping("api/v2", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -243,6 +245,7 @@ restController(ReferentialV2Controller, {
   inject: [ReferentialRepository],
   javaName: 'org.gotson.komga.interfaces.api.rest.ReferentialV2Controller',
   requestMapping: { path: ['api/v2'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+  openapi: { tags: [OpenApiConfiguration.TagNames.REFERENTIAL] },
   handlers: {
     getAuthors: {
       mapping: { method: 'GET', path: ['authors'] },
@@ -255,12 +258,16 @@ restController(ReferentialV2Controller, {
         setParam('series_id'),
         setParam('readlist_id'),
         unpagedParam(),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: AuthorDto }] },
+      openapi: { operation: { summary: 'List authors', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getAuthorsRoles: {
       mapping: { method: 'GET', path: ['authors/roles'] },
-      args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), setParam('series_id'), setParam('readlist_id'), unpagedParam(), pageable()],
+      args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), setParam('series_id'), setParam('readlist_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List authors roles', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getAuthorsNames: {
       mapping: { method: 'GET', path: ['authors/names'] },
@@ -273,16 +280,35 @@ restController(ReferentialV2Controller, {
         setParam('series_id'),
         setParam('readlist_id'),
         unpagedParam(),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List authors names', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
-    getGenres: { mapping: { method: 'GET', path: ['genres'] }, args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()] },
+    getGenres: {
+      mapping: { method: 'GET', path: ['genres'] },
+      args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List genres', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
+    },
     getSharingLabels: {
       mapping: { method: 'GET', path: ['sharing-labels'] },
-      args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()],
+      args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List sharing labels', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
-    getLanguages: { mapping: { method: 'GET', path: ['languages'] }, args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()] },
-    getPublishers: { mapping: { method: 'GET', path: ['publishers'] }, args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()] },
+    getLanguages: {
+      mapping: { method: 'GET', path: ['languages'] },
+      args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List languages', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
+    },
+    getPublishers: {
+      mapping: { method: 'GET', path: ['publishers'] },
+      args: [authenticationPrincipal(), nullableString('search'), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List publishers', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
+    },
     getTags: {
       mapping: { method: 'GET', path: ['tags'] },
       args: [
@@ -294,10 +320,22 @@ restController(ReferentialV2Controller, {
         setParam('readlist_id'),
         requestParam('include', { enum: FilterTags }, { required: false, hasDefault: true }),
         unpagedParam(),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List tags', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
-    getSeriesReleaseYears: { mapping: { method: 'GET', path: ['series/release-years'] }, args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()] },
-    getAgeRatings: { mapping: { method: 'GET', path: ['age-ratings'] }, args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), unpagedParam(), pageable()] },
+    getSeriesReleaseYears: {
+      mapping: { method: 'GET', path: ['series/release-years'] },
+      args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['String'] },
+      openapi: { operation: { summary: 'List series release years', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
+    },
+    getAgeRatings: {
+      mapping: { method: 'GET', path: ['age-ratings'] },
+      args: [authenticationPrincipal(), setParam('library_id'), setParam('collection_id'), unpagedParam(), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: ['Int'] },
+      openapi: { operation: { summary: 'List age ratings', description: 'Can be filtered by various criteria' }, parameters: [...PageableWithoutSortAsQueryParam] },
+    },
   },
 })

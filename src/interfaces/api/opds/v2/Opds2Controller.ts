@@ -19,18 +19,7 @@ import type { KomgaPrincipal } from '../../../../infrastructure/security/KomgaPr
 import { toZonedDateTime } from '../../../../language/LanguageUtils.js'
 import { ifBlank, isNullOrEmpty } from '../../../../port/kotlin.js'
 import { type Page, PageRequest, Pageable, Sort } from '../../../../port/spring-data.js'
-import {
-  HttpStatus,
-  MediaType,
-  type ResponseEntity,
-  ResponseStatusException,
-  authenticationPrincipal,
-  pageable,
-  pathVariable,
-  requestParam,
-  restController,
-  webRequest,
-} from '../../../../port/spring-web.js'
+import { HttpStatus, MediaType, type ResponseEntity, ResponseStatusException, authenticationPrincipal, pageable, pathVariable, requestParam, restController, webRequest, withParameter } from '../../../../port/spring-web.js'
 import type { ServletWebRequest } from '../../../../port/spring-web-filter.js'
 import { ServletUriComponentsBuilder, type UriComponentsBuilder } from '../../../../port/spring-web-uri.js'
 import { CommonBookController } from '../../CommonBookController.js'
@@ -725,44 +714,44 @@ restController(Opds2Controller, {
     },
     getKeepReading: {
       mapping: { method: 'GET', path: ['libraries/keep-reading', 'libraries/{id}/keep-reading'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getOnDeck: {
       mapping: { method: 'GET', path: ['libraries/on-deck', 'libraries/{id}/on-deck'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getLatestBooks: {
       mapping: { method: 'GET', path: ['libraries/books/latest', 'libraries/{id}/books/latest'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getLatestSeries: {
       mapping: { method: 'GET', path: ['libraries/series/latest', 'libraries/{id}/series/latest'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getLibrariesBrowse: {
       mapping: { method: 'GET', path: ['libraries/browse', 'libraries/{id}/browse'] },
-      args: [authenticationPrincipal(), libraryIdArg(), requestParam('publisher', { nullable: { list: 'String' } }, { required: false, nullable: true }), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), requestParam('publisher', { nullable: { list: 'String' } }, { required: false, nullable: true }), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getLibrariesCollections: {
       mapping: { method: 'GET', path: ['libraries/collections', 'libraries/{id}/collections'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
-    getOneCollection: { mapping: { method: 'GET', path: ['collections/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: { class: FeedDto } },
+    getOneCollection: { mapping: { method: 'GET', path: ['collections/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: { class: FeedDto } },
     getLibrariesReadLists: {
       mapping: { method: 'GET', path: ['libraries/readlists', 'libraries/{id}/readlists'] },
-      args: [authenticationPrincipal(), libraryIdArg(), pageable()],
+      args: [authenticationPrincipal(), libraryIdArg(), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
-    getOneReadList: { mapping: { method: 'GET', path: ['readlists/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: { class: FeedDto } },
+    getOneReadList: { mapping: { method: 'GET', path: ['readlists/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: { class: FeedDto } },
     getOneSeries: {
       mapping: { method: 'GET', path: ['series/{id}'] },
-      args: [authenticationPrincipal(), pathVariable('id'), requestParam('tag', { nullable: 'String' }, { required: false, nullable: true }), pageable()],
+      args: [authenticationPrincipal(), pathVariable('id'), requestParam('tag', { nullable: 'String' }, { required: false, nullable: true }), withParameter(pageable(), { hidden: true })],
       returns: { class: FeedDto },
     },
     getSearchResults: {
@@ -779,8 +768,12 @@ restController(Opds2Controller, {
         webRequest(),
         pathVariable('bookId'),
         pathVariable('pageNumber', 'Int'),
-        requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }),
+        withParameter(requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }), {
+          description: 'Convert the image to the provided format.',
+          schema: { allowableValues: ['jpeg', 'png'] },
+        }),
       ],
+      openapi: { responses: [{ content: [{ mediaType: 'image/*', schema: { type: 'string', format: 'binary' } }] }] },
     },
     getWebPubManifest: {
       mapping: { method: 'GET', path: ['books/{bookId}/manifest'], produces: [MEDIATYPE_OPDS_PUBLICATION_JSON_VALUE] },

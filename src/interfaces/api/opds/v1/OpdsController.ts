@@ -27,18 +27,7 @@ import { URI } from '../../../../port/java-net.js'
 import { distinct, isNotBlank, isNullOrBlank } from '../../../../port/kotlin.js'
 import { type Token } from '../../../../port/spring.js'
 import { type Page, PageRequest, type Pageable, Sort } from '../../../../port/spring-data.js'
-import {
-  HttpStatus,
-  MediaType,
-  type ResponseEntity,
-  ResponseStatusException,
-  authenticationPrincipal,
-  pageable,
-  pathVariable,
-  requestParam,
-  restController,
-  webRequest,
-} from '../../../../port/spring-web.js'
+import { HttpStatus, MediaType, type ResponseEntity, ResponseStatusException, authenticationPrincipal, pageable, pathVariable, requestParam, restController, webRequest, withParameter } from '../../../../port/spring-web.js'
 import type { ServletWebRequest } from '../../../../port/spring-web-filter.js'
 import { ServletUriComponentsBuilder, type UriComponentsBuilder, UriUtils } from '../../../../port/spring-web-uri.js'
 import { CommonBookController } from '../../CommonBookController.js'
@@ -676,31 +665,32 @@ restController(OpdsController, {
   handlers: {
     getCatalog: { mapping: { method: 'GET', path: [ROUTE_CATALOG] }, returns: OPDS_FEED },
     getSearch: { mapping: { method: 'GET', path: [ROUTE_SEARCH] }, returns: { class: OpenSearchDescription } },
-    getOnDeck: { mapping: { method: 'GET', path: [ROUTE_ON_DECK] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
-    getKeepReading: { mapping: { method: 'GET', path: [ROUTE_KEEP_READING] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
+    getOnDeck: { mapping: { method: 'GET', path: [ROUTE_ON_DECK] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getKeepReading: { mapping: { method: 'GET', path: [ROUTE_KEEP_READING] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
     getAllSeries: {
       mapping: { method: 'GET', path: [ROUTE_SERIES_ALL] },
       args: [
         authenticationPrincipal(),
         requestParam('search', { nullable: 'String' }, { required: false, nullable: true }),
         requestParam('publisher', { nullable: { list: 'String' } }, { required: false, nullable: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
       returns: OPDS_FEED,
     },
-    getLatestSeries: { mapping: { method: 'GET', path: [ROUTE_SERIES_LATEST] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
-    getLatestBooks: { mapping: { method: 'GET', path: [ROUTE_BOOKS_LATEST] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
+    getLatestSeries: { mapping: { method: 'GET', path: [ROUTE_SERIES_LATEST] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getLatestBooks: { mapping: { method: 'GET', path: [ROUTE_BOOKS_LATEST] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
     getLibraries: { mapping: { method: 'GET', path: [ROUTE_LIBRARIES_ALL] }, args: [authenticationPrincipal()], returns: OPDS_FEED },
-    getCollections: { mapping: { method: 'GET', path: [ROUTE_COLLECTIONS_ALL] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
-    getReadLists: { mapping: { method: 'GET', path: [ROUTE_READLISTS_ALL] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
-    getPublishers: { mapping: { method: 'GET', path: [ROUTE_PUBLISHERS_ALL] }, args: [authenticationPrincipal(), pageable()], returns: OPDS_FEED },
-    getOneSeries: { mapping: { method: 'GET', path: ['series/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: OPDS_FEED },
-    getOneLibrary: { mapping: { method: 'GET', path: ['libraries/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: OPDS_FEED },
-    getOneCollection: { mapping: { method: 'GET', path: ['collections/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: OPDS_FEED },
-    getOneReadList: { mapping: { method: 'GET', path: ['readlists/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), pageable()], returns: OPDS_FEED },
+    getCollections: { mapping: { method: 'GET', path: [ROUTE_COLLECTIONS_ALL] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getReadLists: { mapping: { method: 'GET', path: [ROUTE_READLISTS_ALL] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getPublishers: { mapping: { method: 'GET', path: [ROUTE_PUBLISHERS_ALL] }, args: [authenticationPrincipal(), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getOneSeries: { mapping: { method: 'GET', path: ['series/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getOneLibrary: { mapping: { method: 'GET', path: ['libraries/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getOneCollection: { mapping: { method: 'GET', path: ['collections/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
+    getOneReadList: { mapping: { method: 'GET', path: ['readlists/{id}'] }, args: [authenticationPrincipal(), pathVariable('id'), withParameter(pageable(), { hidden: true })], returns: OPDS_FEED },
     getBookThumbnailSmall: {
       mapping: { method: 'GET', path: ['books/{bookId}/thumbnail/small'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      openapi: { responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     getBookPageOpds: {
       mapping: { method: 'GET', path: ['books/{bookId}/pages/{pageNumber}'], produces: ['image/png', 'image/gif', 'image/jpeg'] },
@@ -710,8 +700,12 @@ restController(OpdsController, {
         webRequest(),
         pathVariable('bookId'),
         pathVariable('pageNumber', 'Int'),
-        requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }),
+        withParameter(requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }), {
+          description: 'Convert the image to the provided format.',
+          schema: { allowableValues: ['jpeg', 'png'] },
+        }),
       ],
+      openapi: { responses: [{ content: [{ mediaType: 'image/*', schema: { type: 'string', format: 'binary' } }] }] },
     },
   },
 })

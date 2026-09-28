@@ -1,7 +1,8 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReferentialV1Controller.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { ReferentialRepository } from '../../../domain/persistence/ReferentialRepository.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
-import { type AuthorDto, toDto } from './dto/AuthorDto.js'
+import { AuthorDto, toDto } from './dto/AuthorDto.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { MediaType, authenticationPrincipal, requestParam, restController } from '../../../port/spring-web.js'
 
 // @RestController
@@ -139,26 +140,86 @@ const libraryIdsParam = () => requestParam('library_id', { set: 'String' }, { re
 // `@RequestParam(name = ..., required = false) x: String?`
 const nullableString = (name: string) => requestParam(name, { nullable: 'String' }, { required: false, nullable: true })
 
+const TagNames = OpenApiConfiguration.TagNames
+
 // PORT: annotations Spring (@RestController, @RequestMapping, @GetMapping, @RequestParam)
 restController(ReferentialV1Controller, {
   inject: [ReferentialRepository],
   javaName: 'org.gotson.komga.interfaces.api.rest.ReferentialV1Controller',
   requestMapping: { path: ['api/v1'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+  openapi: { tags: [TagNames.REFERENTIAL] },
   handlers: {
     getAuthorsDeprecated: {
       mapping: { method: 'GET', path: ['authors'] },
       args: [authenticationPrincipal(), requestParam('search', 'String', { defaultValue: '' }), nullableString('library_id'), nullableString('collection_id'), nullableString('series_id')],
+      returns: { list: { class: AuthorDto } },
+      openapi: { operation: { summary: 'List authors', description: 'Use GET /api/v2/authors instead. Deprecated since 1.20.0.', tags: [TagNames.DEPRECATED] }, deprecated: true },
     },
-    getAuthorsNames: { mapping: { method: 'GET', path: ['authors/names'] }, args: [authenticationPrincipal(), requestParam('search', 'String', { defaultValue: '' })] },
-    getAuthorsRoles: { mapping: { method: 'GET', path: ['authors/roles'] }, args: [authenticationPrincipal()] },
-    getGenres: { mapping: { method: 'GET', path: ['genres'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getSharingLabels: { mapping: { method: 'GET', path: ['sharing-labels'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getTags: { mapping: { method: 'GET', path: ['tags'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getBookTags: { mapping: { method: 'GET', path: ['tags/book'] }, args: [authenticationPrincipal(), nullableString('series_id'), nullableString('readlist_id'), libraryIdsParam()] },
-    getSeriesTags: { mapping: { method: 'GET', path: ['tags/series'] }, args: [authenticationPrincipal(), nullableString('library_id'), nullableString('collection_id')] },
-    getLanguages: { mapping: { method: 'GET', path: ['languages'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getPublishers: { mapping: { method: 'GET', path: ['publishers'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getAgeRatings: { mapping: { method: 'GET', path: ['age-ratings'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
-    getSeriesReleaseDates: { mapping: { method: 'GET', path: ['series/release-dates'] }, args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')] },
+    getAuthorsNames: {
+      mapping: { method: 'GET', path: ['authors/names'] },
+      args: [authenticationPrincipal(), requestParam('search', 'String', { defaultValue: '' })],
+      returns: { list: 'String' },
+      openapi: { operation: { summary: "List authors' names", description: 'Use GET /v2/authors/names instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getAuthorsRoles: {
+      mapping: { method: 'GET', path: ['authors/roles'] },
+      args: [authenticationPrincipal()],
+      returns: { list: 'String' },
+      openapi: { operation: { summary: "List authors' roles", description: 'Use GET /v2/authors/roles instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getGenres: {
+      mapping: { method: 'GET', path: ['genres'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List genres', description: 'Use GET /v2/genres instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getSharingLabels: {
+      mapping: { method: 'GET', path: ['sharing-labels'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List sharing labels', description: 'Use GET /v2/sharing-labels instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getTags: {
+      mapping: { method: 'GET', path: ['tags'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List tags', description: 'Use GET /v2/tags instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getBookTags: {
+      mapping: { method: 'GET', path: ['tags/book'] },
+      args: [authenticationPrincipal(), nullableString('series_id'), nullableString('readlist_id'), libraryIdsParam()],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List book tags', description: 'Use GET /v2/tags instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getSeriesTags: {
+      mapping: { method: 'GET', path: ['tags/series'] },
+      args: [authenticationPrincipal(), nullableString('library_id'), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List series tags', description: 'Use GET /v2/tags instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getLanguages: {
+      mapping: { method: 'GET', path: ['languages'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List languages', description: 'Use GET /v2/languages instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getPublishers: {
+      mapping: { method: 'GET', path: ['publishers'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List publishers', description: 'Use GET /v2/publishers instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getAgeRatings: {
+      mapping: { method: 'GET', path: ['age-ratings'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List age ratings', description: 'Use GET /v2/age-ratings instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
+    getSeriesReleaseDates: {
+      mapping: { method: 'GET', path: ['series/release-dates'] },
+      args: [authenticationPrincipal(), libraryIdsParam(), nullableString('collection_id')],
+      returns: { set: 'String' },
+      openapi: { operation: { summary: 'List series release dates', description: 'Use GET /v2/series/release-years instead. Deprecated since 1.26.0', tags: [TagNames.DEPRECATED] }, deprecated: true },
+    },
   },
 })

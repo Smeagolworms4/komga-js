@@ -6,6 +6,7 @@ import type { TransientBook } from '../../../domain/model/TransientBook.js'
 import { TransientBookRepository } from '../../../domain/persistence/TransientBookRepository.js'
 import { BookAnalyzer } from '../../../domain/service/BookAnalyzer.js'
 import { TransientBookLifecycle } from '../../../domain/service/TransientBookLifecycle.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { getMediaTypeOrDefault, toFilePath } from '../../../infrastructure/web/Utils.js'
 import { BinaryByteUnit } from '../../../port/byteunits.js'
 import { registerClass } from '../../../port/jackson.js'
@@ -193,17 +194,27 @@ restController(TransientBooksController, {
   javaName: 'org.gotson.komga.interfaces.api.rest.TransientBooksController',
   requestMapping: { path: ['api/v1/transient-books'], produces: [MediaType.APPLICATION_JSON_VALUE] },
   preAuthorize: "hasRole('ADMIN')",
+  openapi: { tags: [OpenApiConfiguration.TagNames.BOOK_IMPORT] },
   handlers: {
     scanTransientBooks: {
       mapping: { method: 'POST' },
       args: [requestBody({ class: ScanRequestDto })],
+      returns: { list: { class: TransientBookDto } },
+      openapi: { operation: { summary: 'Scan folder for transient books', description: 'Scan provided folder for transient books.' } },
       signature:
         'public java.util.List<org.gotson.komga.interfaces.api.rest.TransientBookDto> org.gotson.komga.interfaces.api.rest.TransientBooksController.scanTransientBooks(org.gotson.komga.interfaces.api.rest.ScanRequestDto)',
     },
-    analyzeTransientBook: { mapping: { method: 'POST', path: ['{id}/analyze'] }, args: [pathVariable('id')] },
+    analyzeTransientBook: {
+      mapping: { method: 'POST', path: ['{id}/analyze'] },
+      args: [pathVariable('id')],
+      returns: { class: TransientBookDto },
+      openapi: { operation: { summary: 'Analyze transient book' } },
+    },
     getPageByTransientBookId: {
       mapping: { method: 'GET', path: ['{id}/pages/{pageNumber}'], produces: [MediaType.ALL_VALUE] },
       args: [pathVariable('id'), pathVariable('pageNumber', 'Int'), webRequest()],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get transient book page' } },
     },
   },
 })

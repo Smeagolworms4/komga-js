@@ -12,12 +12,13 @@ import { SeriesRepository } from '../../../domain/persistence/SeriesRepository.j
 import { LibraryLifecycle } from '../../../domain/service/LibraryLifecycle.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { filePathToUrl } from '../../../infrastructure/web/Utils.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { FileNotFoundException } from '../../../port/java-io.js'
 import { isBlank, nn, sortedBy } from '../../../port/kotlin.js'
 import { Pageable } from '../../../port/spring-data.js'
-import { HttpStatus, MediaType, ResponseStatusException, authenticationPrincipal, pathVariable, requestBody, requestParam, restController } from '../../../port/spring-web.js'
+import { HttpStatus, MediaType, ResponseStatusException, authenticationPrincipal, pathVariable, requestBody, requestParam, restController, withParameter } from '../../../port/spring-web.js'
 import { LibraryCreationDto } from './dto/LibraryCreationDto.js'
-import { type LibraryDto, toDto } from './dto/LibraryDto.js'
+import { LibraryDto, toDto } from './dto/LibraryDto.js'
 import { LibraryUpdateDto } from './dto/LibraryUpdateDto.js'
 import { toDomain as scanIntervalToDomain } from './dto/ScanIntervalDto.js'
 import { toDomain as seriesCoverToDomain } from './dto/SeriesCoverDto.js'
@@ -191,13 +192,26 @@ restController(LibraryController, {
   inject: [TaskEmitter, LibraryLifecycle, LibraryRepository, BookRepository, SeriesRepository],
   javaName: SIGNATURE_PREFIX,
   requestMapping: { path: ['api/v1/libraries'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+  openapi: { tags: [OpenApiConfiguration.TagNames.LIBRARIES] },
   handlers: {
-    getLibraries: { mapping: { method: 'GET' }, args: [authenticationPrincipal()] },
-    getLibraryById: { mapping: { method: 'GET', path: ['{libraryId}'] }, args: [authenticationPrincipal(), pathVariable('libraryId')] },
+    getLibraries: {
+      mapping: { method: 'GET' },
+      args: [authenticationPrincipal()],
+      returns: { list: { class: LibraryDto } },
+      openapi: { operation: { summary: 'List all libraries', description: "The libraries are filtered based on the current user's permissions" } },
+    },
+    getLibraryById: {
+      mapping: { method: 'GET', path: ['{libraryId}'] },
+      args: [authenticationPrincipal(), pathVariable('libraryId')],
+      returns: { class: LibraryDto },
+      openapi: { operation: { summary: 'Get details for a single library' } },
+    },
     addLibrary: {
       mapping: { method: 'POST' },
       preAuthorize: "hasRole('ADMIN')",
       args: [authenticationPrincipal(), requestBody({ class: LibraryCreationDto }, { valid: true })],
+      returns: { class: LibraryDto },
+      openapi: { operation: { summary: 'Create a library' } },
       signature: `public org.gotson.komga.interfaces.api.rest.dto.LibraryDto ${SIGNATURE_PREFIX}.addLibrary(org.gotson.komga.infrastructure.security.KomgaPrincipal,org.gotson.komga.interfaces.api.rest.dto.LibraryCreationDto)`,
     },
     updateLibraryByIdDeprecated: {
@@ -205,13 +219,21 @@ restController(LibraryController, {
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('libraryId'), requestBody({ class: LibraryUpdateDto }, { valid: true })],
+      openapi: {
+        operation: { summary: 'Update a library', description: 'Use PATCH /api/v1/libraries/{libraryId} instead. Deprecated since 1.3.0.', tags: [OpenApiConfiguration.TagNames.DEPRECATED] },
+        deprecated: true,
+      },
       signature: `public void ${SIGNATURE_PREFIX}.updateLibraryByIdDeprecated(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.LibraryUpdateDto)`,
     },
     updateLibraryById: {
       mapping: { method: 'PATCH', path: ['/{libraryId}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
-      args: [pathVariable('libraryId'), requestBody({ class: LibraryUpdateDto }, { valid: true })],
+      args: [
+        pathVariable('libraryId'),
+        withParameter(requestBody({ class: LibraryUpdateDto }, { valid: true }), { description: "Fields to update. You can omit fields you don't want to update." }),
+      ],
+      openapi: { operation: { summary: 'Update a library', description: "You can omit fields you don't want to update" } },
       signature: `public void ${SIGNATURE_PREFIX}.updateLibraryById(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.LibraryUpdateDto)`,
     },
     deleteLibraryById: {
@@ -219,20 +241,35 @@ restController(LibraryController, {
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('libraryId')],
+      openapi: { operation: { summary: 'Delete a library' } },
     },
     libraryScan: {
       mapping: { method: 'POST', path: ['{libraryId}/scan'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('libraryId'), requestParam('deep', 'Boolean', { required: false, hasDefault: true })],
+      openapi: { operation: { summary: 'Scan a library' } },
     },
-    libraryAnalyze: { mapping: { method: 'POST', path: ['{libraryId}/analyze'] }, preAuthorize: "hasRole('ADMIN')", responseStatus: HttpStatus.ACCEPTED, args: [pathVariable('libraryId')] },
+    libraryAnalyze: {
+      mapping: { method: 'POST', path: ['{libraryId}/analyze'] },
+      preAuthorize: "hasRole('ADMIN')",
+      responseStatus: HttpStatus.ACCEPTED,
+      args: [pathVariable('libraryId')],
+      openapi: { operation: { summary: 'Analyze a library' } },
+    },
     libraryRefreshMetadata: {
       mapping: { method: 'POST', path: ['{libraryId}/metadata/refresh'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('libraryId')],
+      openapi: { operation: { summary: 'Refresh metadata for a library' } },
     },
-    libraryEmptyTrash: { mapping: { method: 'POST', path: ['{libraryId}/empty-trash'] }, preAuthorize: "hasRole('ADMIN')", responseStatus: HttpStatus.ACCEPTED, args: [pathVariable('libraryId')] },
+    libraryEmptyTrash: {
+      mapping: { method: 'POST', path: ['{libraryId}/empty-trash'] },
+      preAuthorize: "hasRole('ADMIN')",
+      responseStatus: HttpStatus.ACCEPTED,
+      args: [pathVariable('libraryId')],
+      openapi: { operation: { summary: 'Empty trash for a library' } },
+    },
   },
 })

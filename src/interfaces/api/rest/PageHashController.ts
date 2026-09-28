@@ -5,14 +5,17 @@ import { PageHashKnown } from '../../../domain/model/PageHashKnown.js'
 import { PageHashRepository } from '../../../domain/persistence/PageHashRepository.js'
 import { PageHashLifecycle } from '../../../domain/service/PageHashLifecycle.js'
 import { getMediaTypeOrDefault } from '../../../infrastructure/web/Utils.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { PageableAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
 import { registerClass } from '../../../port/jackson.js'
+import { JsonTypes } from '../../../port/jackson-mapper.js'
 import { IllegalArgumentException, groupBy } from '../../../port/kotlin.js'
-import { type Page, Pageable } from '../../../port/spring-data.js'
-import { HttpStatus, MediaType, ResponseEntity, ResponseStatusException, pageable, pathVariable, requestBody, requestParam, restController } from '../../../port/spring-web.js'
+import { type Page, PageImpl, Pageable } from '../../../port/spring-data.js'
+import { HttpStatus, MediaType, ResponseEntity, ResponseStatusException, pageable, pathVariable, requestBody, requestParam, restController, withParameter } from '../../../port/spring-web.js'
 import { PageHashCreationDto } from './dto/PageHashCreationDto.js'
-import { type PageHashKnownDto, toDto as pageHashKnownToDto } from './dto/PageHashKnownDto.js'
+import { PageHashKnownDto, toDto as pageHashKnownToDto } from './dto/PageHashKnownDto.js'
 import { PageHashMatchDto, toDto as pageHashMatchToDto } from './dto/PageHashMatchDto.js'
-import { type PageHashUnknownDto, toDto as pageHashUnknownToDto } from './dto/PageHashUnknownDto.js'
+import { PageHashUnknownDto, toDto as pageHashUnknownToDto } from './dto/PageHashUnknownDto.js'
 
 export class PageHashController {
   constructor(
@@ -108,42 +111,56 @@ restController(PageHashController, {
   javaName: 'org.gotson.komga.interfaces.api.rest.PageHashController',
   requestMapping: { path: ['api/v1/page-hashes'], produces: [MediaType.APPLICATION_JSON_VALUE] },
   preAuthorize: "hasRole('ADMIN')",
+  openapi: { tags: [OpenApiConfiguration.TagNames.DUPLICATE_PAGES] },
   handlers: {
     getKnownPageHashes: {
       mapping: { method: 'GET' },
-      args: [requestParam('action', { nullable: { list: { enum: PageHashKnown.Action } } }, { required: false, nullable: true }), pageable()],
+      args: [requestParam('action', { nullable: { list: { enum: PageHashKnown.Action } } }, { required: false, nullable: true }), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: PageHashKnownDto }] },
+      openapi: { operation: { summary: 'List known duplicates' }, parameters: [...PageableAsQueryParam] },
     },
     getKnownPageHashThumbnail: {
       mapping: { method: 'GET', path: ['/{pageHash}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [pathVariable('pageHash')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get known duplicate image thumbnail' }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     getUnknownPageHashes: {
       mapping: { method: 'GET', path: ['/unknown'] },
-      args: [pageable()],
+      args: [withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: PageHashUnknownDto }] },
+      openapi: { operation: { summary: 'List unknown duplicates' }, parameters: [...PageableAsQueryParam] },
     },
     getPageHashMatches: {
       mapping: { method: 'GET', path: ['{pageHash}'] },
-      args: [pathVariable('pageHash'), pageable()],
+      args: [pathVariable('pageHash'), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: PageHashMatchDto }] },
+      openapi: { operation: { summary: 'List duplicate matches' }, parameters: [...PageableAsQueryParam] },
     },
     getUnknownPageHashThumbnail: {
       mapping: { method: 'GET', path: ['unknown/{pageHash}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [pathVariable('pageHash'), requestParam('resize', { nullable: 'Int' }, { nullable: true, hasDefault: true })],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get unknown duplicate image thumbnail' }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     createOrUpdateKnownPageHash: {
       mapping: { method: 'PUT' },
       responseStatus: HttpStatus.ACCEPTED,
       args: [requestBody({ class: PageHashCreationDto }, { valid: true })],
+      openapi: { operation: { summary: 'Mark duplicate page as known' } },
       signature: 'public void org.gotson.komga.interfaces.api.rest.PageHashController.createOrUpdateKnownPageHash(org.gotson.komga.interfaces.api.rest.dto.PageHashCreationDto)',
     },
     deleteDuplicatePagesByPageHash: {
       mapping: { method: 'POST', path: ['{pageHash}/delete-all'] },
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('pageHash')],
+      openapi: { operation: { summary: 'Delete all duplicate pages by hash' } },
     },
     deleteSingleMatchByPageHash: {
       mapping: { method: 'POST', path: ['{pageHash}/delete-match'] },
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('pageHash'), requestBody({ class: PageHashMatchDto })],
+      openapi: { operation: { summary: 'Delete specific duplicate page' } },
       signature: 'public void org.gotson.komga.interfaces.api.rest.PageHashController.deleteSingleMatchByPageHash(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.PageHashMatchDto)',
     },
   },

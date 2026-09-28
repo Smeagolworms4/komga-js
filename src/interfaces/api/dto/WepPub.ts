@@ -3,6 +3,7 @@ import type { LocalDate, ZonedDateTime } from '@js-joda/core'
 import { json } from '../../../port/jackson.js'
 import { type JsonType, JsonTypes, jsonProperties } from '../../../port/jackson-mapper.js'
 import { DataClass, KEnum, kFloat } from '../../../port/kotlin.js'
+import { openApiSchema } from '../../../port/swagger-annotations.js'
 import { constraints, Positive } from '../../../port/validation.js'
 
 type WPLinkDtoParams = {
@@ -305,6 +306,8 @@ const WPReadingProgressionDtoJson: JsonType = {
     })(),
   write: (v: WPReadingProgressionDto) => v.toJSON(),
 }
+// PORT: schéma OpenAPI de l'enum (valeurs @JsonProperty, comme swagger-core)
+openApiSchema(WPReadingProgressionDtoJson, { allowableValues: WPReadingProgressionDto.entries().map((it) => it.jsonName) })
 
 // PORT: types des propriétés (réflexion Kotlin utilisée par Jackson)
 jsonProperties(

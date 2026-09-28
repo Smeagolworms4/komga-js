@@ -23,12 +23,14 @@ import { ThumbnailBookRepository } from '../../../domain/persistence/ThumbnailBo
 import { BookAnalyzer } from '../../../domain/service/BookAnalyzer.js'
 import { BookLifecycle } from '../../../domain/service/BookLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { PageableAsQueryParam, PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
 import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { getMediaTypeOrDefault } from '../../../infrastructure/web/Utils.js'
 import { registerClass } from '../../../port/jackson.js'
-import type { JavaType } from '../../../port/jackson-mapper.js'
+import { type JavaType, JsonTypes } from '../../../port/jackson-mapper.js'
 import { ByteArrayInputStream } from '../../../port/java-io.js'
 import { NoSuchFileException as NioNoSuchFileException } from '../../../port/java-nio-file.js'
 import { distinct, IllegalArgumentException, IndexOutOfBoundsException, isNullOrBlank, isNullOrEmpty, mapNotNull, nn } from '../../../port/kotlin.js'
@@ -38,7 +40,7 @@ import { ParsedMediaType } from '../../../port/media-type.js'
 import type { HttpServletRequest, MultipartFile } from '../../../port/servlet.js'
 import { MultipartFile as MultipartFileClass } from '../../../port/servlet.js'
 import { ApplicationEventPublisher } from '../../../port/spring.js'
-import { Order, type Page, PageRequest, Pageable, Sort } from '../../../port/spring-data.js'
+import { Order, type Page, PageImpl, PageRequest, Pageable, Sort } from '../../../port/spring-data.js'
 import {
   HttpStatus,
   MediaType,
@@ -54,23 +56,24 @@ import {
   requestParam,
   restController,
   webRequest,
+  withParameter,
 } from '../../../port/spring-web.js'
 import { ServletWebRequest } from '../../../port/spring-web-filter.js'
 import { CommonBookController } from '../CommonBookController.js'
 import { ContentRestrictionChecker } from '../ContentRestrictionChecker.js'
 import { MEDIATYPE_DIVINA_JSON_VALUE, MEDIATYPE_POSITION_LIST_JSON, MEDIATYPE_POSITION_LIST_JSON_VALUE, MEDIATYPE_WEBPUB_JSON_VALUE } from '../dto/Constants.js'
-import type { WPPublicationDto } from '../dto/WepPub.js'
+import { WPPublicationDto } from '../dto/WepPub.js'
 import { getBookLastModified, setNotModified } from '../Utils.js'
 import { WebPubGenerator } from '../WebPubGenerator.js'
 import { BookDtoRepository } from '../persistence/BookDtoRepository.js'
-import { type BookDto, restrictUrl } from './dto/BookDto.js'
+import { BookDto, restrictUrl } from './dto/BookDto.js'
 import { BookImportBatchDto } from './dto/BookImportBatchDto.js'
 import { BookMetadataUpdateDto, patch } from './dto/BookMetadataUpdateDto.js'
 import { PageDto } from './dto/PageDto.js'
 import { R2Positions } from './dto/R2Positions.js'
-import { type ReadListDto, toDto as readListToDto } from './dto/ReadListDto.js'
+import { ReadListDto, toDto as readListToDto } from './dto/ReadListDto.js'
 import { ReadProgressUpdateDto } from './dto/ReadProgressUpdateDto.js'
-import { type ThumbnailBookDto, toDto as thumbnailBookToDto } from './dto/ThumbnailBookDto.js'
+import { ThumbnailBookDto, toDto as thumbnailBookToDto } from './dto/ThumbnailBookDto.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.interfaces.api.rest.BookController')
 
@@ -506,76 +509,106 @@ restController(BookController, {
         requestParam('released_after', { nullable: LocalDateIsoParam }, { required: false, nullable: true }),
         requestParam('tag', { nullable: { list: 'String' } }, { required: false, nullable: true }),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: 'List books', description: 'Use POST /api/v1/books/list instead. Deprecated since 1.19.0.', tags: [OpenApiConfiguration.TagNames.BOOKS, OpenApiConfiguration.TagNames.DEPRECATED] }, deprecated: true, parameters: [...PageableAsQueryParam] },
     },
     getBooks: {
       mapping: { method: 'POST', path: ['api/v1/books/list'] },
-      args: [authenticationPrincipal(), requestBody({ class: BookSearch }), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), pageable()],
+      args: [authenticationPrincipal(), requestBody({ class: BookSearch }), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), withParameter(pageable(), { hidden: true })],
       signature:
         'public org.springframework.data.domain.Page<org.gotson.komga.interfaces.api.rest.dto.BookDto> org.gotson.komga.interfaces.api.rest.BookController.getBooks(org.gotson.komga.infrastructure.security.KomgaPrincipal,org.gotson.komga.domain.model.BookSearch,boolean,org.springframework.data.domain.Pageable)',
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: 'List books', tags: [OpenApiConfiguration.TagNames.BOOKS] }, parameters: [...PageableAsQueryParam] },
     },
     getBooksLatest: {
       mapping: { method: 'GET', path: ['api/v1/books/latest'] },
-      args: [authenticationPrincipal(), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), pageable()],
+      args: [authenticationPrincipal(), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: 'List latest books', description: 'Return newly added or updated books.', tags: [OpenApiConfiguration.TagNames.BOOKS] }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getBooksOnDeck: {
       mapping: { method: 'GET', path: ['api/v1/books/ondeck'] },
-      args: [authenticationPrincipal(), requestParam('library_id', { nullable: { list: 'String' } }, { required: false, nullable: true }), pageable()],
+      args: [authenticationPrincipal(), requestParam('library_id', { nullable: { list: 'String' } }, { required: false, nullable: true }), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: 'List books on deck', description: 'Return first unread book of series with at least one book read and no books in progress.', tags: [OpenApiConfiguration.TagNames.BOOKS] }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getBooksDuplicates: {
       mapping: { method: 'GET', path: ['api/v1/books/duplicates'] },
       preAuthorize: "hasRole('ADMIN')",
-      args: [authenticationPrincipal(), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), pageable()],
+      args: [authenticationPrincipal(), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), withParameter(pageable(), { hidden: true })],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: 'List duplicate books', description: 'Return books that have the same file hash.', tags: [OpenApiConfiguration.TagNames.BOOKS] }, parameters: [...PageableAsQueryParam] },
     },
     getBookById: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: BookDto },
+      openapi: { operation: { summary: 'Get book details', tags: [OpenApiConfiguration.TagNames.BOOKS] }, throws: [EntityNotFoundException] },
     },
     getBookSiblingPrevious: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/previous'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: BookDto },
+      openapi: { operation: { summary: 'Get previous book in series', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     getBookSiblingNext: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/next'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: BookDto },
+      openapi: { operation: { summary: 'Get next book in series', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     getReadListsByBookId: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/readlists'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { list: { class: ReadListDto } },
+      openapi: { operation: { summary: "List book's readlists", tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     getBookThumbnail: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: "Get book's poster image", tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     getBookThumbnailById: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/thumbnails/{thumbnailId}'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId'), pathVariable('thumbnailId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get book poster image', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     getBookThumbnails: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { list: { class: ThumbnailBookDto } },
+      openapi: { operation: { summary: 'List book posters', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] } },
     },
     addUserUploadedBookThumbnail: {
       mapping: { method: 'POST', path: ['api/v1/books/{bookId}/thumbnails'], consumes: [MediaType.MULTIPART_FORM_DATA_VALUE] },
       preAuthorize: "hasRole('ADMIN')",
       args: [authenticationPrincipal(), pathVariable('bookId'), requestParam('file', { class: MultipartFileClass }), requestParam('selected', 'Boolean', { hasDefault: true })],
+      returns: { class: ThumbnailBookDto },
+      openapi: { operation: { summary: 'Add book poster', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] } },
     },
     markBookThumbnailSelected: {
       mapping: { method: 'PUT', path: ['api/v1/books/{bookId}/thumbnails/{thumbnailId}/selected'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('bookId'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Mark book poster as selected', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] } },
     },
     deleteUserUploadedBookThumbnail: {
       mapping: { method: 'DELETE', path: ['api/v1/books/{bookId}/thumbnails/{thumbnailId}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('bookId'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Delete book poster', description: 'Only uploaded posters can be deleted.', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] } },
     },
     getBookPages: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/pages'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { list: { class: PageDto } },
+      openapi: { operation: { summary: 'List book pages', tags: [OpenApiConfiguration.TagNames.BOOK_PAGES] } },
     },
     getBookPageByNumber: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/pages/{pageNumber}'], produces: [MediaType.ALL_VALUE] },
@@ -585,72 +618,107 @@ restController(BookController, {
         webRequest(),
         pathVariable('bookId'),
         pathVariable('pageNumber', 'Int'),
-        requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }),
-        requestParam('zero_based', 'Boolean', { defaultValue: 'false' }),
-        requestHeader('Accept', { nullable: { list: MediaTypeParam } }, { required: false, nullable: true }),
+        withParameter(requestParam('convert', { nullable: 'String' }, { required: false, nullable: true }), {
+          description: 'Convert the image to the provided format.',
+          schema: { allowableValues: ['jpeg', 'png'] },
+        }),
+        withParameter(requestParam('zero_based', 'Boolean', { defaultValue: 'false' }), {
+          description: 'If set to true, pages will start at index 0. If set to false, pages will start at index 1.',
+        }),
+        withParameter(requestHeader('Accept', { nullable: { list: MediaTypeParam } }, { required: false, nullable: true }), {
+          description:
+            "Some very limited server driven content negotiation is handled. If a book is a PDF book, and the Accept header contains 'application/pdf' as a more specific type than other 'image/' types, a raw PDF page will be returned.",
+        }),
         requestParam('contentNegotiation', 'Boolean', { defaultValue: 'true' }),
       ],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get book page image', tags: [OpenApiConfiguration.TagNames.BOOK_PAGES] }, responses: [{ content: [{ mediaType: 'image/*', schema: { type: 'string', format: 'binary' } }] }] },
     },
     getBookPageThumbnailByNumber: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/pages/{pageNumber}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), webRequest(), pathVariable('bookId'), pathVariable('pageNumber', 'Int')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get book page thumbnail', description: 'The image is resized to 300px on the largest dimension.', tags: [OpenApiConfiguration.TagNames.BOOK_PAGES] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
     getBookWebPubManifest: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/manifest'], produces: [MEDIATYPE_WEBPUB_JSON_VALUE, MEDIATYPE_DIVINA_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: WPPublicationDto },
+      openapi: { operation: { summary: "Get book's WebPub manifest", tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     getBookPositions: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/positions'], produces: [MEDIATYPE_POSITION_LIST_JSON_VALUE] },
       args: [requestArg(), authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: R2Positions },
+      openapi: { operation: { summary: "List book's positions", description: 'The Positions API is a proposed standard for OPDS 2 and Readium. It is used by the Epub Reader.', tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     getBookWebPubManifestEpub: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/manifest/epub'], produces: [MEDIATYPE_WEBPUB_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: WPPublicationDto },
+      openapi: { operation: { summary: "Get book's WebPub manifest (Epub)", tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     getBookWebPubManifestPdf: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/manifest/pdf'], produces: [MEDIATYPE_WEBPUB_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: WPPublicationDto },
+      openapi: { operation: { summary: "Get book's WebPub manifest (PDF)", tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     getBookWebPubManifestDivina: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/manifest/divina'], produces: [MEDIATYPE_DIVINA_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: WPPublicationDto },
+      openapi: { operation: { summary: "Get book's WebPub manifest (DiViNa)", tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     bookAnalyze: {
       mapping: { method: 'POST', path: ['api/v1/books/{bookId}/analyze'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('bookId')],
+      openapi: { operation: { summary: 'Analyze book', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     bookRefreshMetadata: {
       mapping: { method: 'POST', path: ['api/v1/books/{bookId}/metadata/refresh'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('bookId')],
+      openapi: { operation: { summary: 'Refresh book metadata', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     updateBookMetadata: {
       mapping: { method: 'PATCH', path: ['api/v1/books/{bookId}/metadata'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
-      args: [pathVariable('bookId'), requestBody({ class: BookMetadataUpdateDto }, { valid: true })],
+      args: [pathVariable('bookId'), withParameter(requestBody({ class: BookMetadataUpdateDto }, { valid: true }), {
+          description: "Metadata fields to update. Set a field to null to unset the metadata. You can omit fields you don't want to update.",
+        })],
       signature: 'public void org.gotson.komga.interfaces.api.rest.BookController.updateBookMetadata(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto)',
+      openapi: { operation: { summary: 'Update book metadata', description: "Set a field to null to unset the metadata. You can omit fields you don't want to update.", tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     updateBookMetadataByBatch: {
       mapping: { method: 'PATCH', path: ['api/v1/books/metadata'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
-      args: [requestBody({ map: { class: BookMetadataUpdateDto } }, { valid: true })],
+      args: [withParameter(requestBody({ map: { class: BookMetadataUpdateDto } }, { valid: true }), {
+          description: "A map of book IDs which values are the metadata fields to update. Set a field to null to unset the metadata. You can omit fields you don't want to update.",
+        })],
       signature: 'public void org.gotson.komga.interfaces.api.rest.BookController.updateBookMetadataByBatch(java.util.Map<java.lang.String, org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto>)',
+      openapi: { operation: { summary: 'Update book metadata in bulk', description: "Set a field to null to unset the metadata. You can omit fields you don't want to update.", tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     markBookReadProgress: {
       mapping: { method: 'PATCH', path: ['api/v1/books/{bookId}/read-progress'] },
       responseStatus: HttpStatus.NO_CONTENT,
-      args: [pathVariable('bookId'), requestBody({ class: ReadProgressUpdateDto }, { valid: true }), authenticationPrincipal()],
+      args: [pathVariable('bookId'), withParameter(requestBody({ class: ReadProgressUpdateDto }, { valid: true }), {
+          description:
+            'page can be omitted if completed is set to true. completed can be omitted, and will be set accordingly depending on the page passed and the total number of pages in the book.',
+        }), authenticationPrincipal()],
       signature: 'public void org.gotson.komga.interfaces.api.rest.BookController.markBookReadProgress(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.ReadProgressUpdateDto,org.gotson.komga.infrastructure.security.KomgaPrincipal)',
+      openapi: { operation: { summary: "Mark book's read progress", description: 'Mark book as read and/or change page progress.', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     deleteBookReadProgress: {
       mapping: { method: 'DELETE', path: ['api/v1/books/{bookId}/read-progress'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('bookId'), authenticationPrincipal()],
+      openapi: { operation: { summary: 'Mark book as unread', description: 'Mark book as unread', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     importBooks: {
       mapping: { method: 'POST', path: ['api/v1/books/import'] },
@@ -658,18 +726,21 @@ restController(BookController, {
       responseStatus: HttpStatus.ACCEPTED,
       args: [requestBody({ class: BookImportBatchDto })],
       signature: 'public void org.gotson.komga.interfaces.api.rest.BookController.importBooks(org.gotson.komga.interfaces.api.rest.dto.BookImportBatchDto)',
+      openapi: { operation: { summary: 'Import books', tags: [OpenApiConfiguration.TagNames.BOOK_IMPORT] } },
     },
     deleteBookFile: {
       mapping: { method: 'DELETE', path: ['api/v1/books/{bookId}/file'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('bookId')],
+      openapi: { operation: { summary: 'Delete book file', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     booksRegenerateThumbnails: {
       mapping: { method: 'PUT', path: ['api/v1/books/thumbnails'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [requestParam('for_bigger_result_only', 'Boolean', { required: false, hasDefault: true })],
+      openapi: { operation: { summary: 'Regenerate books posters', tags: [OpenApiConfiguration.TagNames.BOOK_POSTER] } },
     },
   },
 })

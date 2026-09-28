@@ -8,8 +8,6 @@ import { EntityNotFoundException } from '../../src/domain/model/Exceptions.js'
 import { BookSearch } from '../../src/domain/model/BookSearch.js'
 import { SeriesSearch } from '../../src/domain/model/SeriesSearch.js'
 import { SeriesDto } from '../../src/interfaces/api/rest/dto/SeriesDto.js'
-import { SearchCondition } from '../../src/domain/model/SearchCondition.js'
-import { SearchOperator } from '../../src/domain/model/SearchOperator.js'
 import { InheritanceFlattenerConfiguration } from '../../src/infrastructure/openapi/InheritanceFlattenerConfiguration.js'
 import { OpenApiConfiguration } from '../../src/infrastructure/openapi/OpenApiConfiguration.js'
 import { PageableAsQueryParam } from '../../src/infrastructure/openapi/PageableAnnotations.js'
@@ -40,7 +38,7 @@ import {
   withParameter,
 } from '../../src/port/spring-web.js'
 import { OpenApiGenerator } from '../../src/port/springdoc.js'
-import { OpenApiTypes, openApiSchema } from '../../src/port/swagger-annotations.js'
+import { OpenApiTypes } from '../../src/port/swagger-annotations.js'
 import { toJsonValue } from '../../src/port/swagger-models.js'
 import { ConstraintViolationException } from '../../src/port/validation-engine.js'
 import { Email, NotBlank } from '../../src/port/validation.js'
@@ -48,117 +46,8 @@ import { Email, NotBlank } from '../../src/port/validation.js'
 const REFERENCE = '../komga-src/komga/docs/openapi.json'
 const TagNames = OpenApiConfiguration.TagNames
 
-// ---------------------------------------------------------------------------
-// @Schema des interfaces scellées de recherche (domain/model/SearchCondition.kt, SearchOperator.kt)
-// ---------------------------------------------------------------------------
-
-const C = SearchCondition
-openApiSchema(C.Series, {
-  name: 'SearchConditionSeries',
-  oneOf: [C.AnyOfSeries, C.AllOfSeries, C.LibraryId, C.CollectionId, C.Deleted, C.Complete, C.OneShot, C.Title, C.TitleSort, C.ReleaseDate, C.Tag, C.SharingLabel, C.Publisher, C.Language, C.Genre, C.AgeRating, C.ReadStatus, C.SeriesStatus, C.Author],
-})
-openApiSchema(C.Book, {
-  name: 'SearchConditionBook',
-  oneOf: [C.AnyOfBook, C.AllOfBook, C.LibraryId, C.ReadListId, C.SeriesId, C.Deleted, C.OneShot, C.Title, C.ReleaseDate, C.Tag, C.NumberSort, C.ReadStatus, C.MediaStatus, C.MediaProfile, C.Author, C.Poster],
-})
-for (const [cls, name] of [
-  [C.AnyOfSeries, 'AnyOfSeries'],
-  [C.AllOfSeries, 'AllOfSeries'],
-  [C.CollectionId, 'CollectionId'],
-  [C.Complete, 'Complete'],
-  [C.TitleSort, 'TitleSort'],
-  [C.SharingLabel, 'SharingLabel'],
-  [C.Publisher, 'Publisher'],
-  [C.Language, 'Language'],
-  [C.Genre, 'Genre'],
-  [C.AgeRating, 'AgeRating'],
-  [C.SeriesStatus, 'SeriesStatus'],
-  [C.AnyOfBook, 'AnyOfBook'],
-  [C.AllOfBook, 'AllOfBook'],
-  [C.LibraryId, 'LibraryId'],
-  [C.ReadListId, 'ReadListId'],
-  [C.SeriesId, 'SeriesId'],
-  [C.Deleted, 'Deleted'],
-  [C.OneShot, 'OneShot'],
-  [C.Title, 'Title'],
-  [C.ReleaseDate, 'ReleaseDate'],
-  [C.Tag, 'Tag'],
-  [C.NumberSort, 'NumberSort'],
-  [C.ReadStatus, 'ReadStatus'],
-  [C.MediaStatus, 'MediaStatus'],
-  [C.MediaProfile, 'MediaProfile'],
-  [C.Author, 'Author'],
-  [C.Poster, 'Poster'],
-] as const)
-  openApiSchema(cls, { name: `SearchCondition${name}` })
-
-const O = SearchOperator
-const op = (name: string, oneOf: object[], mapping: [string, object][]) =>
-  ({ name, discriminatorProperty: 'operator', oneOf, discriminatorMapping: mapping.map(([value, schema]) => ({ value, schema })) }) as const
-openApiSchema(O.Equality, op('SearchOperatorEquality', [O.Is, O.IsNot], [['is', O.Is], ['isNot', O.IsNot]]))
-openApiSchema(
-  O.EqualityNullable,
-  op('SearchOperatorEqualityNullable', [O.Is, O.IsNot, O.IsNullT, O.IsNotNullT], [['is', O.Is], ['isNot', O.IsNot], ['isNull', O.IsNullT], ['isNotNull', O.IsNotNullT]]),
-)
-openApiSchema(
-  O.StringOp,
-  op(
-    'SearchOperatorString',
-    [O.BeginsWith, O.DoesNotBeginWith, O.Contains, O.DoesNotContain, O.EndsWith, O.DoesNotEndWith, O.Is, O.IsNot],
-    [['beginsWith', O.BeginsWith], ['doesNotBeginWith', O.DoesNotBeginWith], ['contains', O.Contains], ['doesNotContain', O.DoesNotContain], ['endsWith', O.EndsWith], ['doesNotEndWith', O.DoesNotEndWith], ['is', O.Is], ['isNot', O.IsNot]],
-  ),
-)
-openApiSchema(O.Numeric, op('SearchOperatorNumericT', [O.GreaterThan, O.LessThan, O.Is, O.IsNot], [['greaterThan', O.GreaterThan], ['lessThan', O.LessThan], ['is', O.Is], ['isNot', O.IsNot]]))
-openApiSchema(
-  O.NumericNullable,
-  op(
-    'SearchOperatorNumericNullable',
-    [O.GreaterThan, O.LessThan, O.IsNullT, O.IsNotNullT, O.Is, O.IsNot],
-    [['greaterThan', O.GreaterThan], ['lessThan', O.LessThan], ['isNull', O.IsNullT], ['isNotNull', O.IsNotNullT], ['is', O.Is], ['isNot', O.IsNot]],
-  ),
-)
-openApiSchema(
-  O.Date,
-  op(
-    'SearchOperatorDate',
-    [O.Before, O.After, O.IsInTheLast, O.IsNotInTheLast, O.IsNull, O.IsNotNull],
-    [['before', O.Before], ['after', O.After], ['isInTheLast', O.IsInTheLast], ['isNotInTheLast', O.IsNotInTheLast], ['isNull', O.IsNull], ['isNotNull', O.IsNotNull]],
-  ),
-)
-openApiSchema(O.Boolean, op('SearchOperatorBoolean', [O.IsTrue, O.IsFalse], [['isTrue', O.IsTrue], ['isFalse', O.IsFalse]]))
-for (const [cls, name] of [
-  [O.Is, 'Is'],
-  [O.IsNot, 'IsNot'],
-  [O.Contains, 'Contains'],
-  [O.DoesNotContain, 'DoesNotContain'],
-  [O.BeginsWith, 'BeginsWith'],
-  [O.DoesNotBeginWith, 'DoesNotBeginWith'],
-  [O.EndsWith, 'EndsWith'],
-  [O.DoesNotEndWith, 'DoesNotEndWith'],
-  [O.GreaterThan, 'GreaterThan'],
-  [O.LessThan, 'LessThan'],
-  [O.Before, 'Before'],
-  [O.After, 'After'],
-  [O.IsInTheLast, 'IsInTheLast'],
-  [O.IsNotInTheLast, 'IsNotInTheLast'],
-  [O.IsTrue, 'IsTrue'],
-  [O.IsFalse, 'IsFalse'],
-  [O.IsNull, 'IsNull'],
-  [O.IsNotNull, 'IsNotNull'],
-  [O.IsNullT, 'IsNullT'],
-  [O.IsNotNullT, 'IsNotNullT'],
-] as const)
-  openApiSchema(cls, { name: `SearchOperator${name}` })
-openApiSchema(O.IsNullT, { supertypes: [O.NumericNullable, O.EqualityNullable] })
-openApiSchema(O.IsNotNullT, { supertypes: [O.NumericNullable, O.EqualityNullable] })
-
-// Corrections de métadonnées Jackson des fichiers portés, à reporter dans ces fichiers (types Kotlin exacts) :
-// - domain/model/BookSearch.ts, SeriesSearch.ts : propriétés `T?` -> { nullable }
-// - domain/model/SearchCondition.ts : NumberSort = Numeric<Float>, AgeRating = NumericNullable<Int>
-jsonProperties(BookSearch, { condition: { nullable: { class: SearchCondition.Book } }, fullTextSearch: { nullable: 'String' } })
-jsonProperties(SeriesSearch, { condition: { nullable: { class: SearchCondition.Series } }, fullTextSearch: { nullable: 'String' } })
-jsonProperties(SearchCondition.NumberSort, { operator: { class: SearchOperator.Numeric, args: ['Float'] } })
-jsonProperties(SearchCondition.AgeRating, { operator: { class: SearchOperator.NumericNullable, args: ['Int'] } })
+// Les @Schema des interfaces scellées de recherche (domain/model/SearchCondition.ts, SearchOperator.ts) et les types
+// Jackson exacts de BookSearch, SeriesSearch et SearchCondition sont déclarés dans les fichiers portés.
 
 // ---------------------------------------------------------------------------
 // Contrôleurs de test (déclarations de Komga)

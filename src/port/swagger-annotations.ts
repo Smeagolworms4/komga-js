@@ -17,7 +17,8 @@
 //     d'abord les @Parameter(s) directs, puis les annotations méta dans l'ordre de déclaration
 //   @ApiResponse(responseCode?, description?, content = [Content(mediaType?, schema = Schema(type, format))])
 //                                                 -> HandlerSpec.openapi.responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }]
-//   @io.swagger...RequestBody(description, required) -> HandlerSpec.openapi.requestBody
+//   @io.swagger...RequestBody(description, required, content = [Content(examples = [ExampleObject(value)])])
+//                                                 -> HandlerSpec.openapi.requestBody: { description, required, content: [{ examples: [{ value }] }] }
 //   @Parameter(hidden = true) / @Parameter(description = "...") sur un argument
 //                                                 -> withParameter(argSpec, { hidden: true }) (port/spring-web.ts)
 //   @Schema(name, description, example, oneOf, discriminator...) sur une classe / propriété
@@ -38,6 +39,8 @@ export type SchemaAnnotation = {
   examples?: unknown[]
   /** `defaultValue` */
   defaultValue?: string
+  /** `allowableValues = [...]` : `enum` du schéma */
+  allowableValues?: string[]
   /** `@Schema(implementation = X::class)` */
   implementation?: object
   /** `oneOf = [A::class, B::class]` */
@@ -70,7 +73,13 @@ export type ParameterAnnotation = {
 }
 
 /** `@io.swagger.v3.oas.annotations.media.Content` */
-export type ContentAnnotation = { mediaType?: string; schema?: SchemaAnnotation; array?: ArraySchemaAnnotation }
+export type ContentAnnotation = {
+  mediaType?: string
+  schema?: SchemaAnnotation
+  array?: ArraySchemaAnnotation
+  /** `examples = [ExampleObject(value = "...")]` : `value` (JSON lu par swagger-core, ou texte) */
+  examples?: { name?: string; value: string }[]
+}
 
 /** `@io.swagger.v3.oas.annotations.responses.ApiResponse` */
 export type ApiResponseAnnotation = { responseCode?: string; description?: string; content?: ContentAnnotation[] }
@@ -99,7 +108,7 @@ export type OpenApiHandlerSpec = {
   /** `@ApiResponse` */
   responses?: ApiResponseAnnotation[]
   /** `@io.swagger.v3.oas.annotations.parameters.RequestBody` */
-  requestBody?: { description?: string; required?: boolean }
+  requestBody?: { description?: string; required?: boolean; content?: ContentAnnotation[] }
 }
 
 /** Métadonnées OpenAPI d'une classe de contrôleur (ControllerSpec.openapi) */

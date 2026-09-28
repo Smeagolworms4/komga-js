@@ -34,16 +34,6 @@ export class ErrorHandlingControllerAdvice {
   }
 }
 
-// @RestControllerAdvice
-controllerAdvice(ErrorHandlingControllerAdvice, {
-  exceptionHandlers: {
-    onConstraintValidationException: { exceptions: [ConstraintViolationException], responseStatus: HttpStatus.BAD_REQUEST },
-    onMethodArgumentNotValidException: { exceptions: [MethodArgumentNotValidException], responseStatus: HttpStatus.BAD_REQUEST },
-    handleEntityNotFound: { exceptions: [EntityNotFoundException], responseStatus: HttpStatus.NOT_FOUND, args: [] },
-    handleMaxUploadSizeExceededException: { exceptions: [MaxUploadSizeExceededException], args: [exceptionArg()] },
-  },
-})
-
 type ValidationErrorResponseParams = {
   violations?: Violation[]
 }
@@ -75,3 +65,14 @@ export class Violation extends DataClass<ViolationParams> {
 
 jsonProperties(ValidationErrorResponse, { violations: { list: { class: Violation } } })
 jsonProperties(Violation, { fieldName: { nullable: 'String' }, message: { nullable: 'String' } })
+
+// @RestControllerAdvice
+// PORT: déclaré après ValidationErrorResponse (type de retour des @ExceptionHandler, lu pour le document OpenAPI)
+controllerAdvice(ErrorHandlingControllerAdvice, {
+  exceptionHandlers: {
+    onConstraintValidationException: { exceptions: [ConstraintViolationException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
+    onMethodArgumentNotValidException: { exceptions: [MethodArgumentNotValidException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
+    handleEntityNotFound: { exceptions: [EntityNotFoundException], responseStatus: HttpStatus.NOT_FOUND, args: [] },
+    handleMaxUploadSizeExceededException: { exceptions: [MaxUploadSizeExceededException], args: [exceptionArg()] },
+  },
+})

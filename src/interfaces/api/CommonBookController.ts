@@ -15,10 +15,12 @@ import { SeriesMetadataRepository } from '../../domain/persistence/SeriesMetadat
 import { BookAnalyzer } from '../../domain/service/BookAnalyzer.js'
 import { BookLifecycle } from '../../domain/service/BookLifecycle.js'
 import { ImageType } from '../../infrastructure/image/ImageType.js'
+import { OpenApiConfiguration } from '../../infrastructure/openapi/OpenApiConfiguration.js'
 import { ContentDetector } from '../../infrastructure/mediacontainer/ContentDetector.js'
 import type { KomgaPrincipal } from '../../infrastructure/security/KomgaPrincipal.js'
 import { getMediaTypeOrDefault } from '../../infrastructure/web/Utils.js'
 import { FilenameUtils } from '../../port/commons-io.js'
+import { JsonTypes } from '../../port/jackson-mapper.js'
 import { FileNotFoundException } from '../../port/java-io.js'
 import { NoSuchFileException as NioNoSuchFileException } from '../../port/java-nio-file.js'
 import { IllegalArgumentException, IllegalStateException, IndexOutOfBoundsException, nn } from '../../port/kotlin.js'
@@ -43,6 +45,7 @@ import {
   webRequest,
 } from '../../port/spring-web.js'
 import { ServletWebRequest } from '../../port/spring-web-filter.js'
+import { OpenApiTypes } from '../../port/swagger-annotations.js'
 import { MEDIATYPE_PROGRESSION_JSON_VALUE } from './dto/Constants.js'
 import type { WPPublicationDto } from './dto/WepPub.js'
 import { BookDtoRepository } from './persistence/BookDtoRepository.js'
@@ -333,10 +336,14 @@ restController(CommonBookController, {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/pages/{pageNumber}/raw', 'opds/v2/books/{bookId}/pages/{pageNumber}/raw'], produces: [MediaType.ALL_VALUE] },
       preAuthorize: "hasRole('PAGE_STREAMING')",
       args: [authenticationPrincipal(), webRequest(), pathVariable('bookId'), pathVariable('pageNumber', 'Int')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get raw book page', description: 'Returns the book page in raw format, without content negotiation.', tags: [OpenApiConfiguration.TagNames.BOOK_PAGES] } },
     },
     getBookEpubResource: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/resource/{*resource}', 'opds/v2/books/{bookId}/resource/{*resource}'], produces: ['*/*'] },
       args: [requestArg(), authenticationPrincipal(), pathVariable('bookId'), pathVariable('resource')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get Epub resource', description: 'Return a resource from within an Epub book.', tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] }, securityRequirements: true },
     },
     downloadBookFile: {
       mapping: {
@@ -346,16 +353,21 @@ restController(CommonBookController, {
       },
       preAuthorize: "hasRole('FILE_DOWNLOAD')",
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: OpenApiTypes.StreamingResponseBody,
+      openapi: { operation: { summary: 'Download book file', description: 'Download the book file.', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     getBookProgression: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/progression', 'opds/v2/books/{bookId}/progression'], produces: [MEDIATYPE_PROGRESSION_JSON_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      returns: { class: R2Progression },
+      openapi: { operation: { summary: 'Get book progression', description: 'The Progression API is a proposed standard for OPDS 2 and Readium. It is used by the Epub Reader.', tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
     updateBookProgression: {
       mapping: { method: 'PUT', path: ['api/v1/books/{bookId}/progression', 'opds/v2/books/{bookId}/progression'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [authenticationPrincipal(), pathVariable('bookId'), requestBody({ class: R2Progression })],
       signature: 'public void org.gotson.komga.interfaces.api.CommonBookController.updateBookProgression(org.gotson.komga.infrastructure.security.KomgaPrincipal,java.lang.String,org.gotson.komga.domain.model.R2Progression)',
+      openapi: { operation: { summary: 'Mark book progression', description: 'The Progression API is a proposed standard for OPDS 2 and Readium. It is used by the Epub Reader.', tags: [OpenApiConfiguration.TagNames.BOOK_WEBPUB] } },
     },
   },
 })

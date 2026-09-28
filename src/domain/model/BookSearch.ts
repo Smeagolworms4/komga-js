@@ -22,7 +22,7 @@ export class BookSearch extends DataClass<BookSearchParams> {
 
 json(BookSearch, { include: 'NON_NULL' })
 // PORT: types des propriétés (réflexion Kotlin utilisée par Jackson)
-jsonProperties(BookSearch, { condition: { class: SearchCondition.Book }, fullTextSearch: 'String' })
+jsonProperties(BookSearch, { condition: { nullable: { class: SearchCondition.Book } }, fullTextSearch: { nullable: 'String' } })
 
 // PORT: nom qualifié de la classe Kotlin (messages de Jackson)
 registerClass('org.gotson.komga.domain.model.BookSearch', BookSearch)

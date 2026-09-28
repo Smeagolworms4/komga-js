@@ -3,6 +3,7 @@ import { DateTimeFormatter, OffsetDateTime, ZoneOffset } from '@js-joda/core'
 import { json } from '../../../../port/jackson.js'
 import { type JsonType, jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
+import { openApiSchema } from '../../../../port/swagger-annotations.js'
 
 type JsonFeedDtoParams = {
   version: string
@@ -210,3 +211,86 @@ jsonProperties(
 )
 jsonProperties(JsonFeedDto.ItemAuthorDto, { name: { nullable: 'String' }, url: { nullable: 'String' } })
 jsonProperties(JsonFeedDto.KomgaExtensionDto, { read: 'Boolean' }, [], { required: ['read'] })
+
+// @Schema (document OpenAPI : port/swagger-annotations.ts) ; l'exemple JSON de la classe est lu par swagger-core (Json.mapper().readTree)
+openApiSchema(JsonFeedDto, {
+  example: JSON.parse(`
+  {
+  "version": "https://jsonfeed.org/version/1",
+  "title": "Announcements",
+  "home_page_url": "https://komga.org/blog",
+  "description": "Latest Komga announcements",
+  "items": [
+    {
+      "id": "https://komga.org/blog/ebook-drop2",
+      "url": "https://komga.org/blog/ebook-drop2",
+      "title": "eBook drop 2",
+      "summary": "Version 1.9.0 contains the second feature drop for Ebooks support.",
+      "content_html": "<p>A longer text…</p>",
+      "date_modified": "2023-12-15T00:00:00Z",
+      "author": {
+        "name": "gotson",
+        "url": "https://github.com/gotson"
+      },
+      "tags": [
+        "upgrade",
+        "komga"
+      ],
+      "_komga": {
+        "read": false
+      }
+    },
+    {
+      "id": "https://komga.org/blog/ebook-support",
+      "url": "https://komga.org/blog/ebook-support",
+      "title": "eBook support",
+      "summary": "Version 1.8.0 is bringing a long awaited feature: proper eBook support!",
+      "content_html": "<p>A longer text…</p>",
+      "date_modified": "2023-11-29T00:00:00Z",
+      "author": {
+        "name": "gotson",
+        "url": "https://github.com/gotson"
+      },
+      "tags": [
+        "upgrade",
+        "komga"
+      ],
+      "_komga": {
+        "read": true
+      }
+    }
+  ]
+}
+`),
+  properties: {
+    version: { description: 'URL of the version of the format the feed uses', example: 'https://jsonfeed.org/version/1' },
+    title: { description: 'Name of the feed', example: 'Announcements' },
+    homePageUrl: { description: 'URL of the resource that the feed describes', example: 'https://komga.org/blog' },
+    description: { description: 'Provides more detail on what the feed is about', example: 'Latest Komga announcements' },
+  },
+})
+openApiSchema(JsonFeedDto.ItemDto, {
+  properties: {
+    id: { description: 'Unique for that item for that feed over time', example: 'https://komga.org/blog/ebook-drop2' },
+    url: { description: 'URL of the resource described by the item', example: 'https://komga.org/blog/ebook-drop2' },
+    title: { description: 'Plain text title', example: 'eBook drop 2' },
+    summary: { description: 'A plain text sentence or two describing the item', example: 'Version 1.9.0 contains the second feature drop for Ebooks support.' },
+    contentHtml: { description: 'HTML of the item', example: '<p>A longer text…</p>' },
+    dateModified: { description: 'Modification date in RFC 3339 format', example: '2023-12-15T00:00:00Z' },
+    author: { description: 'Author of the item' },
+    tags: { description: 'Tags describing the item', examples: ['upgrade', 'komga'] },
+    komgaExtension: { description: 'Additional fields for the item' },
+  },
+})
+openApiSchema(JsonFeedDto.ItemAuthorDto, {
+  properties: {
+    name: { description: "Author's name", example: 'gotson' },
+    url: { description: 'URL of a site owned by the author', example: 'https://github.com/gotson' },
+  },
+})
+openApiSchema(JsonFeedDto.KomgaExtensionDto, {
+  properties: {
+    // PORT: example = "false" converti par swagger-core selon le type de la propriété (boolean)
+    read: { description: 'Whether the current item has been marked read by the current user', example: false },
+  },
+})

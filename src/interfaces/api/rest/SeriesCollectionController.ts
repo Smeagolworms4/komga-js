@@ -22,17 +22,17 @@ import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrinc
 import { Authors } from '../../../infrastructure/web/Authors.js'
 import { SeriesDtoRepository } from '../persistence/SeriesDtoRepository.js'
 import { CollectionCreationDto } from './dto/CollectionCreationDto.js'
-import { type CollectionDto, toDto } from './dto/CollectionDto.js'
+import { CollectionDto, toDto } from './dto/CollectionDto.js'
 import { CollectionUpdateDto } from './dto/CollectionUpdateDto.js'
-import { type SeriesDto, restrictUrl } from './dto/SeriesDto.js'
-import { type ThumbnailSeriesCollectionDto, toDto as toDtoThumbnail } from './dto/ThumbnailSeriesCollectionDto.js'
+import { SeriesDto, restrictUrl } from './dto/SeriesDto.js'
+import { ThumbnailSeriesCollectionDto, toDto as toDtoThumbnail } from './dto/ThumbnailSeriesCollectionDto.js'
 import { registerClass } from '../../../port/jackson.js'
 import { BufferedInputStream, ByteArrayInputStream, use } from '../../../port/java-io.js'
 import { buildList, isNullOrBlank, isNullOrEmpty, mapNotNull } from '../../../port/kotlin.js'
 import { toIntOrNull } from '../../../port/kotlin-numbers.js'
 import { MultipartFile } from '../../../port/servlet.js'
 import { ApplicationEventPublisher } from '../../../port/spring.js'
-import { type Page, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
+import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import {
   CacheControl,
   HttpStatus,
@@ -45,7 +45,12 @@ import {
   requestBody,
   requestParam,
   restController,
+  withParameter,
 } from '../../../port/spring-web.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { AuthorsAsQueryParam } from '../../../infrastructure/openapi/AuthorsAsQueryParam.js'
+import { PageableAsQueryParam, PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
+import { JsonTypes } from '../../../port/jackson-mapper.js'
 
 // @RestController
 // @RequestMapping("api/v1/collections", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -316,37 +321,62 @@ restController(SeriesCollectionController, {
         requestParam('search', { nullable: 'String' }, optional),
         requestParam('library_id', nullableList('String'), optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: CollectionDto }] },
+      openapi: { operation: { summary: 'List collections', tags: [OpenApiConfiguration.TagNames.COLLECTIONS] }, parameters: [...PageableAsQueryParam] },
     },
-    getCollectionById: { mapping: { method: 'GET', path: ['{id}'] }, args: [authenticationPrincipal(), pathVariable('id')] },
-    getCollectionThumbnail: { mapping: { method: 'GET', path: ['{id}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] }, args: [authenticationPrincipal(), pathVariable('id')] },
+    getCollectionById: {
+      mapping: { method: 'GET', path: ['{id}'] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: { class: CollectionDto },
+      openapi: { operation: { summary: 'Get collection details', tags: [OpenApiConfiguration.TagNames.COLLECTIONS] } },
+    },
+    getCollectionThumbnail: {
+      mapping: { method: 'GET', path: ['{id}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: "Get collection's poster image", tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
+    },
     getCollectionThumbnailById: {
       mapping: { method: 'GET', path: ['{id}/thumbnails/{thumbnailId}'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get collection poster image', tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
-    getCollectionThumbnails: { mapping: { method: 'GET', path: ['{id}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] }, args: [authenticationPrincipal(), pathVariable('id')] },
+    getCollectionThumbnails: {
+      mapping: { method: 'GET', path: ['{id}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: { list: { class: ThumbnailSeriesCollectionDto } },
+      openapi: { operation: { summary: "List collection's posters", tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] } },
+    },
     addUserUploadedCollectionThumbnail: {
       mapping: { method: 'POST', path: ['{id}/thumbnails'], consumes: [MediaType.MULTIPART_FORM_DATA_VALUE] },
       preAuthorize: "hasRole('ADMIN')",
       args: [authenticationPrincipal(), pathVariable('id'), requestParam('file', { class: MultipartFile }), requestParam('selected', 'Boolean', { hasDefault: true })],
+      returns: { class: ThumbnailSeriesCollectionDto },
+      openapi: { operation: { summary: 'Add collection poster', tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] } },
     },
     markCollectionThumbnailSelected: {
       mapping: { method: 'PUT', path: ['{id}/thumbnails/{thumbnailId}/selected'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Mark collection poster as selected', tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] } },
     },
     deleteUserUploadedCollectionThumbnail: {
       mapping: { method: 'DELETE', path: ['{id}/thumbnails/{thumbnailId}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Delete collection poster', tags: [OpenApiConfiguration.TagNames.COLLECTION_POSTER] } },
     },
     createCollection: {
       mapping: { method: 'POST' },
       preAuthorize: "hasRole('ADMIN')",
       args: [requestBody({ class: CollectionCreationDto }, { valid: true })],
+      returns: { class: CollectionDto },
+      openapi: { operation: { summary: 'Create collection', tags: [OpenApiConfiguration.TagNames.COLLECTIONS] } },
       signature:
         'public org.gotson.komga.interfaces.api.rest.dto.CollectionDto org.gotson.komga.interfaces.api.rest.SeriesCollectionController.createCollection(org.gotson.komga.interfaces.api.rest.dto.CollectionCreationDto)',
     },
@@ -355,6 +385,7 @@ restController(SeriesCollectionController, {
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [authenticationPrincipal(), pathVariable('id'), requestBody({ class: CollectionUpdateDto }, { valid: true })],
+      openapi: { operation: { summary: 'Update collection', tags: [OpenApiConfiguration.TagNames.COLLECTIONS] } },
       signature:
         'public void org.gotson.komga.interfaces.api.rest.SeriesCollectionController.updateCollectionById(org.gotson.komga.infrastructure.security.KomgaPrincipal,java.lang.String,org.gotson.komga.interfaces.api.rest.dto.CollectionUpdateDto)',
     },
@@ -363,6 +394,7 @@ restController(SeriesCollectionController, {
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [authenticationPrincipal(), pathVariable('id')],
+      openapi: { operation: { summary: 'Delete collection', tags: [OpenApiConfiguration.TagNames.COLLECTIONS] } },
     },
     getSeriesByCollectionId: {
       mapping: { method: 'GET', path: ['{id}/series'] },
@@ -381,9 +413,11 @@ restController(SeriesCollectionController, {
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('complete', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        Authors(),
-        pageable(),
+        withParameter(Authors(), { hidden: true }),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: "List collection's series", tags: [OpenApiConfiguration.TagNames.COLLECTION_SERIES] }, parameters: [...PageableWithoutSortAsQueryParam, ...AuthorsAsQueryParam] },
     },
   },
 })

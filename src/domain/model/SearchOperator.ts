@@ -3,6 +3,7 @@ import { Duration, ZonedDateTime } from '@js-joda/core'
 import { json } from '../../port/jackson.js'
 import { DataClass, type Equatable, hash } from '../../port/kotlin.js'
 import { DataObject, JsonTypes, jsonProperties, sealedInterface } from '../../port/extra-search.js'
+import { openApiSchema } from '../../port/swagger-annotations.js'
 
 export class SearchOperator {}
 
@@ -403,3 +404,106 @@ json(SearchOperator.IsNull, { typeName: 'isNull' })
 json(SearchOperator.IsNotNull, { typeName: 'isNotNull' })
 json(SearchOperator.IsNullT, { typeName: 'isNull' })
 json(SearchOperator.IsNotNullT, { typeName: 'isNotNull' })
+
+// @Schema (document OpenAPI : port/swagger-annotations.ts)
+openApiSchema(SearchOperator.Equality, {
+  name: 'SearchOperatorEquality',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.Is, SearchOperator.IsNot],
+  discriminatorMapping: [
+    { value: 'is', schema: SearchOperator.Is },
+    { value: 'isNot', schema: SearchOperator.IsNot },
+  ],
+})
+openApiSchema(SearchOperator.EqualityNullable, {
+  name: 'SearchOperatorEqualityNullable',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.Is, SearchOperator.IsNot, SearchOperator.IsNullT, SearchOperator.IsNotNullT],
+  discriminatorMapping: [
+    { value: 'is', schema: SearchOperator.Is },
+    { value: 'isNot', schema: SearchOperator.IsNot },
+    { value: 'isNull', schema: SearchOperator.IsNullT },
+    { value: 'isNotNull', schema: SearchOperator.IsNotNullT },
+  ],
+})
+openApiSchema(SearchOperator.StringOp, {
+  name: 'SearchOperatorString',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.BeginsWith, SearchOperator.DoesNotBeginWith, SearchOperator.Contains, SearchOperator.DoesNotContain, SearchOperator.EndsWith, SearchOperator.DoesNotEndWith, SearchOperator.Is, SearchOperator.IsNot],
+  discriminatorMapping: [
+    { value: 'beginsWith', schema: SearchOperator.BeginsWith },
+    { value: 'doesNotBeginWith', schema: SearchOperator.DoesNotBeginWith },
+    { value: 'contains', schema: SearchOperator.Contains },
+    { value: 'doesNotContain', schema: SearchOperator.DoesNotContain },
+    { value: 'endsWith', schema: SearchOperator.EndsWith },
+    { value: 'doesNotEndWith', schema: SearchOperator.DoesNotEndWith },
+    { value: 'is', schema: SearchOperator.Is },
+    { value: 'isNot', schema: SearchOperator.IsNot },
+  ],
+})
+openApiSchema(SearchOperator.Numeric, {
+  name: 'SearchOperatorNumericT',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.GreaterThan, SearchOperator.LessThan, SearchOperator.Is, SearchOperator.IsNot],
+  discriminatorMapping: [
+    { value: 'greaterThan', schema: SearchOperator.GreaterThan },
+    { value: 'lessThan', schema: SearchOperator.LessThan },
+    { value: 'is', schema: SearchOperator.Is },
+    { value: 'isNot', schema: SearchOperator.IsNot },
+  ],
+})
+openApiSchema(SearchOperator.NumericNullable, {
+  name: 'SearchOperatorNumericNullable',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.GreaterThan, SearchOperator.LessThan, SearchOperator.IsNullT, SearchOperator.IsNotNullT, SearchOperator.Is, SearchOperator.IsNot],
+  discriminatorMapping: [
+    { value: 'greaterThan', schema: SearchOperator.GreaterThan },
+    { value: 'lessThan', schema: SearchOperator.LessThan },
+    { value: 'isNull', schema: SearchOperator.IsNullT },
+    { value: 'isNotNull', schema: SearchOperator.IsNotNullT },
+    { value: 'is', schema: SearchOperator.Is },
+    { value: 'isNot', schema: SearchOperator.IsNot },
+  ],
+})
+openApiSchema(SearchOperator.Date, {
+  name: 'SearchOperatorDate',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.Before, SearchOperator.After, SearchOperator.IsInTheLast, SearchOperator.IsNotInTheLast, SearchOperator.IsNull, SearchOperator.IsNotNull],
+  discriminatorMapping: [
+    { value: 'before', schema: SearchOperator.Before },
+    { value: 'after', schema: SearchOperator.After },
+    { value: 'isInTheLast', schema: SearchOperator.IsInTheLast },
+    { value: 'isNotInTheLast', schema: SearchOperator.IsNotInTheLast },
+    { value: 'isNull', schema: SearchOperator.IsNull },
+    { value: 'isNotNull', schema: SearchOperator.IsNotNull },
+  ],
+})
+openApiSchema(SearchOperator.Boolean, {
+  name: 'SearchOperatorBoolean',
+  discriminatorProperty: 'operator',
+  oneOf: [SearchOperator.IsTrue, SearchOperator.IsFalse],
+  discriminatorMapping: [
+    { value: 'isTrue', schema: SearchOperator.IsTrue },
+    { value: 'isFalse', schema: SearchOperator.IsFalse },
+  ],
+})
+openApiSchema(SearchOperator.Is, { name: 'SearchOperatorIs' })
+openApiSchema(SearchOperator.IsNot, { name: 'SearchOperatorIsNot' })
+openApiSchema(SearchOperator.Contains, { name: 'SearchOperatorContains' })
+openApiSchema(SearchOperator.DoesNotContain, { name: 'SearchOperatorDoesNotContain' })
+openApiSchema(SearchOperator.BeginsWith, { name: 'SearchOperatorBeginsWith' })
+openApiSchema(SearchOperator.DoesNotBeginWith, { name: 'SearchOperatorDoesNotBeginWith' })
+openApiSchema(SearchOperator.EndsWith, { name: 'SearchOperatorEndsWith' })
+openApiSchema(SearchOperator.DoesNotEndWith, { name: 'SearchOperatorDoesNotEndWith' })
+openApiSchema(SearchOperator.GreaterThan, { name: 'SearchOperatorGreaterThan' })
+openApiSchema(SearchOperator.LessThan, { name: 'SearchOperatorLessThan' })
+openApiSchema(SearchOperator.Before, { name: 'SearchOperatorBefore' })
+openApiSchema(SearchOperator.After, { name: 'SearchOperatorAfter' })
+openApiSchema(SearchOperator.IsInTheLast, { name: 'SearchOperatorIsInTheLast' })
+openApiSchema(SearchOperator.IsNotInTheLast, { name: 'SearchOperatorIsNotInTheLast' })
+openApiSchema(SearchOperator.IsTrue, { name: 'SearchOperatorIsTrue' })
+openApiSchema(SearchOperator.IsFalse, { name: 'SearchOperatorIsFalse' })
+openApiSchema(SearchOperator.IsNull, { name: 'SearchOperatorIsNull' })
+openApiSchema(SearchOperator.IsNotNull, { name: 'SearchOperatorIsNotNull' })
+openApiSchema(SearchOperator.IsNullT, { name: 'SearchOperatorIsNullT', supertypes: [SearchOperator.NumericNullable, SearchOperator.EqualityNullable] })
+openApiSchema(SearchOperator.IsNotNullT, { name: 'SearchOperatorIsNotNullT', supertypes: [SearchOperator.NumericNullable, SearchOperator.EqualityNullable] })

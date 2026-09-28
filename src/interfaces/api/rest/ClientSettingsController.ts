@@ -123,7 +123,30 @@ restController(ClientSettingsController, {
       ],
       responseStatus: HttpStatus.NO_CONTENT,
       preAuthorize: "hasRole('ADMIN')",
-      openapi: { operation: { summary: 'Save global settings', description: SETTING_DESCRIPTION } },
+      openapi: {
+        operation: { summary: 'Save global settings', description: SETTING_DESCRIPTION },
+        requestBody: {
+          content: [
+            {
+              examples: [
+                {
+                  value: `{
+              "application.key1": {
+                "value": "a string value",
+                "allowUnauthorized": true
+              },
+              "application.key2": {
+                "value": "{\\"json\\":\\"object\\"}",
+                "allowUnauthorized": false
+              }
+            }
+            `,
+                },
+              ],
+            },
+          ],
+        },
+      },
     },
     saveUserSetting: {
       mapping: { method: 'PATCH', path: ['user'] },
@@ -135,20 +158,41 @@ restController(ClientSettingsController, {
         ]),
       ],
       responseStatus: HttpStatus.NO_CONTENT,
-      openapi: { operation: { summary: 'Save user settings', description: SETTING_DESCRIPTION } },
+      openapi: {
+        operation: { summary: 'Save user settings', description: SETTING_DESCRIPTION },
+        requestBody: {
+          content: [
+            {
+              examples: [
+                {
+                  value: `{
+              "application.key1": {
+                "value": "a string value"
+              },
+              "application.key2": {
+                "value": "{\\"json\\":\\"object\\"}"
+              }
+            }
+            `,
+                },
+              ],
+            },
+          ],
+        },
+      },
     },
     deleteGlobalSettings: {
       mapping: { method: 'DELETE', path: ['global'] },
       args: [withConstraints(requestBody({ set: 'String' }), 'keysToDelete', [IterableElement([Pattern({ regexp: KEY_REGEX })])])],
       responseStatus: HttpStatus.NO_CONTENT,
       preAuthorize: "hasRole('ADMIN')",
-      openapi: { operation: { summary: 'Delete global settings', description: SETTING_DESCRIPTION } },
+      openapi: { operation: { summary: 'Delete global settings', description: SETTING_DESCRIPTION }, requestBody: { content: [{ examples: [{ value: '["application.key1", "application.key2"]' }] }] } },
     },
     deleteUserSettings: {
       mapping: { method: 'DELETE', path: ['user'] },
       args: [authenticationPrincipal(), withConstraints(requestBody({ set: 'String' }), 'keysToDelete', [IterableElement([Pattern({ regexp: KEY_REGEX })])])],
       responseStatus: HttpStatus.NO_CONTENT,
-      openapi: { operation: { summary: 'Delete user settings', description: SETTING_DESCRIPTION } },
+      openapi: { operation: { summary: 'Delete user settings', description: SETTING_DESCRIPTION }, requestBody: { content: [{ examples: [{ value: '["application.key1", "application.key2"]' }] }] } },
     },
   },
 })

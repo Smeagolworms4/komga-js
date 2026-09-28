@@ -28,4 +28,4 @@ export class SeriesSearch extends DataClass<SeriesSearchParams> {
 
 json(SeriesSearch, { include: 'NON_NULL', ignore: ['regexSearch'] })
 // PORT: types des propriétés (réflexion Kotlin utilisée par Jackson) ; regexSearch est @JsonIgnore
-jsonProperties(SeriesSearch, { condition: { class: SearchCondition.Series }, fullTextSearch: 'String' })
+jsonProperties(SeriesSearch, { condition: { nullable: { class: SearchCondition.Series } }, fullTextSearch: { nullable: 'String' } })

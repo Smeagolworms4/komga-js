@@ -34,6 +34,7 @@ restController(OpdsCommonController, {
     getBookThumbnail: {
       mapping: { method: 'GET', path: ['/opds/v1.2/books/{bookId}/thumbnail', '/opds/v2/books/{bookId}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
+      openapi: { responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
   },
 })

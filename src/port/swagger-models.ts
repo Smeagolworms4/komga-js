@@ -319,6 +319,9 @@ export class Example extends OasModel {
 }
 
 export class MediaType extends OasModel {
+  example(v: unknown): this {
+    return this.setField('example', v === null || v === undefined ? null : new RawJson(v))
+  }
   schema(v: Schema): this {
     return this.setField('schema', v)
   }

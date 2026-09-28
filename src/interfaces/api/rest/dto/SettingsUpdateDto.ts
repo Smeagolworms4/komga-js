@@ -1,5 +1,6 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SettingsUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
+import { openApiSchema } from '../../../../port/swagger-annotations.js'
 import { Max, Pattern, Positive, constraints } from '../../../../port/validation.js'
 import { ThumbnailSizeDto } from './ThumbnailSizeDto.js'
 
@@ -102,3 +103,6 @@ jsonProperties(SettingsUpdateDto, {
   koboPort: { nullable: 'Int' },
   kepubifyPath: { nullable: 'String' },
 })
+// PORT: @Deprecated("Will be removed in a future version") Kotlin sur la propriété : springdoc (module Kotlin) en fait
+// `deprecated: true` et la description du schéma
+openApiSchema(SettingsUpdateDto, { properties: { kepubifyPath: { deprecated: true, description: 'Will be removed in a future version' } } })

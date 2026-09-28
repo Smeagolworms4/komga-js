@@ -31,7 +31,7 @@ import { KotlinLogging } from '../../../port/logging.js'
 import { MultipartFile } from '../../../port/servlet.js'
 import { ApplicationEventPublisher } from '../../../port/spring.js'
 import { FileSystemResource } from '../../../port/spring-core-io.js'
-import { type Page, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
+import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import {
   CacheControl,
   type HttpHeaders,
@@ -48,18 +48,24 @@ import {
   requestParam,
   restController,
   streamingResponseBody,
+  withParameter,
 } from '../../../port/spring-web.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { AuthorsAsQueryParam } from '../../../infrastructure/openapi/AuthorsAsQueryParam.js'
+import { PageableAsQueryParam, PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
+import { JsonTypes } from '../../../port/jackson-mapper.js'
+import { OpenApiTypes } from '../../../port/swagger-annotations.js'
 import { Deflater, Zip64Mode, ZipArchiveOutputStream, zipArchiveEntry } from '../../../port/zip-output-stream.js'
 import { BookDtoRepository } from '../persistence/BookDtoRepository.js'
 import { ReadProgressDtoRepository } from '../persistence/ReadProgressDtoRepository.js'
-import { type BookDto, restrictUrl } from './dto/BookDto.js'
+import { BookDto, restrictUrl } from './dto/BookDto.js'
 import { ReadListCreationDto } from './dto/ReadListCreationDto.js'
-import { type ReadListDto, toDto } from './dto/ReadListDto.js'
-import { type ReadListRequestMatchDto, toDto as toDtoMatch } from './dto/ReadListRequestMatchDto.js'
+import { ReadListDto, toDto } from './dto/ReadListDto.js'
+import { ReadListRequestMatchDto, toDto as toDtoMatch } from './dto/ReadListRequestMatchDto.js'
 import { ReadListUpdateDto } from './dto/ReadListUpdateDto.js'
-import type { TachiyomiReadProgressDto } from './dto/TachiyomiReadProgressDto.js'
+import { TachiyomiReadProgressDto } from './dto/TachiyomiReadProgressDto.js'
 import { TachiyomiReadProgressUpdateDto } from './dto/TachiyomiReadProgressUpdateDto.js'
-import { type ThumbnailReadListDto, toDto as toDtoThumbnail } from './dto/ThumbnailReadListDto.js'
+import { ThumbnailReadListDto, toDto as toDtoThumbnail } from './dto/ThumbnailReadListDto.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.interfaces.api.rest.ReadListController')
 
@@ -398,37 +404,62 @@ restController(ReadListController, {
         requestParam('search', { nullable: 'String' }, optional),
         requestParam('library_id', nullableList('String'), optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: ReadListDto }] },
+      openapi: { operation: { summary: 'List readlists', tags: [OpenApiConfiguration.TagNames.READLISTS] }, parameters: [...PageableAsQueryParam] },
     },
-    getReadListById: { mapping: { method: 'GET', path: ['{id}'] }, args: [authenticationPrincipal(), pathVariable('id')] },
-    getReadListThumbnail: { mapping: { method: 'GET', path: ['{id}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] }, args: [authenticationPrincipal(), pathVariable('id')] },
+    getReadListById: {
+      mapping: { method: 'GET', path: ['{id}'] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: { class: ReadListDto },
+      openapi: { operation: { summary: 'Get readlist details', tags: [OpenApiConfiguration.TagNames.READLISTS] } },
+    },
+    getReadListThumbnail: {
+      mapping: { method: 'GET', path: ['{id}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: "Get readlist's poster image", tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
+    },
     getReadListThumbnailById: {
       mapping: { method: 'GET', path: ['{id}/thumbnails/{thumbnailId}'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get readlist poster image', tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
-    getReadListThumbnails: { mapping: { method: 'GET', path: ['{id}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] }, args: [authenticationPrincipal(), pathVariable('id')] },
+    getReadListThumbnails: {
+      mapping: { method: 'GET', path: ['{id}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('id')],
+      returns: { list: { class: ThumbnailReadListDto } },
+      openapi: { operation: { summary: "List readlist's posters", tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] } },
+    },
     addUserUploadedReadListThumbnail: {
       mapping: { method: 'POST', path: ['{id}/thumbnails'], consumes: [MediaType.MULTIPART_FORM_DATA_VALUE] },
       preAuthorize: "hasRole('ADMIN')",
       args: [authenticationPrincipal(), pathVariable('id'), requestParam('file', { class: MultipartFile }), requestParam('selected', 'Boolean', { hasDefault: true })],
+      returns: { class: ThumbnailReadListDto },
+      openapi: { operation: { summary: 'Add readlist poster', tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] } },
     },
     markReadListThumbnailSelected: {
       mapping: { method: 'PUT', path: ['{id}/thumbnails/{thumbnailId}/selected'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Mark readlist poster as selected', tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] } },
     },
     deleteUserUploadedReadListThumbnail: {
       mapping: { method: 'DELETE', path: ['{id}/thumbnails/{thumbnailId}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Delete readlist poster', tags: [OpenApiConfiguration.TagNames.READLIST_POSTER] } },
     },
     createReadList: {
       mapping: { method: 'POST' },
       preAuthorize: "hasRole('ADMIN')",
       args: [requestBody({ class: ReadListCreationDto }, { valid: true })],
+      returns: { class: ReadListDto },
+      openapi: { operation: { summary: 'Create readlist', tags: [OpenApiConfiguration.TagNames.READLISTS] } },
       signature:
         'public org.gotson.komga.interfaces.api.rest.dto.ReadListDto org.gotson.komga.interfaces.api.rest.ReadListController.createReadList(org.gotson.komga.interfaces.api.rest.dto.ReadListCreationDto)',
     },
@@ -436,12 +467,15 @@ restController(ReadListController, {
       mapping: { method: 'POST', path: ['match/comicrack'], consumes: [MediaType.MULTIPART_FORM_DATA_VALUE] },
       preAuthorize: "hasRole('ADMIN')",
       args: [requestParam('file', { class: MultipartFile })],
+      returns: { class: ReadListRequestMatchDto },
+      openapi: { operation: { summary: 'Match ComicRack list', tags: [OpenApiConfiguration.TagNames.COMICRACK] } },
     },
     updateReadListById: {
       mapping: { method: 'PATCH', path: ['{id}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [authenticationPrincipal(), pathVariable('id'), requestBody({ class: ReadListUpdateDto }, { valid: true })],
+      openapi: { operation: { summary: 'Update readlist', tags: [OpenApiConfiguration.TagNames.READLISTS] } },
       signature:
         'public void org.gotson.komga.interfaces.api.rest.ReadListController.updateReadListById(org.gotson.komga.infrastructure.security.KomgaPrincipal,java.lang.String,org.gotson.komga.interfaces.api.rest.dto.ReadListUpdateDto)',
     },
@@ -450,6 +484,7 @@ restController(ReadListController, {
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
       args: [authenticationPrincipal(), pathVariable('id')],
+      openapi: { operation: { summary: 'Delete readlist', tags: [OpenApiConfiguration.TagNames.READLISTS] } },
     },
     getBooksByReadListId: {
       mapping: { method: 'GET', path: ['{id}/books'] },
@@ -462,26 +497,35 @@ restController(ReadListController, {
         requestParam('media_status', nullableList({ enum: Media.Status }), optional),
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        Authors(),
-        pageable(),
+        withParameter(Authors(), { hidden: true }),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: "List readlist's books", tags: [OpenApiConfiguration.TagNames.READLIST_BOOKS] }, parameters: [...PageableWithoutSortAsQueryParam, ...AuthorsAsQueryParam] },
     },
     getBookSiblingPreviousInReadList: {
       mapping: { method: 'GET', path: ['{id}/books/{bookId}/previous'] },
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('bookId')],
+      returns: { class: BookDto },
+      openapi: { operation: { summary: 'Get previous book in readlist', tags: [OpenApiConfiguration.TagNames.READLIST_BOOKS] } },
     },
     getBookSiblingNextInReadList: {
       mapping: { method: 'GET', path: ['{id}/books/{bookId}/next'] },
       args: [authenticationPrincipal(), pathVariable('id'), pathVariable('bookId')],
+      returns: { class: BookDto },
+      openapi: { operation: { summary: 'Get next book in readlist', tags: [OpenApiConfiguration.TagNames.READLIST_BOOKS] } },
     },
     getMihonReadProgressByReadListId: {
       mapping: { method: 'GET', path: ['{id}/read-progress/tachiyomi'] },
       args: [pathVariable('id'), authenticationPrincipal()],
+      returns: { class: TachiyomiReadProgressDto },
+      openapi: { operation: { summary: 'Get readlist read progress (Mihon)', description: 'Mihon specific, due to how read progress is handled in Mihon.', tags: [OpenApiConfiguration.TagNames.MIHON] } },
     },
     updateMihonReadProgressByReadListId: {
       mapping: { method: 'PUT', path: ['{id}/read-progress/tachiyomi'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('id'), requestBody({ class: TachiyomiReadProgressUpdateDto }, { valid: true }), authenticationPrincipal()],
+      openapi: { operation: { summary: 'Update readlist read progress (Mihon)', description: 'Mihon specific, due to how read progress is handled in Mihon.', tags: [OpenApiConfiguration.TagNames.MIHON] } },
       signature:
         'public void org.gotson.komga.interfaces.api.rest.ReadListController.updateMihonReadProgressByReadListId(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.TachiyomiReadProgressUpdateDto,org.gotson.komga.infrastructure.security.KomgaPrincipal)',
     },
@@ -489,6 +533,8 @@ restController(ReadListController, {
       mapping: { method: 'GET', path: ['{id}/file'], produces: [MediaType.APPLICATION_OCTET_STREAM_VALUE] },
       preAuthorize: "hasRole('FILE_DOWNLOAD')",
       args: [authenticationPrincipal(), pathVariable('id')],
+      returns: OpenApiTypes.StreamingResponseBody,
+      openapi: { operation: { summary: 'Download readlist', description: 'Download the whole readlist as a ZIP file.', tags: [OpenApiConfiguration.TagNames.READLISTS] } },
     },
   },
 })

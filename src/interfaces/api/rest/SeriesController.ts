@@ -30,6 +30,9 @@ import { SeriesLifecycle } from '../../../domain/service/SeriesLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
 import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
+import { AuthorsAsQueryParam } from '../../../infrastructure/openapi/AuthorsAsQueryParam.js'
+import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
+import { PageableAsQueryParam, PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { Authors } from '../../../infrastructure/web/Authors.js'
 import { DelimitedPair } from '../../../infrastructure/web/DelimitedPair.js'
@@ -37,15 +40,16 @@ import { ContentRestrictionChecker } from '../ContentRestrictionChecker.js'
 import { BookDtoRepository } from '../persistence/BookDtoRepository.js'
 import { ReadProgressDtoRepository } from '../persistence/ReadProgressDtoRepository.js'
 import { SeriesDtoRepository } from '../persistence/SeriesDtoRepository.js'
-import { type BookDto, restrictUrl as restrictUrlBook } from './dto/BookDto.js'
-import { type CollectionDto, toDto as toDtoCollection } from './dto/CollectionDto.js'
-import type { GroupCountDto } from './dto/GroupCountDto.js'
-import { type SeriesDto, restrictUrl } from './dto/SeriesDto.js'
+import { BookDto, restrictUrl as restrictUrlBook } from './dto/BookDto.js'
+import { CollectionDto, toDto as toDtoCollection } from './dto/CollectionDto.js'
+import { GroupCountDto } from './dto/GroupCountDto.js'
+import { SeriesDto, restrictUrl } from './dto/SeriesDto.js'
 import { SeriesMetadataUpdateDto } from './dto/SeriesMetadataUpdateDto.js'
 import { TachiyomiReadProgressUpdateV2Dto } from './dto/TachiyomiReadProgressUpdateDto.js'
-import type { TachiyomiReadProgressV2Dto } from './dto/TachiyomiReadProgressV2Dto.js'
-import { type ThumbnailSeriesDto, toDto } from './dto/ThumbnailSeriesDto.js'
+import { TachiyomiReadProgressV2Dto } from './dto/TachiyomiReadProgressV2Dto.js'
+import { ThumbnailSeriesDto, toDto } from './dto/ThumbnailSeriesDto.js'
 import { registerClass } from '../../../port/jackson.js'
+import { JsonTypes } from '../../../port/jackson-mapper.js'
 import { BufferedInputStream, ByteArrayInputStream, use } from '../../../port/java-io.js'
 import { URI } from '../../../port/java-net.js'
 import { IllegalArgumentException, buildList, isNullOrBlank, isNullOrEmpty, mapNotNull, nn } from '../../../port/kotlin.js'
@@ -54,7 +58,7 @@ import { KotlinLogging } from '../../../port/logging.js'
 import { MultipartFile } from '../../../port/servlet.js'
 import { ApplicationEventPublisher } from '../../../port/spring.js'
 import { FileSystemResource } from '../../../port/spring-core-io.js'
-import { type Page, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
+import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import {
   HttpHeaders,
   HttpStatus,
@@ -70,7 +74,9 @@ import {
   requestParam,
   restController,
   streamingResponseBody,
+  withParameter,
 } from '../../../port/spring-web.js'
+import { OpenApiTypes } from '../../../port/swagger-annotations.js'
 import { Deflater, Zip64Mode, ZipArchiveOutputStream, zipArchiveEntry } from '../../../port/zip-output-stream.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.interfaces.api.rest.SeriesController')
@@ -714,7 +720,7 @@ restController(SeriesController, {
       args: [
         authenticationPrincipal(),
         requestParam('search', { nullable: 'String' }, optional),
-        DelimitedPair('search_regex'),
+        withParameter(DelimitedPair('search_regex'), { hidden: true }),
         requestParam('library_id', nullableList('String'), optional),
         requestParam('collection_id', nullableList('String'), optional),
         requestParam('status', nullableList({ enum: SeriesMetadata.Status }), optional),
@@ -730,22 +736,26 @@ restController(SeriesController, {
         requestParam('complete', { nullable: 'Boolean' }, optional),
         requestParam('oneshot', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        Authors(),
-        pageable(),
+        withParameter(Authors(), { hidden: true }),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: 'List series', description: 'Use POST /api/v1/series/list instead. Deprecated since 1.19.0.', tags: [OpenApiConfiguration.TagNames.SERIES, OpenApiConfiguration.TagNames.DEPRECATED] }, deprecated: true, parameters: [{ description: 'Search by regex criteria, in the form: regex,field. Supported fields are TITLE and TITLE_SORT.', in: 'query', name: 'search_regex', schema: { type: 'string' } }, ...PageableAsQueryParam, ...AuthorsAsQueryParam] },
     },
     getSeries: {
       mapping: { method: 'POST', path: ['v1/series/list'] },
-      args: [authenticationPrincipal(), requestBody({ class: SeriesSearch }), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), pageable()],
+      args: [authenticationPrincipal(), requestBody({ class: SeriesSearch }), requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }), withParameter(pageable(), { hidden: true })],
       signature:
         'public org.springframework.data.domain.Page<org.gotson.komga.interfaces.api.rest.dto.SeriesDto> org.gotson.komga.interfaces.api.rest.SeriesController.getSeries(org.gotson.komga.infrastructure.security.KomgaPrincipal,org.gotson.komga.domain.model.SeriesSearch,boolean,org.springframework.data.domain.Pageable)',
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: 'List series', tags: [OpenApiConfiguration.TagNames.SERIES] }, parameters: [...PageableAsQueryParam] },
     },
     getSeriesAlphabeticalGroupsDeprecated: {
       mapping: { method: 'GET', path: ['v1/series/alphabetical-groups'] },
       args: [
         authenticationPrincipal(),
         requestParam('search', { nullable: 'String' }, optional),
-        DelimitedPair('search_regex'),
+        withParameter(DelimitedPair('search_regex'), { hidden: true }),
         requestParam('library_id', nullableList('String'), optional),
         requestParam('collection_id', nullableList('String'), optional),
         requestParam('status', nullableList({ enum: SeriesMetadata.Status }), optional),
@@ -760,15 +770,19 @@ restController(SeriesController, {
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('complete', { nullable: 'Boolean' }, optional),
         requestParam('oneshot', { nullable: 'Boolean' }, optional),
-        Authors(),
-        pageable(),
+        withParameter(Authors(), { hidden: true }),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { list: { class: GroupCountDto } },
+      openapi: { operation: { summary: 'List series groups', description: 'Use POST /api/v1/series/list/alphabetical-groups instead. Deprecated since 1.19.0.', tags: [OpenApiConfiguration.TagNames.SERIES, OpenApiConfiguration.TagNames.DEPRECATED] }, deprecated: true, parameters: [{ description: 'Search by regex criteria, in the form: regex,field. Supported fields are TITLE and TITLE_SORT.', in: 'query', name: 'search_regex', schema: { type: 'string' } }, ...AuthorsAsQueryParam] },
     },
     getSeriesAlphabeticalGroups: {
       mapping: { method: 'POST', path: ['v1/series/list/alphabetical-groups'] },
       args: [authenticationPrincipal(), requestBody({ class: SeriesSearch })],
       signature:
         'public java.util.List<org.gotson.komga.interfaces.api.rest.dto.GroupCountDto> org.gotson.komga.interfaces.api.rest.SeriesController.getSeriesAlphabeticalGroups(org.gotson.komga.infrastructure.security.KomgaPrincipal,org.gotson.komga.domain.model.SeriesSearch)',
+      returns: { list: { class: GroupCountDto } },
+      openapi: { operation: { summary: 'List series groups', description: 'List series grouped by the first character of their sort title.', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     getSeriesLatest: {
       mapping: { method: 'GET', path: ['v1/series/latest'] },
@@ -778,8 +792,10 @@ restController(SeriesController, {
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('oneshot', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: 'List latest series', description: 'Return recently added or updated series.', tags: [OpenApiConfiguration.TagNames.SERIES] }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getSeriesNew: {
       mapping: { method: 'GET', path: ['v1/series/new'] },
@@ -789,8 +805,10 @@ restController(SeriesController, {
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('oneshot', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: 'List new series', description: 'Return newly added series.', tags: [OpenApiConfiguration.TagNames.SERIES] }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
     getSeriesUpdated: {
       mapping: { method: 'GET', path: ['v1/series/updated'] },
@@ -800,32 +818,55 @@ restController(SeriesController, {
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('oneshot', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        pageable(),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: SeriesDto }] },
+      openapi: { operation: { summary: 'List updated series', description: 'Return recently updated series, but not newly added ones.', tags: [OpenApiConfiguration.TagNames.SERIES] }, parameters: [...PageableWithoutSortAsQueryParam] },
     },
-    getSeriesById: { mapping: { method: 'GET', path: ['v1/series/{seriesId}'] }, args: [authenticationPrincipal(), pathVariable('seriesId')] },
-    getSeriesThumbnail: { mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] }, args: [authenticationPrincipal(), pathVariable('seriesId')] },
+    getSeriesById: {
+      mapping: { method: 'GET', path: ['v1/series/{seriesId}'] },
+      args: [authenticationPrincipal(), pathVariable('seriesId')],
+      returns: { class: SeriesDto },
+      openapi: { operation: { summary: 'Get series details', tags: [OpenApiConfiguration.TagNames.SERIES] }, throws: [EntityNotFoundException] },
+    },
+    getSeriesThumbnail: {
+      mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('seriesId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: "Get series' poster image", tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
+    },
     getSeriesThumbnailById: {
       mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnails/{thumbnailId}'], produces: [MediaType.IMAGE_JPEG_VALUE] },
       args: [authenticationPrincipal(), pathVariable('seriesId'), pathVariable('thumbnailId')],
+      returns: JsonTypes.ByteArray,
+      openapi: { operation: { summary: 'Get series poster image', tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] }, responses: [{ content: [{ schema: { type: 'string', format: 'binary' } }] }] },
     },
-    getSeriesThumbnails: { mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] }, args: [authenticationPrincipal(), pathVariable('seriesId')] },
+    getSeriesThumbnails: {
+      mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnails'], produces: [MediaType.APPLICATION_JSON_VALUE] },
+      args: [authenticationPrincipal(), pathVariable('seriesId')],
+      returns: { list: { class: ThumbnailSeriesDto } },
+      openapi: { operation: { summary: 'List series posters', tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] } },
+    },
     addUserUploadedSeriesThumbnail: {
       mapping: { method: 'POST', path: ['v1/series/{seriesId}/thumbnails'], consumes: [MediaType.MULTIPART_FORM_DATA_VALUE] },
       preAuthorize: "hasRole('ADMIN')",
       args: [pathVariable('seriesId'), requestParam('file', { class: MultipartFile }), requestParam('selected', 'Boolean', { hasDefault: true })],
+      returns: { class: ThumbnailSeriesDto },
+      openapi: { operation: { summary: 'Add series poster', tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] } },
     },
     markSeriesThumbnailSelected: {
       mapping: { method: 'PUT', path: ['v1/series/{seriesId}/thumbnails/{thumbnailId}/selected'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('seriesId'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Mark series poster as selected', tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] } },
     },
     deleteUserUploadedSeriesThumbnail: {
       mapping: { method: 'DELETE', path: ['v1/series/{seriesId}/thumbnails/{thumbnailId}'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('seriesId'), pathVariable('thumbnailId')],
+      openapi: { operation: { summary: 'Delete series poster', tags: [OpenApiConfiguration.TagNames.SERIES_POSTER] } },
     },
     getBooksBySeriesId: {
       mapping: { method: 'GET', path: ['v1/series/{seriesId}/books'] },
@@ -837,59 +878,86 @@ restController(SeriesController, {
         requestParam('tag', nullableList('String'), optional),
         requestParam('deleted', { nullable: 'Boolean' }, optional),
         requestParam('unpaged', 'Boolean', { required: false, hasDefault: true }),
-        Authors(),
-        pageable(),
+        withParameter(Authors(), { hidden: true }),
+        withParameter(pageable(), { hidden: true }),
       ],
+      returns: { class: PageImpl, args: [{ class: BookDto }] },
+      openapi: { operation: { summary: "List series' books", description: 'Use POST /api/v1/books/list instead. Deprecated since 1.19.0.', tags: [OpenApiConfiguration.TagNames.SERIES, OpenApiConfiguration.TagNames.DEPRECATED] }, deprecated: true, parameters: [...PageableAsQueryParam, ...AuthorsAsQueryParam] },
     },
-    getCollectionsBySeriesId: { mapping: { method: 'GET', path: ['v1/series/{seriesId}/collections'] }, args: [authenticationPrincipal(), pathVariable('seriesId')] },
+    getCollectionsBySeriesId: {
+      mapping: { method: 'GET', path: ['v1/series/{seriesId}/collections'] },
+      args: [authenticationPrincipal(), pathVariable('seriesId')],
+      returns: { list: { class: CollectionDto } },
+      openapi: { operation: { summary: "List series' collections", tags: [OpenApiConfiguration.TagNames.SERIES] } },
+    },
     seriesAnalyze: {
       mapping: { method: 'POST', path: ['v1/series/{seriesId}/analyze'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('seriesId')],
+      openapi: { operation: { summary: 'Analyze series', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     seriesRefreshMetadata: {
       mapping: { method: 'POST', path: ['v1/series/{seriesId}/metadata/refresh'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('seriesId')],
+      openapi: { operation: { summary: 'Refresh series metadata', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     updateSeriesMetadata: {
       mapping: { method: 'PATCH', path: ['v1/series/{seriesId}/metadata'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.NO_CONTENT,
-      args: [pathVariable('seriesId'), requestBody({ class: SeriesMetadataUpdateDto }, { valid: true }), authenticationPrincipal()],
+      args: [
+        pathVariable('seriesId'),
+        withParameter(requestBody({ class: SeriesMetadataUpdateDto }, { valid: true }), {
+          description: "Metadata fields to update. Set a field to null to unset the metadata. You can omit fields you don't want to update.",
+        }),
+        authenticationPrincipal(),
+      ],
       signature:
         'public void org.gotson.komga.interfaces.api.rest.SeriesController.updateSeriesMetadata(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.SeriesMetadataUpdateDto,org.gotson.komga.infrastructure.security.KomgaPrincipal)',
+      openapi: { operation: { summary: 'Update series metadata', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     markSeriesAsRead: {
       mapping: { method: 'POST', path: ['v1/series/{seriesId}/read-progress'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('seriesId'), authenticationPrincipal()],
+      openapi: { operation: { summary: 'Mark series as read', description: 'Mark all book for series as read', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     markSeriesAsUnread: {
       mapping: { method: 'DELETE', path: ['v1/series/{seriesId}/read-progress'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('seriesId'), authenticationPrincipal()],
+      openapi: { operation: { summary: 'Mark series as unread', description: 'Mark all book for series as unread', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
-    getMihonReadProgressBySeriesId: { mapping: { method: 'GET', path: ['v2/series/{seriesId}/read-progress/tachiyomi'] }, args: [pathVariable('seriesId'), authenticationPrincipal()] },
+    getMihonReadProgressBySeriesId: {
+      mapping: { method: 'GET', path: ['v2/series/{seriesId}/read-progress/tachiyomi'] },
+      args: [pathVariable('seriesId'), authenticationPrincipal()],
+      returns: { class: TachiyomiReadProgressV2Dto },
+      openapi: { operation: { summary: 'Get series read progress (Mihon)', description: 'Mihon specific, due to how read progress is handled in Mihon.', tags: [OpenApiConfiguration.TagNames.MIHON] } },
+    },
     updateMihonReadProgressBySeriesId: {
       mapping: { method: 'PUT', path: ['v2/series/{seriesId}/read-progress/tachiyomi'] },
       responseStatus: HttpStatus.NO_CONTENT,
       args: [pathVariable('seriesId'), requestBody({ class: TachiyomiReadProgressUpdateV2Dto }), authenticationPrincipal()],
       signature:
         'public void org.gotson.komga.interfaces.api.rest.SeriesController.updateMihonReadProgressBySeriesId(java.lang.String,org.gotson.komga.interfaces.api.rest.dto.TachiyomiReadProgressUpdateV2Dto,org.gotson.komga.infrastructure.security.KomgaPrincipal)',
+      openapi: { operation: { summary: 'Update series read progress (Mihon)', description: 'Mihon specific, due to how read progress is handled in Mihon.', tags: [OpenApiConfiguration.TagNames.MIHON] } },
     },
     downloadSeriesAsZip: {
       mapping: { method: 'GET', path: ['v1/series/{seriesId}/file'], produces: [MediaType.APPLICATION_OCTET_STREAM_VALUE] },
       preAuthorize: "hasRole('FILE_DOWNLOAD')",
       args: [authenticationPrincipal(), pathVariable('seriesId')],
+      returns: OpenApiTypes.StreamingResponseBody,
+      openapi: { operation: { summary: 'Download series', description: 'Download the whole series as a ZIP file.', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     deleteSeriesFile: {
       mapping: { method: 'DELETE', path: ['v1/series/{seriesId}/file'] },
       preAuthorize: "hasRole('ADMIN')",
       responseStatus: HttpStatus.ACCEPTED,
       args: [pathVariable('seriesId')],
+      openapi: { operation: { summary: 'Delete series files', description: "Delete all of the series' books files on disk.", tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
   },
 })

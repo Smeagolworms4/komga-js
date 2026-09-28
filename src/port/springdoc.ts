@@ -214,6 +214,7 @@ function annotationSchema(a: SchemaAnnotation, resolver: SchemaResolver): Schema
   if (a.description !== undefined) s.description(a.description)
   if (a.defaultValue !== undefined) s._default(convertDefault(a.defaultValue, a.type ?? 'string'))
   if (a.example !== undefined) s.example(a.example)
+  if (a.allowableValues !== undefined) s._enum(a.allowableValues)
   return s
 }
 
@@ -285,8 +286,16 @@ export class SchemaResolver {
         case OpenApiTypes.StreamingResponseBody.scalar:
           if (!this.components.has('StreamingResponseBody')) this.components.set('StreamingResponseBody', new Schema())
           return new Schema().$ref('StreamingResponseBody')
-        default:
-          return new Schema().type('string')
+        case 'org.springframework.http.MediaType':
+          return this.springMediaType()
+        default: {
+          // type JSON propre (enum aux noms @JsonProperty...) : @Schema déclaré sur le JsonType (openApiSchema)
+          const meta = openApiSchemaOf(type)
+          const schema = new Schema().type(meta?.type ?? 'string')
+          if (meta?.format !== undefined) schema.format(meta.format)
+          if (meta?.allowableValues !== undefined) schema._enum(meta.allowableValues)
+          return schema
+        }
       }
     }
     if ('class' in type) {
@@ -352,6 +361,9 @@ export class SchemaResolver {
     const required: string[] = []
     for (const [prop, t] of Object.entries(pm?.props ?? {})) {
       if (jm.ignore?.includes(prop)) continue
+      // swagger-core ModelResolver : une collection de la classe en cours de résolution n'est pas résolue
+      // (type déjà dans processedTypes : propriété nulle, ignorée) -- ex. WPLinkDto.alternate / children
+      if (isCollectionOf(t, cls)) continue
       const pmeta = meta?.properties?.[prop]
       if (pmeta?.hidden) continue
       const jsonName = jm.rename?.[prop] ?? prop
@@ -407,6 +419,28 @@ export class SchemaResolver {
       if (m?.oneOf?.includes(cls)) return true
     }
     return false
+  }
+
+  /** `org.springframework.http.MediaType` (bean Java résolu par ses getters) : composant `MediaType` */
+  private springMediaType(): Schema {
+    if (!this.components.has('MediaType'))
+      this.components.set(
+        'MediaType',
+        new Schema().type('object').properties(
+          new Map([
+            ['charset', new Schema().type('string')],
+            ['concrete', new Schema().type('boolean')],
+            ['parameters', new Schema().type('object').additionalProperties(new Schema().type('string'))],
+            ['qualityValue', new Schema().type('number').format('double')],
+            ['subtype', new Schema().type('string')],
+            ['subtypeSuffix', new Schema().type('string')],
+            ['type', new Schema().type('string')],
+            ['wildcardSubtype', new Schema().type('boolean')],
+            ['wildcardType', new Schema().type('boolean')],
+          ]),
+        ),
+      )
+    return new Schema().$ref('MediaType')
   }
 
   /** `PageImpl<T>` sérialisé par Jackson (getters) : PageableObject, SortObject */
@@ -695,6 +729,8 @@ export class OpenApiGenerator {
           p.required(arg.kind === 'pathVariable' ? true : this.isRequired(arg))
           const schema = resolver.resolve(argType)
           applyConstraints(schema, arg.constraints)
+          // @Parameter(schema = Schema(allowableValues = [...])) sur l'argument
+          if (arg.openapi?.schema?.allowableValues !== undefined) schema._enum(arg.openapi.schema.allowableValues)
           if ((arg.kind === 'requestParam' || arg.kind === 'requestHeader') && arg.defaultValue !== null)
             schema._default(convertDefault(arg.defaultValue, schema.getType()))
           p.schema(schema)
@@ -707,7 +743,14 @@ export class OpenApiGenerator {
         case 'requestBody': {
           const content = new Content()
           const schema = resolver.resolve(arg.type)
-          for (const c of consumes) content.addMediaType(c, new MediaType().schema(schema))
+          for (const c of consumes) {
+            const mt = new MediaType().schema(schema)
+            // @RequestBody(content = [Content(examples = [ExampleObject(value)])]) : un exemple sans nom -> `example` (JSON lu si valide)
+            const examples = (oa.requestBody?.content ?? []).filter((it) => it.mediaType === undefined || it.mediaType === c).flatMap((it) => it.examples ?? [])
+            const single = examples.length === 1 ? examples[0] : undefined
+            if (single !== undefined && single.name === undefined) mt.example(parseExampleValue(single.value))
+            content.addMediaType(c, mt)
+          }
           requestBody = new RequestBody().content(content)
           if (oa.requestBody?.description !== undefined) requestBody.description(oa.requestBody.description)
           // @Parameter(description) sur un @RequestBody : description du schéma (du composant référencé)
@@ -798,6 +841,22 @@ export class OpenApiGenerator {
   private contentSchema(c: ContentAnnotation, resolver: SchemaResolver): Schema {
     if (c.array !== undefined) return new Schema().type('array').items(annotationSchema(c.array.schema, resolver))
     return annotationSchema(c.schema ?? {}, resolver)
+  }
+}
+
+function isCollectionOf(t: JavaType, cls: object): boolean {
+  const u = typeof t === 'object' && 'nullable' in t ? t.nullable : t
+  if (typeof u !== 'object') return false
+  const item = 'list' in u ? u.list : 'set' in u ? u.set : null
+  return item !== null && typeof item === 'object' && 'class' in item && item.class === cls
+}
+
+/** swagger-core `AnnotationsUtils.getExample` : valeur JSON si elle se lit, sinon la chaîne */
+function parseExampleValue(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
   }
 }
 
