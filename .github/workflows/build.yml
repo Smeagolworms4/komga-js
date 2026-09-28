@@ -1,0 +1,69 @@
+name: Build
+
+# Types, native modules, the whole test suite (Kotlin tests ported from Komga plus the
+# comparisons against values recorded from the real Komga/JVM libraries).
+#
+# Nothing here needs Java or a running Komga: every reference value used by the tests is
+# committed as a fixture. The oracle scripts that produced them (tools/jshell-komga.sh) are
+# only run by hand, when a fixture has to be regenerated.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# One group per reference: a tagged build must never be cancelled by a later push.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Types, native modules and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # A pinned version, never the major alone: moving up should be a decision.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+          cache: npm
+
+      # ICU for the SQLite collation extension (native/komga_sqlite.c), zip for the test fixtures.
+      # The reference values were recorded on a French machine (Europe/Paris, fr_FR): number formats,
+      # default collation locale and time zone conversions follow the JVM defaults of that machine.
+      - name: System libraries and locale
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev zip locales
+          sudo locale-gen fr_FR.UTF-8
+
+      - run: npm ci
+
+      # SQLite extension (ICU collations, DQS) and the JDK-identical JPEG codec (IJG libjpeg 6b + LittleCMS).
+      - name: Native modules
+        run: npm run build:native
+
+      - run: npm run typecheck
+
+      - name: Port status (every Kotlin file and test has its TypeScript twin)
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/gotson/komga.git ../komga-src
+          git -C ../komga-src checkout "$(cat UPSTREAM_REF)"
+          ln -sfn ../komga-src upstream
+          node tools/port-status.mjs
+
+      - name: Tests
+        run: npx vitest run
+        env:
+          TZ: Europe/Paris
+          LANG: fr_FR.UTF-8
+
+      - name: Build
+        run: npm run build
