@@ -189,4 +189,8 @@ class Settings extends KEnum {
 }
 
 // @Service
-component(KomgaSettingsProvider, { inject: [ServerSettingsDao, ApplicationEventPublisher] })
+component(KomgaSettingsProvider, {
+  inject: [ServerSettingsDao, ApplicationEventPublisher],
+  // PORT: réglages modifiés par l'API dans le thread principal, lus par les tâches dans leur worker (port/task-worker.ts)
+  taskWorker: 'mirrorMain',
+})

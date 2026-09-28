@@ -14,8 +14,8 @@
 // Écarts : une tâche synchrone bloque tout le processus pendant son exécution ; un thread inactif qui attend dans la file
 // (`queue.take()`) reçoit la tâche soumise immédiatement (activeCount augmente dès execute(), là où Java l'augmente au
 // démarrage effectif du thread, quelques microsecondes plus tard).
-// Le lancement d'une tâche passe par l'interface `ThreadBackend` : une implémentation sur `worker_threads` (tâches
-// sérialisées, contexte et connexions propres au worker) pourra remplacer `InProcessThreadBackend` sans toucher au pool.
+// Le TaskProcessor de Komga et son pool tournent eux-mêmes dans un worker_thread dédié, avec son propre contexte et ses
+// connexions (port/task-worker.ts) : une tâche synchrone y bloque les autres tâches, pas le serveur HTTP.
 import { Duration, Instant } from '@js-joda/core'
 import { runInThread } from './java.js'
 import { IllegalArgumentException, IllegalStateException, RuntimeException } from './kotlin.js'
@@ -78,7 +78,21 @@ export class ThreadPoolTaskExecutor implements LifecycleResource {
   private initialized = false
   private shutdown = false
 
+  /**
+   * PORT: appelé quand le dernier thread d'un pool se termine (keep-alive écoulé) : le worker des tâches
+   * (port/task-worker.ts) s'arrête alors, comme les threads du pool de Komga, et libère sa mémoire
+   */
+  static onPoolEmpty: (() => void) | null = null
+  private static readonly all = new Set<ThreadPoolTaskExecutor>()
+
+  /** PORT: aucun pool actif n'a de thread ni de tâche en file */
+  static allPoolsEmpty(): boolean {
+    for (const e of ThreadPoolTaskExecutor.all) if (!e.shutdown && (e.workers.length > 0 || e.queue.length > 0)) return false
+    return true
+  }
+
   initialize(): void {
+    ThreadPoolTaskExecutor.all.add(this)
     this.initialized = true
     this.shutdown = false
     // ExecutorConfigurationSupport : SmartLifecycle / ApplicationListener<ContextClosedEvent>
@@ -139,6 +153,7 @@ export class ThreadPoolTaskExecutor implements LifecycleResource {
 
   /** `shutdown()` sans attente des tâches (waitForTasksToCompleteOnShutdown = false) : la file est vidée */
   destroy(): void {
+    ThreadPoolTaskExecutor.all.delete(this)
     this.shutdown = true
     this.queue.length = 0
     for (const w of [...this.workers]) if (!w.busy) this.removeWorker(w)
@@ -178,6 +193,7 @@ export class ThreadPoolTaskExecutor implements LifecycleResource {
     const i = this.workers.indexOf(w)
     if (i >= 0) this.workers.splice(i, 1)
     this.notifyTerminated()
+    if (this.workers.length === 0) ThreadPoolTaskExecutor.onPoolEmpty?.()
   }
 
   private assign(w: Worker, task: Runnable): void {

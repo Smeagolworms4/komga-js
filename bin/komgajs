@@ -9,4 +9,18 @@ if [ -z "$TZ" ] && [ -r /etc/timezone ]; then
   TZ="$(tr -d ' \n' < /etc/timezone)"
   [ -n "$TZ" ] && export TZ
 fi
-exec node --max-semi-space-size=4 "$DIR/dist/src/main.js" "$@"
+# Limite du tas V8 de chaque thread (serveur HTTP, worker des tâches) : comme la JVM (MaxRAMPercentage = 25 %), un quart
+# de la mémoire du conteneur (cgroup v2 ou v1) quand elle est limitée ; KOMGAJS_MAX_HEAP_MB l'impose explicitement.
+HEAP_MB="${KOMGAJS_MAX_HEAP_MB:-}"
+if [ -z "$HEAP_MB" ]; then
+  LIMIT=""
+  if [ -r /sys/fs/cgroup/memory.max ]; then LIMIT="$(cat /sys/fs/cgroup/memory.max)"
+  elif [ -r /sys/fs/cgroup/memory/memory.limit_in_bytes ]; then LIMIT="$(cat /sys/fs/cgroup/memory/memory.limit_in_bytes)"; fi
+  case "$LIMIT" in
+    ''|max|*[!0-9]*) ;;
+    *) if [ "$LIMIT" -lt 1099511627776 ]; then HEAP_MB=$((LIMIT / 1048576 / 4)); [ "$HEAP_MB" -lt 128 ] && HEAP_MB=128; fi ;;
+  esac
+fi
+HEAP_OPT=""
+[ -n "$HEAP_MB" ] && HEAP_OPT="--max-old-space-size=$HEAP_MB"
+exec node --max-semi-space-size=4 $HEAP_OPT "$DIR/dist/src/main.js" "$@"

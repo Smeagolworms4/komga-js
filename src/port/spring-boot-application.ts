@@ -2,7 +2,7 @@
 // SimpleCommandLineArgsParser). Les runners sont appelés par le démarrage de l'application après le rafraîchissement du
 // contexte, avant ApplicationReadyEvent. Ce fichier n'a pas de jumeau Kotlin.
 import { IllegalArgumentException } from './kotlin.js'
-import type { ApplicationContext } from './spring.js'
+import type { ApplicationContext, Environment } from './spring.js'
 
 /** `org.springframework.boot.ApplicationArguments` */
 export class ApplicationArguments {
@@ -69,22 +69,58 @@ export function callRunners(context: ApplicationContext, args: ApplicationArgume
  * Arrêt propre sur SIGINT/SIGTERM (server.shutdown=graceful).
  */
 export async function runApplication(argv: string[]): Promise<ApplicationContext> {
-  const { readdirSync, readFileSync, statSync } = await import('node:fs')
-  const { dirname, join } = await import('node:path')
-  const { fileURLToPath, pathToFileURL } = await import('node:url')
-  const { ApplicationContext, ApplicationReadyEvent, Environment } = await import('./spring.js')
-  const { resourcesDir } = await import('./resources.js')
+  const { ApplicationContext, ApplicationReadyEvent } = await import('./spring.js')
   const { startWebServer } = await import('./spring-boot-web.js')
   const { KotlinLogging } = await import('./logging.js')
+  const { TaskWorkerBridge, taskWorkerEnabled } = await import('./task-worker.js')
   const logger = KotlinLogging.logger('org.gotson.komga.Application')
   const started = Date.now()
 
   const args = new ApplicationArguments(argv)
+  const environment = await createEnvironment(argv)
+
+  // scan des composants : l'équivalent de @SpringBootApplication + auto-configuration
+  await scanComponents()
+
+  // PORT: les tâches (TaskProcessor) s'exécutent dans un worker_thread avec son propre contexte, comme les threads du
+  // pool de tâches de Komga, pour que le serveur HTTP reste disponible pendant un scan (port/task-worker.ts)
+  const bridge = taskWorkerEnabled(environment) ? new TaskWorkerBridge(argv) : null
+  const ctx = new ApplicationContext(environment, [], bridge?.threading ?? null)
+  ctx.refresh()
+  bridge?.start(ctx)
+  const webServer = await startWebServer(ctx)
+  callRunners(ctx, args)
+  ctx.publishEvent(new ApplicationReadyEvent())
+  logger.info(() => `Started Application in ${((Date.now() - started) / 1000).toFixed(3)} seconds`)
+
+  let stopping = false
+  const stop = async () => {
+    if (stopping) return
+    stopping = true
+    await webServer.stop()
+    await bridge?.stop()
+    ctx.close()
+    process.exit(0)
+  }
+  process.once('SIGINT', () => void stop())
+  process.once('SIGTERM', () => void stop())
+  return ctx
+}
+
+/**
+ * Environnement de l'application : arguments `--clé=valeur`, variables d'environnement, application.yml et ses imports,
+ * version de Komga portée (package.json à la racine du projet, depuis src/ ou dist/src/)
+ */
+export async function createEnvironment(argv: string[]): Promise<Environment> {
+  const { readFileSync } = await import('node:fs')
+  const { dirname, join } = await import('node:path')
+  const { fileURLToPath } = await import('node:url')
+  const { Environment } = await import('./spring.js')
+  const { resourcesDir } = await import('./resources.js')
+  const args = new ApplicationArguments(argv)
   const properties: Record<string, string> = {}
   for (const name of args.getOptionNames()) properties[name] = (args.getOptionValues(name) ?? []).join(',')
-  const here = dirname(fileURLToPath(import.meta.url))
-  const srcRoot = join(here, '..')
-  // version de Komga portée (package.json à la racine du projet, depuis src/ ou dist/src/)
+  const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
   let version = 'unknown'
   let projectRoot = join(srcRoot, '..')
   for (const candidate of [join(srcRoot, '..'), join(srcRoot, '..', '..')]) {
@@ -96,13 +132,24 @@ export async function runApplication(argv: string[]): Promise<ApplicationContext
       // essai suivant
     }
   }
-  const environment = new Environment({
+  return new Environment({
     resourcesDirs: [resourcesDir()],
     properties: nestProperties(properties),
     buildProperties: { version, rootDir: projectRoot },
   })
+}
 
-  // scan des composants : l'équivalent de @SpringBootApplication + auto-configuration
+/**
+ * Scan des composants : import de tous les modules de `src/` (hors migrations et point d'entrée), dont les appels
+ * `component(...)` enregistrent les définitions de beans. `include` restreint le scan (chemins relatifs à `src/`).
+ * Les modules sont enregistrés pour le passage de valeurs entre threads (port/thread-codec.ts).
+ */
+export async function scanComponents(include: (relativePath: string) => boolean = () => true): Promise<void> {
+  const { readdirSync, statSync } = await import('node:fs')
+  const { dirname, join, relative } = await import('node:path')
+  const { fileURLToPath, pathToFileURL } = await import('node:url')
+  const { registerModule } = await import('./thread-codec.js')
+  const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '..')
   const ext = import.meta.url.endsWith('.ts') ? '.ts' : '.js'
   const modules: string[] = []
   const walk = (dir: string) => {
@@ -111,30 +158,17 @@ export async function runApplication(argv: string[]): Promise<ApplicationContext
       if (statSync(f).isDirectory()) {
         if (dir === srcRoot && name === 'flyway') continue
         walk(f)
-      } else if (name.endsWith(ext) && !name.endsWith('.d.ts') && f !== join(srcRoot, `main${ext}`)) modules.push(f)
+      } else if (name.endsWith(ext) && !name.endsWith('.d.ts') && !entryPoints.includes(relative(srcRoot, f))) modules.push(f)
     }
   }
+  // points d'entrée (thread principal, worker des tâches) : pas des composants
+  const entryPoints = [`main${ext}`, join('port', `task-worker-thread${ext}`)]
   walk(srcRoot)
-  for (const f of modules) await import(pathToFileURL(f).href)
-
-  const ctx = new ApplicationContext(environment)
-  ctx.refresh()
-  const webServer = await startWebServer(ctx)
-  callRunners(ctx, args)
-  ctx.publishEvent(new ApplicationReadyEvent())
-  logger.info(() => `Started Application in ${((Date.now() - started) / 1000).toFixed(3)} seconds`)
-
-  let stopping = false
-  const stop = async () => {
-    if (stopping) return
-    stopping = true
-    await webServer.stop()
-    ctx.close()
-    process.exit(0)
+  for (const f of modules) {
+    const rel = relative(srcRoot, f).slice(0, -ext.length)
+    if (!include(rel)) continue
+    registerModule(rel, (await import(pathToFileURL(f).href)) as Record<string, unknown>)
   }
-  process.once('SIGINT', () => void stop())
-  process.once('SIGTERM', () => void stop())
-  return ctx
 }
 
 /** `--komga.config-dir=/x` -> { komga: { 'config-dir': '/x' } } pour l'Environment */

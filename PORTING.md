@@ -187,7 +187,44 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
   Vérifié : les blocs `@Transactional` / `transactionTemplate` de Komga ne font que des accès base (et des suppressions de fichiers, faites en synchrone).
 - Système de fichiers : API synchrones de `node:fs` quand le Kotlin est bloquant.
 - `async`/`await` uniquement quand une bibliothèque l'impose (traitement d'image, flux HTTP) ; la fonction Kotlin garde son nom, devient `async`, et ses appelants font `await` (`// PORT: async`).
-- Les tâches (scan, analyse, miniatures…), exécutées par Komga dans un pool de threads, s'exécuteront dans des `worker_threads` avec leur propre contexte et leurs connexions, pour ne pas bloquer le serveur HTTP.
+- Les tâches (scan, analyse, empreintes, miniatures, index…), exécutées par Komga dans le pool de threads de
+  `TaskProcessor`, s'exécutent dans un `worker_thread` dédié (`src/port/task-worker.ts`, `task-worker-thread.ts`) :
+  le serveur HTTP reste disponible pendant un scan, comme les threads web de Komga.
+  - Le worker a **son propre contexte** : mêmes définitions de beans et même environnement, ses propres connexions
+    SQLite ; seul `TaskProcessor` y est créé au démarrage (avec ses dépendances). Même base, même schéma que Komga.
+  - Place des beans (`component(X, { taskWorker })`, marqué `// PORT:` dans le jumeau) : `run` = n'existe que dans le
+    worker (`TaskProcessor`) ; `callMain` = état unique dans le thread principal, appelé depuis le worker par un appel
+    synchrone (`Atomics.wait`, le worker attend la réponse) : `LuceneHelper`, `SearchIndexLifecycle` (index de recherche
+    en mémoire), `SimpleMeterRegistry` (métriques de l'actuator) ; `mirrorMain` = une instance par thread, l'état du thread
+    principal est recopié dans le worker après chaque modification (`KomgaSettingsProvider`). Par défaut, chaque thread a
+    son instance (services sans état, DAO).
+  - Événements : ceux publiés dans le worker sans listener créé dans le worker (tous les `DomainEvent`) sont publiés dans
+    le thread principal (SSE, métriques, index) ; ceux du thread principal écoutés par un bean du worker (`TaskAddedEvent`,
+    `ApplicationReadyEvent`, `SettingChangedEvent`) lui sont transmis. Komga diffuse déjà ses événements de façon
+    asynchrone (`AsynchronousSpringEventsConfig`) : même sémantique.
+  - Valeurs passées entre threads : `src/port/thread-codec.ts` (data class, enum, `data object` et classes retrouvés par
+    leur chemin d'export, dates js-joda, URL, collections ; objets non copiables par poignée).
+  - SQLite (WAL) : lectures concurrentes, un écrivain à la fois. Dans Komga les threads se partagent la connexion
+    d'écriture (pool Hikari de taille 1, attente jusqu'à 30 s) ; ici chaque thread a la sienne : les transactions
+    d'écriture commencent par `BEGIN IMMEDIATE` et `busy_timeout` vaut au moins 30 s.
+  - Désactivé (tâches dans le thread principal) sous le profil `test`, avec une base en mémoire, ou avec
+    `KOMGAJS_TASK_WORKER=false`. Un worker arrêté anormalement est relancé (ses tâches sont reprises par `disown`).
+  - Cycle de vie : les threads du pool de `TaskProcessor` expirent après 60 s sans tâche (`allowCoreThreadTimeout` de
+    Spring Boot) ; quand il n'en reste aucun, le worker s'arrête et rend sa mémoire (60 à 100 Mo), puis il est relancé
+    au prochain événement qu'il écoute (`TaskAddedEvent`…). Arrêt du serveur (SIGTERM) : le worker ferme son contexte,
+    ou est interrompu au bout de 5 s, même au milieu d'une tâche synchrone (comme les threads de la JVM à l'arrêt).
+  - Le thread principal traite les événements du worker par tranches de 5 ms (un scan en publie des milliers, chacun
+    met à jour l'index de recherche) : les requêtes HTTP passent entre deux tranches.
+  - Journaux du worker écrits directement sur la sortie du processus (sinon retenus jusqu'à la fin d'une tâche).
+  - Mesure : `node tools/scan-latency-bench.mjs <port> <config> <bibliothèque>` (bibliothèques de test :
+    `tools/gen-big-library.mjs`, gros CBZ ; `tools/gen-many-library.mjs`, 6 500 petits livres).
+- Instructions préparées (better-sqlite3) : une instruction n'est libérée qu'au ramasse-miettes de son objet JS, après un
+  retour à la boucle d'événements. Pendant une longue tâche synchrone, préparer une instruction par requête (comme jOOQ)
+  accumulait des centaines de Mo de mémoire native : les instructions sont réutilisées par connexion
+  (`prepareCached`, `src/port/jooq/core.ts`), et les noms des tables temporaires (`TempTable`) sont réutilisés par
+  connexion pour que leurs requêtes le soient aussi.
+- Mémoire : `bin/komgajs` limite le tas V8 de chaque thread au quart de la mémoire du conteneur (cgroup), comme la JVM
+  (`MaxRAMPercentage` 25 %), ou à `KOMGAJS_MAX_HEAP_MB`.
 
 | Index de recherche | format disque propre (journal JSONL ré-analysé à l'ouverture, ~8 s pour 50 000 livres) ; statistiques BM25 sur les documents vivants (Lucene compte aussi les supprimés jusqu'à la fusion des segments) | ordre de pertinence identique après fusion ; à surveiller : RAM de l'index en mémoire |
 | Images (miniatures, conversions) | pixels légèrement différents (sharp lanczos3 contre Thumbnailator bilinéaire progressif, encodeur PNG différent) ; dimensions, formats, décisions identiques (122 fichiers, oracle Komga) | visuel négligeable |

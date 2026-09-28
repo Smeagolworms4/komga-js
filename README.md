@@ -32,8 +32,13 @@ empty configuration with its default settings. Resident memory of the process:
 | Scan of the 60 books | **55 s** | 134 s | 2.4 × slower |
 
 The scan is slower on purpose for now: image processing runs on a single thread to keep
-memory low, and background tasks share the process with the web server. Both are the next
-things to improve. The benchmark is `tools/mem-bench.mjs`; run it on your own library.
+memory low. Background tasks (scan, analysis, hashing, thumbnails) run in a worker thread,
+like Komga's task pool, so the web server keeps answering during a scan; the worker adds
+about 60–100 MB while it runs and stops after 60 s without tasks. The benchmarks are
+`tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`; run them on your own library.
+In a container, each thread's V8 heap is capped at a quarter of the memory limit
+(`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_TASK_WORKER=false` runs the tasks on
+the main thread.
 
 ## Features
 

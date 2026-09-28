@@ -1258,9 +1258,35 @@ function wrapSqliteError(e: unknown, sql: string): never {
   throw new DataAccessException(`SQL [${sql}]; ${err.message ?? String(e)}`, e)
 }
 
+/**
+ * PORT: jOOQ / sqlite-jdbc préparent et ferment une instruction par requête. better-sqlite3 ne libère une instruction
+ * préparée (sqlite3_finalize) qu'au ramasse-miettes de son objet JS, qui n'a lieu qu'après un retour à la boucle
+ * d'événements : pendant une longue tâche synchrone (scan d'une bibliothèque), chaque requête laissait une instruction
+ * compilée en mémoire native (des dizaines de Ko pour les requêtes des DTO), soit des centaines de Mo. Les instructions
+ * sont donc réutilisées, par connexion et par texte SQL (cache LRU borné ; une instruction évincée est libérée par le
+ * ramasse-miettes).
+ */
+const STATEMENT_CACHE_SIZE = 200
+const statementCaches = new WeakMap<Database.Database, Map<string, Database.Statement>>()
+
+export function prepareCached(db: Database.Database, sql: string): Database.Statement {
+  let cache = statementCaches.get(db)
+  if (cache === undefined) statementCaches.set(db, (cache = new Map()))
+  let stmt = cache.get(sql)
+  if (stmt !== undefined) {
+    // le plus récemment utilisé en dernier
+    cache.delete(sql)
+  } else {
+    stmt = db.prepare(sql)
+    if (cache.size >= STATEMENT_CACHE_SIZE) cache.delete(cache.keys().next().value as string)
+  }
+  cache.set(sql, stmt)
+  return stmt
+}
+
 export function runQuery(ex: Executor, sql: string, binds: SqlValue[]): number {
   try {
-    return ex.db.prepare(sql).run(...binds).changes
+    return prepareCached(ex.db, sql).run(...binds).changes
   } catch (e) {
     wrapSqliteError(e, sql)
   }
@@ -1268,7 +1294,7 @@ export function runQuery(ex: Executor, sql: string, binds: SqlValue[]): number {
 
 export function runSelect(ex: Executor, sql: string, binds: SqlValue[]): { columns: string[]; rows: unknown[][] } {
   try {
-    const stmt = ex.db.prepare(sql)
+    const stmt = prepareCached(ex.db, sql)
     if (!stmt.reader) {
       stmt.run(...binds)
       return { columns: [], rows: [] }
@@ -1959,7 +1985,7 @@ export class Batch {
       const ctx = new RenderContext().visit(this.queries[0] as Query)
       let stmt: Database.Statement
       try {
-        stmt = this.ex.db.prepare(ctx.sql)
+        stmt = prepareCached(this.ex.db, ctx.sql)
       } catch (e) {
         wrapSqliteError(e, ctx.sql)
       }

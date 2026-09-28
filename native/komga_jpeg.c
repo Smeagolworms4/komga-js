@@ -27,6 +27,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __GLIBC__
+#include <malloc.h>
+#endif
 
 #include "libjpeg6b/jpeglib.h"
 #include "libjpeg6b/jerror.h"
@@ -664,6 +667,21 @@ static napi_value js_icc_transform(napi_env env, napi_callback_info info) {
 
 /* ------------------------------------------------------------------------- */
 
+/* malloc_trim(0) de glibc : rend au système la mémoire libérée par un thread terminé (worker des tâches de KomgaJS,
+   src/port/task-worker.ts). Sans effet hors glibc. Renvoie true si de la mémoire a été rendue. */
+static napi_value js_malloc_trim(napi_env env, napi_callback_info info) {
+  (void)info;
+  int released = 0;
+#ifdef __GLIBC__
+  released = malloc_trim(0);
+#endif
+  napi_value result;
+  napi_get_boolean(env, released != 0, &result);
+  return result;
+}
+
+/* ------------------------------------------------------------------------- */
+
 NAPI_MODULE_INIT(/* napi_env env, napi_value exports */) {
   cmsSetLogErrorHandler(lcms_silent);
   napi_property_descriptor props[] = {
@@ -672,6 +690,7 @@ NAPI_MODULE_INIT(/* napi_env env, napi_value exports */) {
       {"jpegEncode", NULL, js_jpeg_encode, NULL, NULL, NULL, napi_default, NULL},
       {"iccSave", NULL, js_icc_save, NULL, NULL, NULL, napi_default, NULL},
       {"iccTransform", NULL, js_icc_transform, NULL, NULL, NULL, napi_default, NULL},
+      {"mallocTrim", NULL, js_malloc_trim, NULL, NULL, NULL, napi_default, NULL},
   };
   napi_define_properties(env, exports, sizeof(props) / sizeof(props[0]), props);
   return exports;
