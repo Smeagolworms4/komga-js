@@ -12,7 +12,7 @@ files.
 |---|---|---|
 | `native/libjpeg6b/` | Independent JPEG Group's libjpeg 6b, as bundled in OpenJDK 21 (Oracle's glue code excluded) | IJG licence (see `native/libjpeg6b/README`) — "this software is based in part on the work of the Independent JPEG Group" |
 | `native/lcms2/` | Little-CMS 2.19, © Marti Maria Saguer | MIT (`native/lcms2/LICENSE`) |
-| `native/jdk-profiles/*.pf` | ICC profiles from OpenJDK 21 `java.desktop` | GPL v2 with the Classpath Exception |
+| `native/jdk-profiles/*.pf` | ICC profiles from OpenJDK 21 `java.desktop` | GPL v2 with the Classpath Exception — full text in [`native/jdk-profiles/LICENSE`](native/jdk-profiles/LICENSE), Kodak notice in `NOTICE-colorimaging.md` |
 | `src/port/lucene/` | Apache Lucene 9.9.1 (analysers, JFlex tokenizer tables, ASCIIFoldingFilter table, classic QueryParser, BM25) | Apache License 2.0 |
 | `src/port/tika.ts`, `src/port/tika-mimetypes.ts` | Apache Tika 3.3.2 (`tika-mimetypes.xml` and the detector) | Apache License 2.0 |
 | `src/port/validation-messages.ts`, `src/port/validation-engine.ts` | Hibernate Validator 8.0.3 (default messages, validator behaviour) | Apache License 2.0 |
