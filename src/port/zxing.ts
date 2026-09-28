@@ -140,3 +140,22 @@ export class RGBLuminanceSource extends GrayscaleLuminanceSource {
     return luminances
   }
 }
+
+/**
+ * Exécute un décodage synchrone de @zxing/library sans piles d'exception et sans sa sortie console.
+ * @zxing/library lève une exception (ts-custom-error, pile capturée) à chaque ligne ou motif non trouvé et écrit
+ * certaines sur la console (console.warn « non-ReaderException ») ; ZXing Java utilise des exceptions sans pile
+ * (NotFoundException.getNotFoundInstance()) et n'écrit rien. Les exceptions levées restent les mêmes.
+ */
+export function quietly<T>(f: () => T): T {
+  const stackTraceLimit = Error.stackTraceLimit
+  const warn = console.warn
+  Error.stackTraceLimit = 0
+  console.warn = () => {}
+  try {
+    return f()
+  } finally {
+    Error.stackTraceLimit = stackTraceLimit
+    console.warn = warn
+  }
+}

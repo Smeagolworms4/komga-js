@@ -12,7 +12,7 @@ import { distinct, str } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
 // PORT: com.google.zxing -> @zxing/library ; RGBLuminanceSource de ZXing 3.5.4 (rotation) portée dans port/zxing.ts
-import { RGBLuminanceSource } from '../../../port/zxing.js'
+import { quietly, RGBLuminanceSource } from '../../../port/zxing.js'
 import { BookMetadataProvider } from '../BookMetadataProvider.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.metadata.barcode.IsbnBarcodeProvider')
@@ -86,20 +86,11 @@ export class IsbnBarcodeProvider implements BookMetadataProvider {
           const bitmap = new BinaryBitmap(new HybridBinarizer(source))
 
           let result
-          // PORT: @zxing/library lève une exception (avec pile, ts-custom-error) à chaque motif non trouvé et
-          // l'écrit sur la console (console.warn, « non-ReaderException ») ; ZXing Java utilise des exceptions sans
-          // pile et n'écrit rien. Décodage synchrone : piles désactivées et console.warn muet pendant l'appel.
-          const stackTraceLimit = Error.stackTraceLimit
-          const warn = console.warn
-          Error.stackTraceLimit = 0
-          console.warn = () => {}
           try {
-            result = new MultiFormatReader().decode(bitmap, this.hints)
+            // PORT: décodage sans piles d'exception ni sortie console de @zxing/library (voir port/zxing.ts)
+            result = quietly(() => new MultiFormatReader().decode(bitmap, this.hints))
           } catch (e) {
             result = null
-          } finally {
-            Error.stackTraceLimit = stackTraceLimit
-            console.warn = warn
           }
 
           if (result === null || result.getText() === null) {
