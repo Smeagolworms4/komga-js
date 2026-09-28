@@ -30,7 +30,7 @@ COPY . .
 COPY --from=webui /webui/dist /tmp/webui
 COPY --from=nextui /nextui/dist /tmp/nextui
 RUN npm run build:native && \
-    npx tsc -p tsconfig.build.json && \
+    npm run build && \
     node tools/install-webui.mjs /tmp/webui /tmp/nextui && \
     npm prune --omit=dev
 
