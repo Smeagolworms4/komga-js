@@ -1,0 +1,35 @@
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/validation/BCP47OracleTest.kt
+import { BCP47Validator } from '../../../../src/infrastructure/validation/BCP47.js'
+import { oracle } from '../../oracle.js'
+
+const { func, kase } = oracle('infrastructure/validation/BCP47')
+
+const v = new BCP47Validator()
+func('isValid', () => {
+  kase('null', () => v.isValid(null, null))
+  kase('empty', () => v.isValid('', null))
+  kase('[ ]', () => v.isValid(' ', null))
+  kase('[en]', () => v.isValid('en', null))
+  kase('[EN]', () => v.isValid('EN', null))
+  kase('[en-US]', () => v.isValid('en-US', null))
+  kase('[en_US]', () => v.isValid('en_US', null))
+  kase('[fr-FR]', () => v.isValid('fr-FR', null))
+  kase('[zh-Hant-TW]', () => v.isValid('zh-Hant-TW', null))
+  kase('[und]', () => v.isValid('und', null))
+  kase('[i-klingon]', () => v.isValid('i-klingon', null))
+  kase('[x-private]', () => v.isValid('x-private', null))
+  kase('[en-x-foo]', () => v.isValid('en-x-foo', null))
+  kase('[sr-Latn-RS]', () => v.isValid('sr-Latn-RS', null))
+  kase('[de-CH-1996]', () => v.isValid('de-CH-1996', null))
+  kase('[abcdefghi]', () => v.isValid('abcdefghi', null))
+  kase('[e]', () => v.isValid('e', null))
+  kase('[en-]', () => v.isValid('en-', null))
+  kase('[-en]', () => v.isValid('-en', null))
+  kase('[ en]', () => v.isValid(' en', null))
+  kase('[fra]', () => v.isValid('fra', null))
+  kase('[ja-JP-u-ca-japanese]', () => v.isValid('ja-JP-u-ca-japanese', null))
+  kase('[123]', () => v.isValid('123', null))
+  kase('[qaa]', () => v.isValid('qaa', null))
+  kase('[zz]', () => v.isValid('zz', null))
+  kase('[éé]', () => v.isValid('éé', null))
+})
