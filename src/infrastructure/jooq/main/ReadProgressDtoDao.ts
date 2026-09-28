@@ -7,7 +7,7 @@ import { Tables } from '../../../port/jooq/generated/main/Tables.js'
 import type { AggregateFunction, Condition, Record } from '../../../port/jooq/core.js'
 import { DSL, DSLContext, rowNumber } from '../../../port/jooq/dsl.js'
 import { component } from '../../../port/spring.js'
-import { DataClass, first, lastOrNull, nn } from '../../../port/kotlin.js'
+import { DataClass, first, lastOrNull } from '../../../port/kotlin.js'
 import { BOOKS_IN_PROGRESS_COUNT, BOOKS_READ_COUNT, BOOKS_UNREAD_COUNT } from './SeriesDtoDao.js'
 
 export class ReadProgressDtoDao extends SplitDslDaoBase implements ReadProgressDtoRepository {
@@ -68,11 +68,11 @@ export class ReadProgressDtoDao extends SplitDslDaoBase implements ReadProgressD
         .fetch(),
     ).map(
       (it) =>
-        // PORT: get(name, Int::class.java) passé à un paramètre Int non nul : NPE si null (nn)
+        // PORT: get(name, Int::class.java) : type primitif, jOOQ rend 0 pour une somme nulle (aucun livre)
         new BooksCount({
-          unreadCount: nn(it.get<number>(BOOKS_UNREAD_COUNT, Number)),
-          readCount: nn(it.get<number>(BOOKS_READ_COUNT, Number)),
-          inProgressCount: nn(it.get<number>(BOOKS_IN_PROGRESS_COUNT, Number)),
+          unreadCount: it.get<number>(BOOKS_UNREAD_COUNT, Number),
+          readCount: it.get<number>(BOOKS_READ_COUNT, Number),
+          inProgressCount: it.get<number>(BOOKS_IN_PROGRESS_COUNT, Number),
         }),
     )
   }
@@ -107,11 +107,11 @@ export class ReadProgressDtoDao extends SplitDslDaoBase implements ReadProgressD
         .fetch(),
     )
 
-    // PORT: get(name, Int::class.java) passé à un paramètre Int non nul : NPE si null (nn)
+    // PORT: get(name, Int::class.java) : type primitif, jOOQ rend 0 pour une somme nulle (aucun livre)
     const booksCount = new BooksCount({
-      unreadCount: nn(booksCountRecord.get<number>(BOOKS_UNREAD_COUNT, Number)),
-      readCount: nn(booksCountRecord.get<number>(BOOKS_READ_COUNT, Number)),
-      inProgressCount: nn(booksCountRecord.get<number>(BOOKS_IN_PROGRESS_COUNT, Number)),
+      unreadCount: booksCountRecord.get<number>(BOOKS_UNREAD_COUNT, Number),
+      readCount: booksCountRecord.get<number>(BOOKS_READ_COUNT, Number),
+      inProgressCount: booksCountRecord.get<number>(BOOKS_IN_PROGRESS_COUNT, Number),
     })
 
     return this.booksCountToDto(booksCount, this.lastRead<number>(indexedReadProgress) ?? 0)

@@ -1132,17 +1132,26 @@ export class Record implements Iterable<unknown> {
 export type IntoType<T> = { readonly __into: T } | StringConstructor | NumberConstructor | BooleanConstructor
 
 function intoType(v: unknown, t: IntoType<unknown>): unknown {
-  if (v === null || v === undefined) return null
-  if (t === String) return String(v)
-  if (t === Number) return Number(v)
+  // PORT: Int::class.java / Boolean::class.java sont les types primitifs Java : org.jooq.tools.Convert rend alors
+  // la valeur par défaut du primitif (0 / false) pour null ou une valeur non convertible
+  if (t === Number) {
+    if (v === null || v === undefined) return 0
+    // PORT: une chaîne est convertie comme un entier par jOOQ (partie entière de new BigDecimal(s.trim())) ;
+    // les colonnes REAL (NUMBER_SORT...) arrivent déjà en nombre et gardent leur partie décimale
+    const n = typeof v === 'string' ? Math.trunc(Number(v.trim())) : Number(v)
+    return Number.isNaN(n) ? 0 : n
+  }
   if (t === Boolean) {
-    // org.jooq.tools.Convert : chaînes reconnues (TRUE_VALUES / FALSE_VALUES), sinon null
+    if (v === null || v === undefined) return false
+    // org.jooq.tools.Convert : chaînes reconnues (TRUE_VALUES / FALSE_VALUES), sinon null (false pour le primitif)
     if (typeof v === 'string') {
       const l = v.trim().toLowerCase()
-      return JOOQ_TRUE_VALUES.includes(l) ? true : JOOQ_FALSE_VALUES.includes(l) ? false : null
+      return JOOQ_TRUE_VALUES.includes(l)
     }
     return Boolean(v)
   }
+  if (v === null || v === undefined) return null
+  if (t === String) return String(v)
   return v
 }
 

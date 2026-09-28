@@ -1,6 +1,7 @@
 // Support de portage : org.jooq.impl.DSL (fonctions statiques) et DSLContext.
 // Ce fichier n'a pas de jumeau Kotlin.
 import type Database from 'better-sqlite3'
+import { IllegalArgumentException } from '../kotlin.js'
 import {
   AggregateFunction,
   Batch,
@@ -172,6 +173,8 @@ export function row(...fields: (Field<unknown> | unknown)[]): Row {
   return new Row(fields.map((f) => asField(f)))
 }
 export function values(...rows: Row[]): ValuesTable {
+  // PORT: comme org.jooq.impl.Values, un VALUES() sans ligne est refusé
+  if (rows.length === 0) throw new IllegalArgumentException('Cannot create a VALUES() constructor with an empty set of rows')
   return new ValuesTable(rows)
 }
 

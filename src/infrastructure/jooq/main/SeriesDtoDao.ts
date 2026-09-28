@@ -23,7 +23,7 @@ import { DSL, DSLContext, count, countDistinct, lower, substring } from '../../.
 import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
 import { URL } from '../../../port/java-net.js'
-import { NoWhenBranchMatchedException, firstOrNull, mapNotNull, require } from '../../../port/kotlin.js'
+import { NoWhenBranchMatchedException, firstOrNull, mapNotNull, nn, require } from '../../../port/kotlin.js'
 
 export const BOOKS_UNREAD_COUNT = 'booksUnreadCount'
 export const BOOKS_IN_PROGRESS_COUNT = 'booksInProgressCount'
@@ -425,7 +425,7 @@ export class SeriesDtoDao extends SplitDslDaoBase implements SeriesDtoRepository
     })
   }
 
-  // PORT: fonction d'extension SeriesMetadataRecord.toDto()
+  // PORT: fonction d'extension SeriesMetadataRecord.toDto() ; nn() : valeur Java (plateforme) passée à un paramètre Kotlin non nul (NPE)
   private metadataToDto(
     self: SeriesMetadataRecord,
     genres: ReadonlySet<string>,
@@ -435,36 +435,36 @@ export class SeriesDtoDao extends SplitDslDaoBase implements SeriesDtoRepository
     alternateTitles: AlternateTitleDto[],
   ): SeriesMetadataDto {
     return new SeriesMetadataDto({
-      status: self.status,
-      statusLock: self.statusLock,
-      created: self.createdDate,
-      lastModified: self.lastModifiedDate,
-      title: self.title,
-      titleLock: self.titleLock,
-      titleSort: self.titleSort,
-      titleSortLock: self.titleSortLock,
-      summary: self.summary,
-      summaryLock: self.summaryLock,
+      status: nn(self.status),
+      statusLock: nn(self.statusLock),
+      created: nn(self.createdDate),
+      lastModified: nn(self.lastModifiedDate),
+      title: nn(self.title),
+      titleLock: nn(self.titleLock),
+      titleSort: nn(self.titleSort),
+      titleSortLock: nn(self.titleSortLock),
+      summary: nn(self.summary),
+      summaryLock: nn(self.summaryLock),
       readingDirection: self.readingDirection ?? '',
-      readingDirectionLock: self.readingDirectionLock,
-      publisher: self.publisher,
-      publisherLock: self.publisherLock,
+      readingDirectionLock: nn(self.readingDirectionLock),
+      publisher: nn(self.publisher),
+      publisherLock: nn(self.publisherLock),
       ageRating: self.ageRating,
-      ageRatingLock: self.ageRatingLock,
-      language: self.language,
-      languageLock: self.languageLock,
+      ageRatingLock: nn(self.ageRatingLock),
+      language: nn(self.language),
+      languageLock: nn(self.languageLock),
       genres: genres,
-      genresLock: self.genresLock,
+      genresLock: nn(self.genresLock),
       tags: tags,
-      tagsLock: self.tagsLock,
+      tagsLock: nn(self.tagsLock),
       totalBookCount: self.totalBookCount,
-      totalBookCountLock: self.totalBookCountLock,
+      totalBookCountLock: nn(self.totalBookCountLock),
       sharingLabels: sharingLabels,
-      sharingLabelsLock: self.sharingLabelsLock,
+      sharingLabelsLock: nn(self.sharingLabelsLock),
       links: links,
-      linksLock: self.linksLock,
+      linksLock: nn(self.linksLock),
       alternateTitles: alternateTitles,
-      alternateTitlesLock: self.alternateTitlesLock,
+      alternateTitlesLock: nn(self.alternateTitlesLock),
     })
   }
 
@@ -474,10 +474,10 @@ export class SeriesDtoDao extends SplitDslDaoBase implements SeriesDtoRepository
       authors: authors,
       tags: tags,
       releaseDate: self.releaseDate,
-      summary: self.summary,
-      summaryNumber: self.summaryNumber,
-      created: self.createdDate,
-      lastModified: self.lastModifiedDate,
+      summary: nn(self.summary),
+      summaryNumber: nn(self.summaryNumber),
+      created: nn(self.createdDate),
+      lastModified: nn(self.lastModifiedDate),
     })
   }
 }
