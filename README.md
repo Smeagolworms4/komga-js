@@ -7,7 +7,7 @@
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
-API, same database, same web interface, **three to five times less memory**.
+API, same database, same web interface, **three to six times less memory**.
 
 *[Version française](README.fr.md)*
 
@@ -22,15 +22,17 @@ Komga moves on, its changes can be carried over by reading the diff.
 
 The same library of 60 comic books (645 MB), the same scenario, each server starting from an
 empty configuration with its default settings, both measured on the same machine under the
-same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the process:
+same load, with the current code (`tools/mem-bench.mjs`), library created as the web interface
+does (ISBN barcode import off, unless stated). Resident memory of the process:
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Idle, after start-up | 601 MB | **166 MB** | ÷ 3.6 |
-| After scanning and analysing the library | 1,182 MB | **265 MB** | ÷ 4.5 |
-| After reading (thumbnails, pages) | 1,275 MB | **266 MB** | ÷ 4.8 |
-| Start-up | 14.8 s | **1.4 s** | ÷ 11 |
-| Scan and analysis of the 60 books | **32 s** | 40 s | 1.3 × slower |
+| Idle, after start-up | 599 MB | **165 MB** | ÷ 3.6 |
+| After scanning and analysing the library | 1,372 MB | **234 MB** | ÷ 5.9 |
+| After reading (thumbnails, pages) | 1,496 MB | **235 MB** | ÷ 6.4 |
+| Start-up | 11.3 s | **1.0 s** | ÷ 11 |
+| Scan and analysis of the 60 books | 13.3 s | **10.4 s** | 1.3 × faster |
+| Same, with ISBN barcode import enabled | 32.0 s | **18.8 s** | 1.7 × faster |
 
 **Large libraries.** The search index lives off the JavaScript heap, in compact typed arrays,
 with the same results as Lucene: on 7,000 books, about 300 MB idle after rebuilding the index,
@@ -165,7 +167,7 @@ The whole backend is ported and every Kotlin test of Komga has been ported with 
 
 Known differences, all listed in [`PORTING.md`](PORTING.md): the search index uses its own
 file format; thumbnails and PDF pages are encoded by different libraries, so their pixels
-differ slightly (never their sizes or formats); a scan is slower; validation errors come out
+differ slightly (never their sizes or formats); validation errors come out
 in a fixed order where Komga's order is random.
 
 ## How the port is built

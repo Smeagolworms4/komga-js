@@ -7,7 +7,7 @@
 
 [Komga](https://komga.org), le serveur multimédia pour vos BD, mangas, comics, magazines et
 livres numériques — avec son backend porté ligne à ligne de Kotlin vers TypeScript. Même
-serveur, même API, même base de données, même interface web, **trois à cinq fois moins de
+serveur, même API, même base de données, même interface web, **trois à six fois moins de
 mémoire**.
 
 *[English version](README.md)*
@@ -23,15 +23,18 @@ ordre — pour que les évolutions de Komga puissent être reportées en lisant 
 
 La même bibliothèque de 60 BD (645 Mo), le même scénario, chaque serveur partant d'une
 configuration vierge avec ses réglages par défaut, les deux mesurés sur la même machine sous la
-même charge, avec le code actuel (`tools/mem-bench.mjs`). Mémoire résidente du processus :
+même charge, avec le code actuel (`tools/mem-bench.mjs`), bibliothèque créée comme le fait
+l'interface web (import des ISBN par code-barres désactivé, sauf mention). Mémoire résidente du
+processus :
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Au repos, après le démarrage | 601 Mo | **166 Mo** | ÷ 3,6 |
-| Après scan et analyse de la bibliothèque | 1 182 Mo | **265 Mo** | ÷ 4,5 |
-| Après lecture (miniatures, pages) | 1 275 Mo | **266 Mo** | ÷ 4,8 |
-| Démarrage | 14,8 s | **1,4 s** | ÷ 11 |
-| Scan et analyse des 60 livres | **32 s** | 40 s | 1,3 × plus lent |
+| Au repos, après le démarrage | 599 Mo | **165 Mo** | ÷ 3,6 |
+| Après scan et analyse de la bibliothèque | 1 372 Mo | **234 Mo** | ÷ 5,9 |
+| Après lecture (miniatures, pages) | 1 496 Mo | **235 Mo** | ÷ 6,4 |
+| Démarrage | 11,3 s | **1,0 s** | ÷ 11 |
+| Scan et analyse des 60 livres | 13,3 s | **10,4 s** | 1,3 × plus rapide |
+| Idem, avec l'import des ISBN par code-barres | 32,0 s | **18,8 s** | 1,7 × plus rapide |
 
 **Grosses bibliothèques.** L'index de recherche vit hors du tas JavaScript, dans des tableaux
 typés compacts, avec les mêmes résultats que Lucene : sur 7 000 livres, environ 300 Mo au repos
@@ -174,7 +177,7 @@ Tout le backend est porté, et tous les tests Kotlin de Komga l'ont été avec l
 Les écarts connus, tous listés dans [`PORTING.md`](PORTING.md) : l'index de recherche a son
 propre format de fichier ; les miniatures et les pages PDF sont encodées par d'autres
 bibliothèques, leurs pixels diffèrent donc légèrement (jamais leurs dimensions ni leurs
-formats) ; un scan est plus lent ; les erreurs de validation sortent dans un ordre fixe là où
+formats) ; les erreurs de validation sortent dans un ordre fixe là où
 l'ordre de Komga est aléatoire.
 
 ## Comment le portage est construit

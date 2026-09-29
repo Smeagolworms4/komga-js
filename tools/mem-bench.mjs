@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Banc d'essai mémoire : même scénario sur Komga (JVM) et KomgaJS, chacun avec une configuration vierge.
 // Usage : node tools/mem-bench.mjs <java|js> <port> <dossier-config> <bibliothèque> [-- options de lancement]
+// BENCH_ISBN=false : bibliothèque sans lecture des codes-barres ISBN (défaut de l'interface web) ; sinon activée (défaut de l'API)
 // Mesure le RSS du processus (Mo) : au repos, après scan + analyse, après lecture (miniatures + pages).
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync } from 'node:fs'
@@ -44,7 +45,7 @@ await sleep(5000)
 const idle = rssMb()
 
 await fetch(`${base}/api/v1/claim`, { method: 'POST', headers: { 'X-Komga-Email': 'bench@example.org', 'X-Komga-Password': 'bench' } })
-await api('/api/v1/libraries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Bench', root: library }) })
+await api('/api/v1/libraries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Bench', root: library, importBarcodeIsbn: process.env.BENCH_ISBN !== 'false' }) })
 // fin du scan et de l'analyse : plus de livre au statut UNKNOWN pendant 3 relevés consécutifs
 const tScan = Date.now()
 let stable = 0
