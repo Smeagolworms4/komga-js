@@ -33,35 +33,28 @@ même charge, avec le code actuel (`tools/mem-bench.mjs`). Mémoire résidente d
 | Démarrage | 14,8 s | **1,4 s** | ÷ 11 |
 | Scan et analyse des 60 livres | **32 s** | 40 s | 1,3 × plus lent |
 
-**Grosses bibliothèques.** L'index de recherche était le problème : le portage le gardait sous
-forme d'objets JavaScript, environ 70 Ko par livre, si bien que sur un Raspberry Pi 4 avec une
-vraie bibliothèque de 6 594 livres, KomgaJS était à 564 Mo au repos, pas mieux que Komga.
-L'index vit maintenant hors du tas V8, dans des tableaux typés compacts, avec les mêmes
-résultats de recherche que Lucene. Sur une bibliothèque générée de 7 000 livres, la mémoire au
-repos après la reconstruction de l'index passe de 797 Mo à environ 300 Mo, et la reconstruction
-tient dans un tas de 256 Mo jusqu'à au moins 48 000 livres (banc x86-64). Les chiffres du
-Raspberry Pi seront remesurés avec cette version.
+**Grosses bibliothèques.** L'index de recherche vit hors du tas JavaScript, dans des tableaux
+typés compacts, avec les mêmes résultats que Lucene : sur 7 000 livres, environ 300 Mo au repos
+après reconstruction de l'index, et la reconstruction tient dans un tas de 256 Mo jusqu'à au
+moins 48 000 livres. Les chiffres sur Raspberry Pi avec une vraie bibliothèque sont en cours de
+remesure.
 
-Le scan est plus lent : le traitement d'image utilise un seul thread natif par défaut pour garder
-la mémoire basse. Tout tourne sur un seul thread JavaScript, avec un seul tas V8 : les tâches de
-fond (scan, analyse, empreintes, miniatures) et les requêtes web se le partagent. Chaque attente
-(lecture de fichiers, empreintes, décompression, codage des images et des JPEG, kepubify) passe
-par le pool de threads de libuv, et les longues boucles rendent la main toutes les 10 ms :
-plusieurs tâches progressent ensemble, comme les threads de tâches de Komga, pendant que le
-serveur web continue de répondre : 11 ms en médiane, 29 ms au 99ᵉ centile, mesuré pendant le
-scan et l'analyse de 6 500 livres générés (l'architecture précédente, avec les tâches dans un
-worker thread séparé, prenait 80 Mo de plus au démarrage et 170 Mo de plus au plus fort du
-scan ; 60 s après la dernière tâche, les deux rendent leur mémoire, environ 175 Mo). Les bancs d'essai sont `tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ;
-lancez-les sur votre propre bibliothèque. Dans un conteneur, le tas V8 est limité au quart de
-la mémoire allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS`
-fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de
-mémoire ; 2 a rendu les miniatures de grandes pages 20 % plus rapides, 4 pas davantage ; 0
-laisse libvips utiliser tous les cœurs) ; `UV_THREADPOOL_SIZE` (Node, 4 par défaut) borne le nombre de ces attentes menées de
-front, à garder au-dessus du nombre de threads de tâches. Ce qui tourne encore sur le thread
-JavaScript et peut retarder les requêtes le temps qu'il dure : requêtes SQLite, rendu PDF,
-décompression RAR, lecture des EPUB, mise à jour de l'index de recherche.
-`KOMGAJS_TASK_WORKER=true` exécute plutôt les tâches dans un worker thread séparé (un second tas
-V8, 60 à 100 Mo de plus pendant les tâches, arrêté après 60 s sans tâche).
+**Fonctionnement.** Un seul thread JavaScript sert les requêtes web et exécute les tâches de
+fond ; lectures de fichiers, empreintes, décompression et codage d'images passent par le pool
+de threads natif de Node, et les longues boucles rendent la main toutes les 10 ms. Pendant le
+scan de 6 500 livres, le serveur répond en 11 ms (médiane), 29 ms (99ᵉ centile). Restent sur le
+thread principal, et peuvent retarder une requête le temps qu'ils durent : requêtes SQLite,
+rendu PDF, décompression RAR, lecture des EPUB, mises à jour de l'index. Bancs d'essai :
+`tools/mem-bench.mjs`, `tools/scan-latency-bench.mjs`.
+
+**Réglages** (variables d'environnement) :
+
+| Variable | Par défaut | Effet |
+|---|---|---|
+| `KOMGAJS_MAX_HEAP_MB` | ¼ de la limite mémoire du conteneur, au moins 256 Mo | plafond du tas JavaScript |
+| `KOMGAJS_IMAGE_THREADS` | 1 | threads natifs par opération d'image (2 : miniatures ~20 % plus rapides ; 0 : tous les cœurs) |
+| `UV_THREADPOOL_SIZE` | 4 | opérations natives simultanées ; à garder au-dessus des threads de tâches de Komga |
+| `KOMGAJS_TASK_WORKER` | false | `true` exécute les tâches dans un thread séparé (+60 à 100 Mo pendant les tâches) |
 
 ## Fonctionnalités
 
