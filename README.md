@@ -34,8 +34,17 @@ same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the
 
 **Large libraries.** The search index lives off the JavaScript heap, in compact typed arrays,
 with the same results as Lucene: on 7,000 books, about 300 MB idle after rebuilding the index,
-and the rebuild fits in a 256 MB heap up to at least 48,000 books. Raspberry Pi figures on a
-real library are being re-measured.
+and the rebuild fits in a 256 MB heap up to at least 48,000 books.
+
+On a Raspberry Pi 4 (arm64) with a real library of 6,594 books in 4 libraries, the same
+database and the same files, each server running alone:
+
+| | Komga (JVM) | KomgaJS | |
+|---|---|---|---|
+| Idle | 583–658 MB | **153–159 MB** | ÷ 4 |
+| Peak (start-up, scan of the 4 libraries) | — | 249 MB | |
+| Start-up | 20 s | **4.5 s** | |
+| API response time (`/actuator/health`) | — | 3–5 ms | |
 
 **How it runs.** A single JavaScript thread serves the web requests and runs the background
 tasks; file reads, hashing, decompression and image coding run on Node's native thread pool,
