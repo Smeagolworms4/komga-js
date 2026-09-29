@@ -211,6 +211,7 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | Exceptions js-joda | `DateTimeException` là où java.time lève sa sous-classe `UnsupportedTemporalTypeException` (même message) | aucun : Komga n'intercepte pas ces exceptions |
 | Casse Unicode | Node suit Unicode 17, le JDK 21 Unicode 15 : `Character.toUpperCase`/`toLowerCase` (`charToUpperCase`...) diffèrent sur 110 caractères ajoutés depuis | négligeable |
 | Base des tâches (`tasks.sqlite`) | `synchronous = NORMAL` en WAL au lieu de FULL, et chaque lot de `TasksDao.save` validé dans une transaction (sqlite-jdbc valide chaque insertion) : pas de synchronisation du disque par tâche sur le thread unique (voir « Architecture d'exécution ») ; réglable par `komga.tasks-db.pragmas` | après une coupure de courant (pas un arrêt du processus), les dernières tâches émises peuvent manquer ; un lot en échec est annulé en entier |
+| Arrêt sur SIGTERM / SIGINT (`port/spring-boot-application.ts`, `startShutdownWatchdog`) | la réception du signal est journalisée (`Received SIGTERM, shutting down`), et un délai de garde fait sortir le processus si la fermeture n'est pas terminée après le délai de l'arrêt gracieux (`spring.lifecycle.timeout-per-shutdown-phase`, 30 s) plus 10 s ; un second signal fait sortir immédiatement. Code de sortie comme la JVM : 143 (SIGTERM), 130 (SIGINT) | un arrêt bloqué reste visible dans les journaux et ne dépend pas du SIGKILL de `docker stop` |
 
 ## Stockage SQLite (jOOQ 3.19 + sqlite-jdbc), relevé sur les vraies bibliothèques
 

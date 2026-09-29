@@ -22,7 +22,7 @@ import { Duration, Instant } from '@js-joda/core'
 import { runInThread } from './java.js'
 import { IllegalArgumentException, IllegalStateException, RuntimeException } from './kotlin.js'
 import { KotlinLogging } from './logging.js'
-import { ApplicationContext, ContextRefreshedEvent, type LifecycleResource, component, registerLifecycleResource, type Token } from './spring.js'
+import { ApplicationContext, ContextRefreshedEvent, type LifecycleResource, component, parseSpringDuration, registerLifecycleResource, type Token } from './spring.js'
 
 /** `java.lang.Runnable` (le corps peut être asynchrone) */
 export type Runnable = () => void | Promise<void>
@@ -242,24 +242,26 @@ export class ThreadPoolTaskExecutor implements LifecycleResource {
  * `org.springframework.boot.task.ThreadPoolTaskExecutorBuilder`, avec les valeurs par défaut de
  * `spring.task.execution.pool.*` (TaskExecutionProperties) : file non bornée, keep-alive 60 s, allowCoreThreadTimeout.
  */
+type ThreadPoolTaskExecutorBuilderProps = {
+  threadNamePrefix: string
+  corePoolSize: number
+  maxPoolSize: number
+  queueCapacity: number
+  keepAliveSeconds: number
+  allowCoreThreadTimeOut: boolean
+}
+
+const defaultBuilderProps: ThreadPoolTaskExecutorBuilderProps = {
+  threadNamePrefix: 'task-',
+  corePoolSize: 8,
+  maxPoolSize: 2147483647,
+  queueCapacity: 2147483647,
+  keepAliveSeconds: 60,
+  allowCoreThreadTimeOut: true,
+}
+
 export class ThreadPoolTaskExecutorBuilder {
-  constructor(
-    private readonly props: {
-      threadNamePrefix: string
-      corePoolSize: number
-      maxPoolSize: number
-      queueCapacity: number
-      keepAliveSeconds: number
-      allowCoreThreadTimeOut: boolean
-    } = {
-      threadNamePrefix: 'task-',
-      corePoolSize: 8,
-      maxPoolSize: 2147483647,
-      queueCapacity: 2147483647,
-      keepAliveSeconds: 60,
-      allowCoreThreadTimeOut: true,
-    },
-  ) {}
+  constructor(private readonly props: ThreadPoolTaskExecutorBuilderProps = defaultBuilderProps) {}
 
   threadNamePrefix(threadNamePrefix: string): ThreadPoolTaskExecutorBuilder {
     return new ThreadPoolTaskExecutorBuilder({ ...this.props, threadNamePrefix })
@@ -289,7 +291,18 @@ export class ThreadPoolTaskExecutorBuilder {
   }
 }
 
-component(ThreadPoolTaskExecutorBuilder, { name: 'threadPoolTaskExecutorBuilder', inject: [] })
+// TaskExecutionAutoConfiguration : spring.task.execution.pool.keep-alive (TaskExecutionProperties.Pool.keepAlive)
+component(ThreadPoolTaskExecutorBuilder, {
+  name: 'threadPoolTaskExecutorBuilder',
+  inject: [
+    {
+      expression: (ctx: ApplicationContext) => {
+        const keepAlive = ctx.environment.getProperty('spring.task.execution.pool.keep-alive')
+        return keepAlive === null ? defaultBuilderProps : { ...defaultBuilderProps, keepAliveSeconds: parseSpringDuration(keepAlive).toMillis() / 1000 }
+      },
+    },
+  ],
+})
 
 // ---------------------------------------------------------------------------
 // TaskScheduler

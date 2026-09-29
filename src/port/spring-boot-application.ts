@@ -110,18 +110,55 @@ export async function runApplication(argv: string[]): Promise<ApplicationContext
   ctx.publishEvent(new ApplicationReadyEvent())
   logger.info(() => `Started Application in ${((Date.now() - started) / 1000).toFixed(3)} seconds`)
 
+  // Shutdown hook de SpringApplication (SpringApplicationShutdownHook) : fermeture du contexte (SSE terminés, arrêt
+  // gracieux du serveur web, beans détruits), puis sortie avec le code de la JVM terminée par le signal (128 + numéro :
+  // 143 pour SIGTERM, 130 pour SIGINT).
   let stopping = false
-  const stop = async () => {
-    if (stopping) return
+  const stop = async (signal: 'SIGINT' | 'SIGTERM') => {
+    const exitCode = 128 + (signal === 'SIGINT' ? 2 : 15)
+    // PORT: écart — journal au début de l'arrêt, délai de garde et second signal : voir startShutdownWatchdog.
+    // Spring : Runtime.getRuntime().addShutdownHook(Thread(this, "SpringApplicationShutdownHook")) (aucun journal, pas
+    // de délai de garde au-delà de spring.lifecycle.timeout-per-shutdown-phase)
+    if (stopping) process.exit(exitCode)
     stopping = true
-    await webServer.stop()
-    await bridge?.stop()
-    ctx.close()
-    process.exit(0)
+    startShutdownWatchdog(logger, signal, exitCode, webServer.shutdownTimeoutMs)
+    try {
+      await ctx.closeWithWebServer(async () => {
+        await webServer.stop()
+        await bridge?.stop()
+      })
+    } catch (e) {
+      logger.error(e as Error, () => 'Error during shutdown')
+    }
+    process.exit(exitCode)
   }
-  process.once('SIGINT', () => void stop())
-  process.once('SIGTERM', () => void stop())
+  process.on('SIGINT', () => void stop('SIGINT'))
+  process.on('SIGTERM', () => void stop('SIGTERM'))
   return ctx
+}
+
+/**
+ * PORT: écart avec Spring Boot (aucun jumeau Kotlin) : début de l'arrêt sur signal.
+ * - journalise la réception du signal (Spring ne journalise rien avant « Commencing graceful shutdown ») : un arrêt
+ *   qui n'aboutit pas reste visible dans les journaux (`docker stop` terminé par SIGKILL, code 137, sans aucune trace) ;
+ * - délai de garde : le processus sort avec `exitCode` si la fermeture n'est pas terminée après le délai de l'arrêt
+ *   gracieux du serveur web (`gracefulTimeoutMs`, spring.lifecycle.timeout-per-shutdown-phase) plus 10 s. Dans la JVM,
+ *   les threads bloqués ne retiennent pas la sortie une fois les shutdown hooks terminés ; dans Node, une promesse jamais
+ *   résolue (ou un handle ouvert) retiendrait le processus indéfiniment ;
+ * - un second signal pendant l'arrêt fait sortir immédiatement (appelant).
+ * Le minuteur est `unref()` : il ne retient pas le processus. Aucun réglage : comportement d'origine en supprimant l'appel.
+ */
+function startShutdownWatchdog(
+  logger: { info(m: () => string): void; warn(m: () => string): void },
+  signal: string,
+  exitCode: number,
+  gracefulTimeoutMs: number,
+): void {
+  logger.info(() => `Received ${signal}, shutting down`)
+  setTimeout(() => {
+    logger.warn(() => 'Shutdown did not complete in time, exiting')
+    process.exit(exitCode)
+  }, gracefulTimeoutMs + 10_000).unref()
 }
 
 /**
