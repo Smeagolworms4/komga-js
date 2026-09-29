@@ -4,6 +4,7 @@ import { SettingChangedEvent } from '../../infrastructure/configuration/SettingC
 import { KotlinLogging } from '../../port/logging.js'
 import { ApplicationReadyEvent, component, type Token } from '../../port/spring.js'
 import { type ThreadPoolTaskExecutor, ThreadPoolTaskExecutorBuilder } from '../../port/spring-scheduling.js'
+import { runWithWriteBatching } from '../../port/sqlite-write-batch.js'
 import { TaskAddedEvent } from './TaskAddedEvent.js'
 import { TaskHandler } from './TaskHandler.js'
 import { TasksRepository } from './TasksRepository.js'
@@ -61,7 +62,13 @@ export class TaskProcessor {
     const task = this.tasksRepository.takeFirst()
     if (task !== null) {
       logger.debug(() => `Found task to process: ${task}`)
-      await this.taskHandler.handleTask(task)
+      // PORT: écart — les écritures de la tâche sur la base principale sont regroupées avec celles des tâches voisines
+      // dans une transaction de lot, validée au plus tard KOMGAJS_WRITE_BATCH_MS ms (1 000) après son ouverture : une
+      // synchronisation du disque par lot au lieu d'une par écriture (bloquante sur le thread unique). Mêmes données,
+      // mêmes lectures ; seule la durabilité change (coupure de courant ou arrêt brutal : écritures des dernières
+      // KOMGAJS_WRITE_BATCH_MS ms perdues). KOMGAJS_WRITE_BATCH_MS=0 : comme Komga. Voir port/sqlite-write-batch.ts.
+      // Kotlin : taskHandler.handleTask(task)
+      await runWithWriteBatching(() => this.taskHandler.handleTask(task))
       logger.debug(() => `Task processed, remove it from the queue: ${task}`)
       this.tasksRepository.delete(task.uniqueId)
       this.processAvailableTask()

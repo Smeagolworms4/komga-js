@@ -4,6 +4,7 @@
 // test/port/jooq/*.test.ts). Ce fichier n'a pas de jumeau Kotlin.
 import type Database from 'better-sqlite3'
 import { IllegalArgumentException, UnsupportedOperationException } from '../kotlin.js'
+import { beforeWrite } from '../sqlite-write-batch.js'
 import { DataAccessException, IntegrityConstraintViolationException, NoDataFoundException, TooManyRowsException } from './exceptions.js'
 import { type DataType, SQLDataType, type SqlValue, inferType } from './types.js'
 
@@ -1360,6 +1361,9 @@ export function prepareCached(db: Database.Database, sql: string): Database.Stat
     if (cache.size >= STATEMENT_CACHE_SIZE) cache.delete(cache.keys().next().value as string)
   }
   cache.set(sql, stmt)
+  // PORT: écart — écriture hors tâche pendant un lot d'écritures des tâches : lot validé au tour suivant
+  // (port/sqlite-write-batch.ts)
+  if (!stmt.reader) beforeWrite(db, sql)
   return stmt
 }
 

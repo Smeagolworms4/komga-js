@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { KEnum } from './kotlin.js'
+import { commitWriteBatch, enableWriteBatching } from './sqlite-write-batch.js'
 
 /** `org.sqlite.SQLiteConfig.JournalMode` */
 export class JournalMode extends KEnum {
@@ -92,11 +93,18 @@ export class HikariDataSource {
   constructor(readonly dataSource: SQLiteDataSource) {}
 
   getConnection(): Database.Database {
-    if (!this.connection || !this.connection.open) this.connection = this.dataSource.openConnection()
+    if (!this.connection || !this.connection.open) {
+      this.connection = this.dataSource.openConnection()
+      // PORT: écart — écritures des tâches regroupées par lots sur la connexion d'écriture de la base principale
+      // (port/sqlite-write-batch.ts ; KOMGAJS_WRITE_BATCH_MS=0 : une validation par écriture, comme Komga)
+      if (this.poolName === 'SqliteMainPoolRW') enableWriteBatching(this.connection)
+    }
     return this.connection
   }
 
   close(): void {
+    // PORT: lot d'écritures en cours validé avant la fermeture (port/sqlite-write-batch.ts)
+    if (this.connection?.open) commitWriteBatch(this.connection)
     this.connection?.close()
     this.connection = null
   }
