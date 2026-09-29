@@ -7,7 +7,7 @@
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
-API, same database, same web interface, **two to three times less memory**.
+API, same database, same web interface, **three to five times less memory**.
 
 *[Version française](README.fr.md)*
 
@@ -26,11 +26,11 @@ same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Idle, after start-up | 574 MB | **241 MB** | ÷ 2.4 |
-| After scanning and analysing the library | 1,011 MB | **346 MB** | ÷ 2.9 |
-| After reading (thumbnails, pages) | 1,088 MB | **347 MB** | ÷ 3.1 |
-| Start-up | 22.1 s | **2.0 s** | ÷ 11 |
-| Scan and analysis of the 60 books | **57 s** | 66 s | 1.2 × slower |
+| Idle, after start-up | 601 MB | **166 MB** | ÷ 3.6 |
+| After scanning and analysing the library | 1,182 MB | **265 MB** | ÷ 4.5 |
+| After reading (thumbnails, pages) | 1,275 MB | **266 MB** | ÷ 4.8 |
+| Start-up | 14.8 s | **1.4 s** | ÷ 11 |
+| Scan and analysis of the 60 books | **32 s** | 40 s | 1.3 × slower |
 
 **Large libraries.** The search index used to be the problem: the port kept it as JavaScript
 objects, about 70 KB per book, so on a Raspberry Pi 4 with a real library of 6,594 books
