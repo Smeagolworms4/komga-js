@@ -63,7 +63,7 @@ rendu PDF, décompression RAR, lecture des EPUB, mises à jour de l'index. Bancs
 | Variable | Par défaut | Effet |
 |---|---|---|
 | `KOMGAJS_MAX_HEAP_MB` | ¼ de la limite mémoire du conteneur, au moins 256 Mo | plafond du tas JavaScript |
-| `KOMGAJS_IMAGE_THREADS` | 1 | threads natifs par opération d'image (2 : miniatures ~20 % plus rapides ; 0 : tous les cœurs) |
+| `KOMGAJS_IMAGE_THREADS` | 2 | threads natifs par opération d'image (1 : le moins de mémoire ; 2 : miniatures ~20 % plus rapides qu'avec 1 ; 0 : tous les cœurs) |
 | `UV_THREADPOOL_SIZE` | 4 | opérations natives simultanées ; à garder au-dessus des threads de tâches de Komga |
 | `KOMGAJS_TASK_WORKER` | false | `true` exécute les tâches dans un thread séparé (+60 à 100 Mo pendant les tâches) |
 

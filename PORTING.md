@@ -9,6 +9,27 @@ Révision upstream portée : voir `UPSTREAM_REF` (Komga 1.27.1 au départ).
 
 ## Règles de portage
 
+### Écarts volontaires avec Komga (règle obligatoire)
+
+Quand le portage s'écarte volontairement du comportement ou du code de Komga (performance, mémoire, asynchrone,
+SQLite…), l'écart doit rester visible face au Kotlin :
+
+1. **le code Kotlin d'origine est gardé en commentaire** à l'endroit de l'écart, tel quel ;
+2. **la différence et sa raison sont écrites** juste au-dessus (`// PORT: écart — …`) : ce qui change, pourquoi, et
+   l'impact observable (ou « aucun ») ;
+3. **la nouvelle implémentation est isolée dans une fonction à part, documentée** (JSDoc : ce qu'elle fait, en quoi elle
+   diffère de Komga, comment revenir au comportement d'origine si c'est réglable), appelée depuis le jumeau ; le
+   jumeau garde ainsi la forme du fichier Kotlin et le diff d'une future version de Komga se reporte au même endroit ;
+4. l'écart est ajouté au tableau « Écarts connus et assumés ».
+
+```ts
+// PORT: écart — les insertions de métadonnées d'un lot sont validées dans une seule transaction (Komga : une par
+// livre) ; aucun impact sur les données, un crash annule le lot entier, repris au scan suivant.
+// Kotlin : books.forEach { bookMetadataRepository.insert(it) }
+insertMetadataBatch(this.bookMetadataRepository, books)
+```
+
+
 1. **Un fichier Kotlin = un fichier TS**, même chemin, même nom
    (`org/gotson/komga/` est retiré du préfixe) :
    | Kotlin | TypeScript |

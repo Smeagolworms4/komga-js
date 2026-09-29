@@ -17,16 +17,16 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import sharp, { type Sharp, type SharpOptions } from 'sharp'
 
-// Mémoire : pas de cache d'opérations libvips (Komga ne relit pas les mêmes images) et, par défaut, un seul thread
-// libvips par opération (Thumbnailator/ImageIO sont mono-thread par appel ; le parallélisme vient du pool de tâches).
-// KOMGAJS_IMAGE_THREADS : nombre de threads natifs libvips par opération (plus rapide, un peu plus de mémoire native).
+// Mémoire : pas de cache d'opérations libvips (Komga ne relit pas les mêmes images). Threads natifs libvips par
+// opération : 2 par défaut (miniatures ~20 % plus rapides qu'avec 1, pour quelques Mo natifs ; 4 n'apporte rien de
+// plus) ; Thumbnailator/ImageIO sont mono-thread par appel. KOMGAJS_IMAGE_THREADS le règle.
 sharp.cache(false)
 sharp.concurrency(imageThreads(process.env.KOMGAJS_IMAGE_THREADS))
 
-/** KOMGAJS_IMAGE_THREADS : entier ≥ 1 ; 0 laisse libvips choisir (nombre de cœurs) ; absent ou invalide : 1 */
+/** KOMGAJS_IMAGE_THREADS : entier ≥ 1 ; 0 laisse libvips choisir (nombre de cœurs) ; absent ou invalide : 2 */
 export function imageThreads(value: string | undefined): number {
   const n = value === undefined ? Number.NaN : Number(value.trim())
-  return Number.isInteger(n) && n >= 0 ? n : 1
+  return Number.isInteger(n) && n >= 0 ? n : 2
 }
 import { ByteArrayOutputStream, type InputStream, IOException } from './java-io.js'
 import { UnsupportedOperationException } from './kotlin.js'

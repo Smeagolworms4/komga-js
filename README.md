@@ -60,7 +60,7 @@ Benchmarks: `tools/mem-bench.mjs`, `tools/scan-latency-bench.mjs`.
 | Variable | Default | Effect |
 |---|---|---|
 | `KOMGAJS_MAX_HEAP_MB` | ¼ of the container memory limit, at least 256 MB | JavaScript heap cap |
-| `KOMGAJS_IMAGE_THREADS` | 1 | native threads per image operation (2: thumbnails ~20 % faster; 0: all cores) |
+| `KOMGAJS_IMAGE_THREADS` | 2 | native threads per image operation (1: lowest memory; 2: thumbnails ~20 % faster than 1; 0: all cores) |
 | `UV_THREADPOOL_SIZE` | 4 | concurrent native operations; keep it above Komga's task threads |
 | `KOMGAJS_TASK_WORKER` | false | `true` runs tasks in a separate thread (+60–100 MB while tasks run) |
 
