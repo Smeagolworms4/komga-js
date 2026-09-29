@@ -34,8 +34,8 @@ function attempt(block: () => unknown): unknown {
 }
 
 func('create', () => {
-  kase('not deleted books', () => {
-    seed(db)
+  kase('not deleted books', async () => {
+    await seed(db)
     const sp = dao.create('K1', new BookSearch({ condition: new SearchCondition.Deleted({ operator: SearchOperator.IsFalse }) }), new SearchContext(u1))
     a = sp.id
     return stable([sp, sp.userId, sp.apiKeyId])

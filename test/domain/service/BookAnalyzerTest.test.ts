@@ -51,31 +51,31 @@ describe('BookAnalyzerTest', () => {
   })
 
   describe('ArchiveFormats', () => {
-    it.each(['rar4.rar', 'rar5.rar', 'rar4-solid.rar', 'rar5-solid.rar'])('given rar archives when analyzing then media status is READY', (fileName) => {
+    it.each(['rar4.rar', 'rar5.rar', 'rar4-solid.rar', 'rar5-solid.rar'])('given rar archives when analyzing then media status is READY', async (fileName) => {
       const file = classPathResourceUrl(`archives/${fileName}`)
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType?.startsWith('application/x-rar-compressed')).toBe(true)
       expect(media.status).toBe(Media.Status.READY)
     })
 
-    it.each(['rar4-encrypted.rar', 'rar5-encrypted.rar'])('given rar encrypted archive when analyzing then media status is UNSUPPORTED', (fileName) => {
+    it.each(['rar4-encrypted.rar', 'rar5-encrypted.rar'])('given rar encrypted archive when analyzing then media status is UNSUPPORTED', async (fileName) => {
       const file = classPathResourceUrl(`archives/${fileName}`)
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType?.startsWith('application/x-rar-compressed')).toBe(true)
       expect(media.status).toBe(Media.Status.UNSUPPORTED)
     })
 
-    it.each(['7zip.7z', '7zip-encrypted.7z'])('given 7zip archive when analyzing then media status is UNSUPPORTED', (fileName) => {
+    it.each(['7zip.7z', '7zip-encrypted.7z'])('given 7zip archive when analyzing then media status is UNSUPPORTED', async (fileName) => {
       const file = classPathResourceUrl(`archives/${fileName}`)
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/x-7z-compressed')
       expect(media.status).toBe(Media.Status.UNSUPPORTED)
@@ -83,11 +83,11 @@ describe('BookAnalyzerTest', () => {
 
     it.each(['zip.zip', 'zip-bzip2.zip', 'zip-copy.zip', 'zip-deflate64.zip', 'zip-lzma.zip', 'zip-ppmd.zip'])(
       'given zip archive when analyzing then media status is READY',
-      (fileName) => {
+      async (fileName) => {
         const file = classPathResourceUrl(`archives/${fileName}`)
         const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-        const media = bookAnalyzer.analyze(book, false)
+        const media = await bookAnalyzer.analyze(book, false)
 
         expect(media.mediaType).toBe('application/zip')
         expect(media.status).toBe(Media.Status.READY)
@@ -95,21 +95,21 @@ describe('BookAnalyzerTest', () => {
       },
     )
 
-    it('given zip encrypted archive when analyzing then media status is ERROR', () => {
+    it('given zip encrypted archive when analyzing then media status is ERROR', async () => {
       const file = classPathResourceUrl('archives/zip-encrypted.zip')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/zip')
       expect(media.status).toBe(Media.Status.ERROR)
     })
 
-    it('given epub archive when analyzing then media status is READY', () => {
+    it('given epub archive when analyzing then media status is READY', async () => {
       const file = classPathResourceUrl('archives/epub3.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/epub+zip')
       expect(media.status).toBe(Media.Status.READY)
@@ -117,35 +117,35 @@ describe('BookAnalyzerTest', () => {
   })
 
   describe('Epub', () => {
-    it('given broken epub archive when analyzing then media status is ERROR', () => {
+    it('given broken epub archive when analyzing then media status is ERROR', async () => {
       const file = classPathResourceUrl('archives/zip-as-epub.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/zip')
       expect(media.status).toBe(Media.Status.ERROR)
       expect(media.pages).toHaveLength(0)
     })
 
-    it('given regular epub archive when analyzing then comment is empty', () => {
+    it('given regular epub archive when analyzing then comment is empty', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/epub+zip')
       expect(media.status).toBe(Media.Status.READY)
       expect(media.comment).toBeNull()
     })
 
-    it('given epub archive when toc cannot be extracted then media status is READY with comments', () => {
+    it('given epub archive when toc cannot be extracted then media status is READY with comments', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
       every(() => epubExtractor.getToc(any())).throws(new Exception('mock exception'))
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
       const extension = media.extension instanceof MediaExtensionEpub ? media.extension : null
 
       expect(media.mediaType).toBe('application/epub+zip')
@@ -155,13 +155,13 @@ describe('BookAnalyzerTest', () => {
       expect(nn(extension).toc).toHaveLength(0)
     })
 
-    it('given epub archive when landmarks cannot be extracted then media status is READY with comments', () => {
+    it('given epub archive when landmarks cannot be extracted then media status is READY with comments', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
       every(() => epubExtractor.getLandmarks(any())).throws(new Exception('mock exception'))
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
       const extension = media.extension instanceof MediaExtensionEpub ? media.extension : null
 
       expect(media.mediaType).toBe('application/epub+zip')
@@ -171,13 +171,13 @@ describe('BookAnalyzerTest', () => {
       expect(nn(extension).landmarks).toHaveLength(0)
     })
 
-    it('given epub archive when page list cannot be extracted then media status is READY with comments', () => {
+    it('given epub archive when page list cannot be extracted then media status is READY with comments', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
       every(() => epubExtractor.getPageList(any())).throws(new Exception('mock exception'))
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
       const extension = media.extension instanceof MediaExtensionEpub ? media.extension : null
 
       expect(media.mediaType).toBe('application/epub+zip')
@@ -187,13 +187,13 @@ describe('BookAnalyzerTest', () => {
       expect(nn(extension).pageList).toHaveLength(0)
     })
 
-    it('given epub archive when divina pages cannot be extracted then media status is READY with comments', () => {
+    it('given epub archive when divina pages cannot be extracted then media status is READY with comments', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
       every(() => epubExtractor.getDivinaPages(any(), any())).throws(new Exception('mock exception'))
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
 
       expect(media.mediaType).toBe('application/epub+zip')
       expect(media.status).toBe(Media.Status.READY)
@@ -201,13 +201,13 @@ describe('BookAnalyzerTest', () => {
       expect(media.pages).toHaveLength(0)
     })
 
-    it('given epub archive when positions cannot be extracted then media status is READY with comments', () => {
+    it('given epub archive when positions cannot be extracted then media status is READY with comments', async () => {
       const file = classPathResourceUrl('epub/The Incomplete Theft - Ralph Burke.epub')
       const book = new Book({ name: 'book', url: file, fileLastModified: LocalDateTime.now() })
 
       every(() => epubExtractor.computePositions(any(), any(), any(), any(), any())).throws(new Exception('mock exception'))
 
-      const media = bookAnalyzer.analyze(book, false)
+      const media = await bookAnalyzer.analyze(book, false)
       const extension = media.extension instanceof MediaExtensionEpub ? media.extension : null
 
       expect(media.mediaType).toBe('application/epub+zip')

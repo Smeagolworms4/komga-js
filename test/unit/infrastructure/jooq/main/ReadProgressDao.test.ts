@@ -29,8 +29,8 @@ const rp = (bookId: string, userId: string, page: number, completed: boolean, re
 
 func('findAll', () => {
   kase('empty', () => dao.findAll())
-  kase('seeded', () => {
-    seed(db)
+  kase('seeded', async () => {
+    await seed(db)
     return keys(dao.findAll())
   })
 })

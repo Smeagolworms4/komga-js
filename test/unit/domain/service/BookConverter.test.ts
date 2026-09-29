@@ -29,11 +29,11 @@ const dir = () => {
 const png = resource('barcode/komga.png')
 const pathOf = (u: URL) => urlToPath(u)
 
-function addBook(id: string, path: string, libraryId = 'L1'): Book {
+async function addBook(id: string, path: string, libraryId = 'L1'): Promise<Book> {
   const scanned = nn(graph.fileSystemScanner.scanFile(path)).copy({ id, seriesId: `S${libraryId}`, libraryId, createdDate: date, lastModifiedDate: date })
   db.bookDao.insert(scanned)
   db.bookMetadataDao.insert(metadata(scanned))
-  db.mediaDao.insert(graph.bookAnalyzer.analyze(scanned, true).copy({ createdDate: date }))
+  db.mediaDao.insert((await graph.bookAnalyzer.analyze(scanned, true)).copy({ createdDate: date }))
   return scanned
 }
 const copy = (from: string, name: string) => {
@@ -57,23 +57,23 @@ const state = (id: string) =>
   })
 
 func('getConvertibleBooks', () => {
-  kase('setup', () => {
+  kase('setup', async () => {
     db.libraryDao.insert(library('L1', new URL(`file:${dir()}`)).copy({ convertToCbz: true, repairExtensions: true }))
     db.libraryDao.insert(library('L2', new URL(`file:${dir()}`)))
     db.seriesDao.insert(series('SL1', 'L1', new URL(`file:${dir()}`)))
     db.seriesDao.insert(series('SL2', 'L2', new URL(`file:${dir()}`)))
-    addBook('R4', copy(komgaRes('archives/rar4.rar'), 'rar4.cbr'))
-    addBook('R5', copy(komgaRes('archives/rar5.rar'), 'rar5.rar'))
-    addBook('RX', copy(komgaRes('archives/rar4.rar'), 'exists.cbr'))
+    await addBook('R4', copy(komgaRes('archives/rar4.rar'), 'rar4.cbr'))
+    await addBook('R5', copy(komgaRes('archives/rar5.rar'), 'rar5.rar'))
+    await addBook('RX', copy(komgaRes('archives/rar4.rar'), 'exists.cbr'))
     writeFileSync(join(dir(), 'exists.cbz'), oracleBytes(3))
-    addBook('RE', copy(komgaRes('archives/rar4-encrypted.rar'), 'encrypted.cbr'))
-    addBook('RL2', copy(komgaRes('archives/rar5.rar'), 'other.cbr'), 'L2')
-    addBook('Z1', pathOf(zipFile(dir(), 'zip.cbz', [['p1.png', png], t('ComicInfo.xml', '<ComicInfo/>')])))
-    addBook('ZR', pathOf(zipFile(dir(), 'zipped.cbr', [['p1.png', png]])))
-    addBook('PE', copy(fixture('pdf/komga.pdf'), 'doc.epub'))
-    addBook('EZ', pathOf(zipFile(dir(), 'ep.epub', [['p1.png', png]])))
-    addBook('EP', copy(fixture('epub/reflow.epub'), 'reflow.zip'))
-    addBook('OK', copy(fixture('pdf/komga.pdf'), 'good.pdf'))
+    await addBook('RE', copy(komgaRes('archives/rar4-encrypted.rar'), 'encrypted.cbr'))
+    await addBook('RL2', copy(komgaRes('archives/rar5.rar'), 'other.cbr'), 'L2')
+    await addBook('Z1', pathOf(zipFile(dir(), 'zip.cbz', [['p1.png', png], t('ComicInfo.xml', '<ComicInfo/>')])))
+    await addBook('ZR', pathOf(zipFile(dir(), 'zipped.cbr', [['p1.png', png]])))
+    await addBook('PE', copy(fixture('pdf/komga.pdf'), 'doc.epub'))
+    await addBook('EZ', pathOf(zipFile(dir(), 'ep.epub', [['p1.png', png]])))
+    await addBook('EP', copy(fixture('epub/reflow.epub'), 'reflow.zip'))
+    await addBook('OK', copy(fixture('pdf/komga.pdf'), 'good.pdf'))
     return db.rawQuery('select BOOK_ID, STATUS, MEDIA_TYPE from MEDIA order by BOOK_ID')
   })
   kase('enabled', () => converter.getConvertibleBooks(db.libraryDao.findById('L1')).map((it) => it.id).sort())
@@ -86,8 +86,8 @@ func('getMismatchedExtensionBooks', () => {
   kase('library L2', () => converter.getMismatchedExtensionBooks(db.libraryDao.findById('L2')).map((it) => it.id))
 })
 func('convertToCbz', () => {
-  kase('disabled library', () => {
-    converter.convertToCbz(b('RL2'))
+  kase('disabled library', async () => {
+    await converter.convertToCbz(b('RL2'))
     return state('RL2')
   })
   kase('rar4', async () => {
@@ -102,8 +102,8 @@ func('convertToCbz', () => {
   })
   kase('destination exists', () => attempt(dir(), () => converter.convertToCbz(b('RX'))))
   kase('not convertible', () => attempt(dir(), () => converter.convertToCbz(b('Z1'))))
-  kase('changed on disk', () => {
-    converter.convertToCbz(b('RE').copy({ fileLastModified: date }))
+  kase('changed on disk', async () => {
+    await converter.convertToCbz(b('RE').copy({ fileLastModified: date }))
     return state('RE')
   })
   kase('encrypted, not ready', () => attempt(dir(), () => converter.convertToCbz(b('RE'))))
@@ -147,9 +147,9 @@ func('repairExtension', () => {
     return attempt(dir(), () => converter.repairExtension(b('Z1')))
   })
   kase('file not found', () => attempt(dir(), () => converter.repairExtension(b('R4').copy({ url: new URL(`file:${dir()}/gone.cbr`) }))))
-  kase('destination exists', () => {
+  kase('destination exists', async () => {
     writeFileSync(join(dir(), 'clash.cbz'), oracleBytes(3))
-    addBook('CL', pathOf(zipFile(dir(), 'clash.cbr', [['p1.png', png]])))
+    await addBook('CL', pathOf(zipFile(dir(), 'clash.cbr', [['p1.png', png]])))
     return attempt(dir(), () => converter.repairExtension(b('CL')))
   })
   kase('unknown library', () => exceptionType(() => converter.repairExtension(b('ZR').copy({ libraryId: 'L9' }))))

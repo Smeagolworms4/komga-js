@@ -27,8 +27,8 @@ const th = (id: string, owner = 'S1', selected = false, size = 10, type: Thumbna
 const ids = (owner: string) => dao.findAllBySeriesId(owner).map((it) => [it.id, it.selected])
 
 func('insert', () => {
-  kase('insert and read back', () => {
-    seed(db)
+  kase('insert and read back', async () => {
+    await seed(db)
     dao.insert(th('T1', undefined, true))
     return stable(dao.findByIdOrNull('T1'))
   })

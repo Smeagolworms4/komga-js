@@ -170,16 +170,19 @@ describe('ApplicationContext threading', () => {
 })
 
 describe('task worker', () => {
-  it('is disabled for tests, in-memory databases and on demand', () => {
+  it('is enabled on demand only, never for tests and in-memory databases', () => {
     const env = (profiles: string[], file = '/tmp/k/database.sqlite') =>
       new Environment({ profiles, properties: { komga: { database: { file }, 'tasks-db': { file: '/tmp/k/tasks.sqlite' } } } })
-    expect(taskWorkerEnabled(env([]))).toBe(true)
-    expect(taskWorkerEnabled(env(['test']))).toBe(false)
-    expect(taskWorkerEnabled(env([], 'file:database?mode=memory'))).toBe(false)
     const previous = process.env.KOMGAJS_TASK_WORKER
-    process.env.KOMGAJS_TASK_WORKER = 'false'
     try {
+      delete process.env.KOMGAJS_TASK_WORKER
       expect(taskWorkerEnabled(env([]))).toBe(false)
+      process.env.KOMGAJS_TASK_WORKER = 'false'
+      expect(taskWorkerEnabled(env([]))).toBe(false)
+      process.env.KOMGAJS_TASK_WORKER = 'true'
+      expect(taskWorkerEnabled(env([]))).toBe(true)
+      expect(taskWorkerEnabled(env(['test']))).toBe(false)
+      expect(taskWorkerEnabled(env([], 'file:database?mode=memory'))).toBe(false)
     } finally {
       if (previous === undefined) delete process.env.KOMGAJS_TASK_WORKER
       else process.env.KOMGAJS_TASK_WORKER = previous

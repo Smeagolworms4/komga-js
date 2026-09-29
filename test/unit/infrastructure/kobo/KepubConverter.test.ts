@@ -132,13 +132,13 @@ func('isExecutable', () => {
 
 func('convertEpubToKepub', () => {
   const c = () => configured(s().copy!, false, s().copy!)
-  kase('epub', () => attempt(() => describe(c().convertEpubToKepub(bookWithMedia('B8')))))
+  kase('epub', () => attempt(async () => describe(await c().convertEpubToKepub(bookWithMedia('B8')))))
   kase('projection saved', () => projections())
   kase('to directory', () =>
-    attempt(() => {
+    attempt(async () => {
       const out = join(tempDir(), 'out')
       mkdirSync(out, { recursive: true })
-      return describe(c().convertEpubToKepub(bookWithMedia('B8'), out))
+      return describe(await c().convertEpubToKepub(bookWithMedia('B8'), out))
     }),
   )
   kase('not an epub', () => attempt(() => c().convertEpubToKepub(bookWithMedia('B7'))))
@@ -156,7 +156,7 @@ func('convertEpubToKepubWithoutChecks', () => {
   kase('missing destination', () => attempt(() => configured(s().copy!).convertEpubToKepubWithoutChecks(bookWithMedia('B8').book, join(tempDir(), 'nope'))))
   kase('failing converter', () => attempt(() => configured(s().failing!).convertEpubToKepubWithoutChecks(bookWithMedia('B8').book)))
   kase('no output', () => attempt(() => configured(s().noOutput!).convertEpubToKepubWithoutChecks(bookWithMedia('B8').book, tempDir())))
-  kase('cbz source copied', () => attempt(() => describe(configured(s().copy!).convertEpubToKepubWithoutChecks(bookWithMedia('B7').book, join(tempDir(), 'out')))))
+  kase('cbz source copied', () => attempt(async () => describe(await configured(s().copy!).convertEpubToKepubWithoutChecks(bookWithMedia('B7').book, join(tempDir(), 'out')))))
   kase('missing source', () => attempt(() => configured(s().copy!).convertEpubToKepubWithoutChecks(bookWithMedia('B4').book, join(tempDir(), 'out'))))
   kase('not available', () => attempt(() => converter().convertEpubToKepubWithoutChecks(bookWithMedia('B8').book)))
   kase('projections', () => projections())

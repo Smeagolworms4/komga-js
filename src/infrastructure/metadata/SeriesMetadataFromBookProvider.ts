@@ -8,5 +8,6 @@ import { MetadataProvider } from './MetadataProvider.js'
 export abstract class SeriesMetadataFromBookProvider extends MetadataProvider {
   abstract readonly supportsAppendVolume: boolean
 
-  abstract getSeriesMetadataFromBook(book: BookWithMedia, appendVolumeToTitle: boolean): SeriesMetadataPatch | null
+  // PORT: async possible (ComicInfoProvider lit ComicInfo.xml sur le pool de libuv) : les appelants font `await`
+  abstract getSeriesMetadataFromBook(book: BookWithMedia, appendVolumeToTitle: boolean): SeriesMetadataPatch | null | Promise<SeriesMetadataPatch | null>
 }

@@ -123,9 +123,10 @@ const state = () =>
   })
 
 const scan = (scanDeep = false) => attempt(tempDir(), () => lifecycle.scanRootFolder(lib(), { scanDeep }))
-const both = async (...xs: Promise<unknown>[]) => {
+// blocs exécutés l'un après l'autre (scanRootFolder est asynchrone)
+const both = async (...xs: (() => Promise<unknown>)[]) => {
   const out: unknown[] = []
-  for (const x of xs) out.push(await x)
+  for (const x of xs) out.push(await x())
   return out
 }
 
@@ -155,7 +156,7 @@ func('scanRootFolder', () => {
   })
   kase('book modified, same size and hash', async () => {
     const b = book('b')
-    db.bookDao.update(b.copy({ fileHash: graph.hasher.computeHash(b.path) }))
+    db.bookDao.update(b.copy({ fileHash: await graph.hasher.computeHash(b.path) }))
     utimesSync(r('s1/b.cbz'), t1, t1)
     return [await scan(true), await state()]
   })
@@ -165,7 +166,7 @@ func('scanRootFolder', () => {
     return [await scan(true), await state()]
   })
   kase('series folder renamed, restored', async () => {
-    for (const it of db.bookDao.findAll().filter((it) => it.deletedDate === null)) db.bookDao.update(it.copy({ fileHash: graph.hasher.computeHash(it.path) }))
+    for (const it of db.bookDao.findAll().filter((it) => it.deletedDate === null)) db.bookDao.update(it.copy({ fileHash: await graph.hasher.computeHash(it.path) }))
     const s1 = nn(db.seriesDao.findAll().find((it) => it.name === 's1'))
     db.seriesMetadataDao.update(db.seriesMetadataDao.findById(s1.id).copy({ title: 'Locked title', titleLock: true, summary: 'kept' }))
     db.seriesCollectionDao.insert(new SeriesCollection({ name: 'col', seriesIds: [s1.id], id: 'C1', createdDate: date }))
@@ -190,9 +191,9 @@ func('scanRootFolder', () => {
     renameSync(r('s1'), r('s1 moved'))
     touchDirs(t2)
     return both(
-      scan(),
-      state(),
-      attempt(tempDir(), () => {
+      () => scan(),
+      () => state(),
+      () => attempt(tempDir(), () => {
         const moved = nn(db.seriesDao.findAll().find((it) => it.name === 's1 moved'))
         const m = db.seriesMetadataDao.findById(moved.id)
         return [

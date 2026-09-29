@@ -126,9 +126,9 @@ func('analyze', () => {
   for (const label of labels) {
     for (const dims of [true, false]) {
       kase(`${label}, dimensions ${dims}`, () =>
-        run(() => {
+        run(async () => {
           const url = nn(files().find(([l]) => l === label))[1]
-          const m = analyzer.analyze(bk(`B-${label}`, url), dims)
+          const m = await analyzer.analyze(bk(`B-${label}`, url), dims)
           if (dims) analyzed.set(label, new BookWithMedia({ book: bk(`B-${label}`, url), media: m }))
           return med(m)
         }),
@@ -165,32 +165,32 @@ func('generateThumbnail', () => {
 })
 func('getPoster@267', () => {
   for (const label of ['cbz', 'zip.zip', 'rar4', 'rar5', 'divina epub', 'reflow epub', 'epub3', 'kepub', '7zip', 'missing']) {
-    kase(label, () => run(() => typed(analyzer.getPoster(ready(label)))))
+    kase(label, () => run(async () => typed(await analyzer.getPoster(ready(label)))))
   }
   kase('pdf', () =>
     run(async () => {
-      const it = analyzer.getPoster(ready('pdf'))
+      const it = await analyzer.getPoster(ready('pdf'))
       return it !== null ? [await graph.describeImage(it.bytes), it.mediaType] : null
     }),
   )
   kase('media without profile', () => analyzer.getPoster(noProfile(new Media({ status: Media.Status.READY }))))
 })
 func('getPoster@275', () => {
-  kase('first page of zip', () => run(() => typed(analyzer.getPoster(ready('cbz')))))
+  kase('first page of zip', () => run(async () => typed(await analyzer.getPoster(ready('cbz')))))
   kase('divina without pages', () => run(() => analyzer.getPoster(withMedia(ready('cbz'), { pages: [] }))))
   kase('first page missing in archive', () =>
     run(() => analyzer.getPoster(withMedia(ready('cbz'), { pages: [new BookPage({ fileName: 'nope.png', mediaType: 'image/png' })] }))),
   )
 })
 func('getPageContent', () => {
-  kase('zip page 1', () => run(() => digest(analyzer.getPageContent(ready('cbz'), 1))))
-  kase('zip page 3', () => run(() => digest(analyzer.getPageContent(ready('cbz'), 3))))
+  kase('zip page 1', () => run(async () => digest(await analyzer.getPageContent(ready('cbz'), 1))))
+  kase('zip page 3', () => run(async () => digest(await analyzer.getPageContent(ready('cbz'), 3))))
   kase('zip page 0', () => run(() => analyzer.getPageContent(ready('cbz'), 0)))
   kase('zip page 4', () => run(() => analyzer.getPageContent(ready('cbz'), 4)))
-  kase('rar page', () => run(() => digest(analyzer.getPageContent(ready('rar5'), 1))))
-  kase('epub divina page', () => run(() => digest(analyzer.getPageContent(ready('divina epub'), 3))))
+  kase('rar page', () => run(async () => digest(await analyzer.getPageContent(ready('rar5'), 1))))
+  kase('epub divina page', () => run(async () => digest(await analyzer.getPageContent(ready('divina epub'), 3))))
   kase('epub reflow', () => run(() => analyzer.getPageContent(ready('reflow epub'), 1)))
-  kase('pdf page', () => run(() => graph.describeImage(analyzer.getPageContent(ready('pdf'), 1))))
+  kase('pdf page', () => run(async () => graph.describeImage(await analyzer.getPageContent(ready('pdf'), 1))))
   kase('not ready', () => run(() => analyzer.getPageContent(ready('missing'), 1)))
   kase('no profile', () => run(() => analyzer.getPageContent(noProfile(new Media({ status: Media.Status.READY, pageCount: 1 })), 1)))
   kase('entry missing', () =>
@@ -212,10 +212,10 @@ func('getPageContentRaw', () => {
   kase('pdf not ready', () => run(() => analyzer.getPageContentRaw(withMedia(ready('pdf'), { status: Media.Status.OUTDATED }), 1)))
 })
 func('getFileContent', () => {
-  kase('zip file', () => run(() => Buffer.from(analyzer.getFileContent(ready('cbz'), 'info.txt')).toString('utf8')))
-  kase('zip page file', () => run(() => digest(analyzer.getFileContent(ready('cbz'), 'p1.png'))))
+  kase('zip file', () => run(async () => Buffer.from(await analyzer.getFileContent(ready('cbz'), 'info.txt')).toString('utf8')))
+  kase('zip page file', () => run(async () => digest(await analyzer.getFileContent(ready('cbz'), 'p1.png'))))
   kase('zip missing entry', () => run(() => exceptionType(() => analyzer.getFileContent(ready('cbz'), 'nope'))))
-  kase('epub file', () => run(() => digest(analyzer.getFileContent(ready('reflow epub'), 'OPS/c1.xhtml'))))
+  kase('epub file', () => run(async () => digest(await analyzer.getFileContent(ready('reflow epub'), 'OPS/c1.xhtml'))))
   kase('epub missing entry', () => run(() => exceptionType(() => analyzer.getFileContent(ready('reflow epub'), 'nope'))))
   kase('pdf', () => run(() => analyzer.getFileContent(ready('pdf'), 'x')))
   kase('not ready', () => run(() => analyzer.getFileContent(ready('missing'), 'x')))
@@ -230,7 +230,7 @@ func('hashPages', () => {
         'many.cbz',
         Array.from({ length: 8 }, (_, i) => [`p${i + 1}.png`, png]),
       )
-      const m = analyzer.analyze(bk('BM', url), false)
+      const m = await analyzer.analyze(bk('BM', url), false)
       return (await analyzer.hashPages(new BookWithMedia({ book: bk('BM', url), media: m }))).pages.map((it) => [it.fileName, it.fileHash])
     }),
   )

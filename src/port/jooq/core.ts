@@ -1321,9 +1321,36 @@ function wrapSqliteError(e: unknown, sql: string): never {
 const STATEMENT_CACHE_SIZE = 200
 const statementCaches = new WeakMap<Database.Database, Map<string, Database.Statement>>()
 
+/** connexions qui ont un cache d'instructions (voir releaseStatementCaches) */
+const cachedConnections = new Set<WeakRef<Database.Database>>()
+
+/**
+ * PORT: vide les caches d'instructions préparées et rend à l'allocateur la mémoire de SQLite (`shrink_memory`) de
+ * chaque connexion encore ouverte ; les instructions sont libérées au prochain ramasse-miettes. Appelé quand le pool de
+ * tâches devient inactif (thread unique : les instructions des tâches restent sinon attachées aux connexions du serveur)
+ */
+export function releaseStatementCaches(): void {
+  for (const ref of cachedConnections) {
+    const db = ref.deref()
+    if (db === undefined || !db.open) {
+      cachedConnections.delete(ref)
+      continue
+    }
+    statementCaches.get(db)?.clear()
+    try {
+      db.pragma('shrink_memory')
+    } catch {
+      // connexion occupée (transaction en cours) : rien à rendre
+    }
+  }
+}
+
 export function prepareCached(db: Database.Database, sql: string): Database.Statement {
   let cache = statementCaches.get(db)
-  if (cache === undefined) statementCaches.set(db, (cache = new Map()))
+  if (cache === undefined) {
+    statementCaches.set(db, (cache = new Map()))
+    cachedConnections.add(new WeakRef(db))
+  }
   let stmt = cache.get(sql)
   if (stmt !== undefined) {
     // le plus récemment utilisé en dernier

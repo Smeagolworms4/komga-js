@@ -42,15 +42,26 @@ repos après la reconstruction de l'index passe de 797 Mo à environ 300 Mo, et 
 tient dans un tas de 256 Mo jusqu'à au moins 48 000 livres (banc x86-64). Les chiffres du
 Raspberry Pi seront remesurés avec cette version.
 
-Le scan est plus lent : le traitement d'image tourne sur un seul thread pour garder la mémoire
-basse. Les tâches de fond (scan, analyse, empreintes, miniatures) tournent dans un worker
-thread, comme le pool de tâches de Komga : le serveur web continue de répondre pendant un scan
-(10 ms en médiane, 45 ms au 99ᵉ centile, mesuré pendant un scan) ; le worker ajoute 60 à
-100 Mo pendant qu'il tourne et s'arrête après 60 s sans tâche. Les bancs d'essai sont
-`tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ; lancez-les sur votre propre
-bibliothèque. Dans un conteneur, le tas V8 de chaque thread est limité au quart de la
-mémoire allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS` fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de mémoire ; 2 à 4 accélèrent miniatures et conversions ; 0 laisse libvips utiliser tous les cœurs) ; `KOMGAJS_TASK_WORKER=false`
-exécute les tâches dans le thread principal.
+Le scan est plus lent : le traitement d'image utilise un seul thread natif par défaut pour garder
+la mémoire basse. Tout tourne sur un seul thread JavaScript, avec un seul tas V8 : les tâches de
+fond (scan, analyse, empreintes, miniatures) et les requêtes web se le partagent. Chaque attente
+(lecture de fichiers, empreintes, décompression, codage des images et des JPEG, kepubify) passe
+par le pool de threads de libuv, et les longues boucles rendent la main toutes les 10 ms :
+plusieurs tâches progressent ensemble, comme les threads de tâches de Komga, pendant que le
+serveur web continue de répondre : 11 ms en médiane, 29 ms au 99ᵉ centile, mesuré pendant le
+scan et l'analyse de 6 500 livres générés (l'architecture précédente, avec les tâches dans un
+worker thread séparé, prenait 80 Mo de plus au démarrage et 170 Mo de plus au plus fort du
+scan ; 60 s après la dernière tâche, les deux rendent leur mémoire, environ 175 Mo). Les bancs d'essai sont `tools/mem-bench.mjs` et `tools/scan-latency-bench.mjs` ;
+lancez-les sur votre propre bibliothèque. Dans un conteneur, le tas V8 est limité au quart de
+la mémoire allouée (au moins 256 Mo) (`KOMGAJS_MAX_HEAP_MB` l'impose) ; `KOMGAJS_IMAGE_THREADS`
+fixe le nombre de threads natifs libvips par opération d'image (1 par défaut, le moins de
+mémoire ; 2 a rendu les miniatures de grandes pages 20 % plus rapides, 4 pas davantage ; 0
+laisse libvips utiliser tous les cœurs) ; `UV_THREADPOOL_SIZE` (Node, 4 par défaut) borne le nombre de ces attentes menées de
+front, à garder au-dessus du nombre de threads de tâches. Ce qui tourne encore sur le thread
+JavaScript et peut retarder les requêtes le temps qu'il dure : requêtes SQLite, rendu PDF,
+décompression RAR, lecture des EPUB, mise à jour de l'index de recherche.
+`KOMGAJS_TASK_WORKER=true` exécute plutôt les tâches dans un worker thread séparé (un second tas
+V8, 60 à 100 Mo de plus pendant les tâches, arrêté après 60 s sans tâche).
 
 ## Fonctionnalités
 

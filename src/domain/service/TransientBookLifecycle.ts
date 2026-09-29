@@ -38,14 +38,15 @@ export class TransientBookLifecycle {
     this.bookMetadataProviders = bookMetadataProviders.filter((it) => it.capabilities.has(BookMetadataPatchCapability.NUMBER_SORT))
   }
 
-  scanAndPersist(filePath: string): TransientBook[] {
+  // PORT: async (FileSystemScanner.scanRootFolder)
+  async scanAndPersist(filePath: string): Promise<TransientBook[]> {
     const folderToScan = filePath
 
     this.libraryRepository.findAll().forEach((library) => {
       if (pathStartsWith(folderToScan, library.path)) throw new PathContainedInPath('Cannot scan folder that is part of an existing library', 'ERR_1017')
     })
 
-    const books = [...this.fileSystemScanner.scanRootFolder(folderToScan).series.values()]
+    const books = [...(await this.fileSystemScanner.scanRootFolder(folderToScan)).series.values()]
       .flat()
       .map((it) => new TransientBook({ book: it, media: new Media() }))
 
@@ -56,7 +57,7 @@ export class TransientBookLifecycle {
 
   // PORT: async (getMetadata)
   async analyzeAndPersist(transientBook: TransientBook): Promise<TransientBook> {
-    const media = this.bookAnalyzer.analyze(transientBook.book, true)
+    const media = await this.bookAnalyzer.analyze(transientBook.book, true)
     const [seriesId, number] = await this.getMetadata(transientBook.copy({ media: media }))
 
     const updated = transientBook.copy({ media: media, metadata: new TransientBook.Metadata({ number: number, seriesId: seriesId }) })
@@ -76,14 +77,15 @@ export class TransientBookLifecycle {
         break
       }
     }
-    const seriesNamesFromMetadata = filterNotNull(
-      this.seriesMetadataProviders.flatMap((it) => {
-        const list: (string | null)[] = []
-        if (it.supportsAppendVolume) list.push(ifBlankNull(it.getSeriesMetadataFromBook(bookWithMedia, true)?.title ?? null))
-        list.push(ifBlankNull(it.getSeriesMetadataFromBook(bookWithMedia, false)?.title ?? null))
-        return list
-      }),
-    )
+    // PORT: flatMap -> boucle (getSeriesMetadataFromBook peut être asynchrone)
+    const seriesNames: (string | null)[] = []
+    for (const it of this.seriesMetadataProviders) {
+      const list: (string | null)[] = []
+      if (it.supportsAppendVolume) list.push(ifBlankNull((await it.getSeriesMetadataFromBook(bookWithMedia, true))?.title ?? null))
+      list.push(ifBlankNull((await it.getSeriesMetadataFromBook(bookWithMedia, false))?.title ?? null))
+      seriesNames.push(...list)
+    }
+    const seriesNamesFromMetadata = filterNotNull(seriesNames)
 
     let series
     if (seriesNamesFromMetadata.length > 0) {
@@ -107,8 +109,9 @@ export class TransientBookLifecycle {
   }
 
   // @Throws(MediaNotReadyException::class, IndexOutOfBoundsException::class)
-  getBookPage(transientBook: TransientBook, number: number): TypedBytes {
-    const pageContent = this.bookAnalyzer.getPageContent(toBookWithMedia(transientBook), number)
+  // PORT: async (BookAnalyzer.getPageContent)
+  async getBookPage(transientBook: TransientBook, number: number): Promise<TypedBytes> {
+    const pageContent = await this.bookAnalyzer.getPageContent(toBookWithMedia(transientBook), number)
     const pageMediaType = transientBook.media.profile === MediaProfile.PDF ? this.pdfImageType.mediaType : nn(transientBook.media.pages[number - 1]).mediaType
 
     return new TypedBytes({ bytes: pageContent, mediaType: pageMediaType })

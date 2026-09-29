@@ -28,8 +28,8 @@ const ids = (owner: string) => dao.findAllByBookId(owner).map((it) => [it.id, it
 const sorted = (l: string[]) => [...l].sort()
 
 func('findAllByBookId', () => {
-  kase('seeded thumbnails', () => {
-    seed(db)
+  kase('seeded thumbnails', async () => {
+    await seed(db)
     return dao.findAllByBookId('B1')
   })
   kase('none', () => dao.findAllByBookId('B2'))

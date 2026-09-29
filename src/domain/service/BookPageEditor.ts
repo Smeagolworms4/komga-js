@@ -23,7 +23,7 @@ import { KotlinLogging } from '../../port/logging.js'
 import { TransactionTemplate } from '../../port/spring-tx.js'
 import { ApplicationEventPublisher, component } from '../../port/spring.js'
 import { Deflater, ZipArchiveOutputStream, zipArchiveEntry } from '../../port/zip-output.js'
-import { use } from '../../port/java-io.js'
+import { useAsync } from '../../port/java-io.js'
 import { BookAnalyzer } from './BookAnalyzer.js'
 import { FileSystemScanner } from './FileSystemScanner.js'
 
@@ -48,7 +48,8 @@ export class BookPageEditor {
     private readonly historicalEventRepository: HistoricalEventRepository,
   ) {}
 
-  removeHashedPages(book: Book, pagesToDelete: BookPageNumbered[]): BookAction | null {
+  // PORT: async (BookAnalyzer.getFileContent, BookAnalyzer.analyze)
+  async removeHashedPages(book: Book, pagesToDelete: BookPageNumbered[]): Promise<BookAction | null> {
     // perform various checks
     if (this.failedPageRemoval.includes(book.id)) {
       logger.info(() => 'Book page removal already failed before, skipping')
@@ -93,15 +94,16 @@ export class BookPageEditor {
 
     const tempFile = createTempFile(TEMP_PREFIX, TEMP_SUFFIX, dirname(book.path))
     logger.info(() => `Creating new file: ${tempFile}`)
-    use(new ZipArchiveOutputStream(tempFile), (zipStream) => {
+    await useAsync(new ZipArchiveOutputStream(tempFile), async (zipStream) => {
       zipStream.setMethod(ZipArchiveOutputStream.DEFLATED)
       zipStream.setLevel(Deflater.NO_COMPRESSION)
 
-      new Set([...pagesToKeep.map((it) => it.fileName), ...media.files.map((it) => it.fileName)]).forEach((entry) => {
+      // PORT: forEach -> for..of (lecture asynchrone de chaque entrée)
+      for (const entry of new Set([...pagesToKeep.map((it) => it.fileName), ...media.files.map((it) => it.fileName)])) {
         zipStream.putArchiveEntry(zipArchiveEntry(entry))
-        zipStream.write(this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), entry))
+        zipStream.write(await this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), entry))
         zipStream.closeArchiveEntry()
-      })
+      }
     })
 
     // perform checks on new file
@@ -113,7 +115,7 @@ export class BookPageEditor {
       }) ?? null
     if (createdBook === null) throw new IllegalStateException(`Newly created book could not be scanned: ${tempFile}`)
 
-    const createdMedia = this.bookAnalyzer.analyze(createdBook, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
+    const createdMedia = await this.bookAnalyzer.analyze(createdBook, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
 
     try {
       if (createdMedia.status !== Media.Status.READY) throw new BookConversionException('Created file could not be analyzed, aborting page removal')

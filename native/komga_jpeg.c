@@ -13,7 +13,8 @@
  * - ICC : profils ouverts par cmsOpenProfileFromMem, sérialisation par cmsSaveProfileToMem, transformation
  *   cmsCreateMultiprofileTransform(profils, intention, formats, 0) puis cmsDoTransformLineStride.
  *
- * Fonctions exportées (toutes synchrones) :
+ * Fonctions exportées (synchrones, sauf les variantes *Async qui s'exécutent sur le pool de threads de libuv et
+ * rendent une promesse : jpegDecodeAsync, jpegEncodeAsync, mêmes arguments et mêmes résultats) :
  *   jpegHeader(bytes)                          -> { width, height, jpegColorSpace, outColorSpace, numComponents, progressive }
  *   jpegDecode(bytes, outColorSpace)           -> { width, height, components, data }
  *   jpegEncode(pixels, width, height, components, inCs, outCs, qtables, ids, hSamp, vSamp, qSel, markers, restartInterval)
@@ -535,6 +536,360 @@ static napi_value js_jpeg_encode(napi_env env, napi_callback_info info) {
 }
 
 /* ------------------------------------------------------------------------- */
+/* Versions asynchrones (pool de threads de libuv) : jpegDecodeAsync, jpegEncodeAsync                        */
+/* Mêmes appels à libjpeg que jpegDecode / jpegEncode, exécutés hors du thread JS ; le résultat (ou l'erreur,  */
+/* même nom et même message) est rendu par une promesse. Les tableaux d'entrée sont retenus (napi_ref) et ne  */
+/* doivent pas être modifiés avant la fin.                                                                     */
+/* ------------------------------------------------------------------------- */
+
+struct job_error {
+  const char *code; /* "IIOException" ou NULL */
+  char message[JMSG_LENGTH_MAX];
+};
+
+static void job_error_set(struct job_error *e, const char *code, const char *message) {
+  e->code = code;
+  snprintf(e->message, sizeof(e->message), "%s", message);
+}
+
+static void jpeg_error_to_job(struct job_error *e, j_common_ptr cinfo) {
+  e->code = "IIOException";
+  (*cinfo->err->format_message)(cinfo, e->message);
+}
+
+struct decode_job {
+  napi_async_work work;
+  napi_deferred deferred;
+  napi_ref input_ref;
+  const unsigned char *data;
+  size_t len;
+  int32_t out_cs;
+  unsigned char *out;
+  int width, height, comps;
+  int ok;
+  struct job_error error;
+};
+
+static void decode_execute(napi_env env, void *arg) {
+  (void)env;
+  struct decode_job *job = (struct decode_job *)arg;
+  struct jpeg_decompress_struct cinfo;
+  struct komga_error_mgr jerr;
+  struct mem_source src;
+  JSAMPROW row = NULL;
+  job->ok = 0;
+  job->out = NULL;
+
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = komga_error_exit;
+  jerr.pub.output_message = komga_output_message;
+  if (setjmp(jerr.setjmp_buffer)) {
+    jpeg_error_to_job(&job->error, (j_common_ptr)&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+    free(job->out);
+    job->out = NULL;
+    return;
+  }
+  jpeg_create_decompress(&cinfo);
+  setup_source(&cinfo, &src, job->data, job->len);
+  if (!read_header_jdk(&cinfo)) {
+    jpeg_destroy_decompress(&cinfo);
+    job_error_set(&job->error, "IIOException", "Tables-only JPEG stream");
+    return;
+  }
+  if (job->out_cs >= 0) cinfo.out_color_space = (J_COLOR_SPACE)job->out_cs;
+
+  boolean progressive = jpeg_has_multiple_scans(&cinfo);
+  if (progressive) {
+    cinfo.buffered_image = TRUE;
+    cinfo.input_scan_number = 1;
+  }
+  jpeg_start_decompress(&cinfo);
+
+  int comps = cinfo.output_components;
+  if (comps <= 0 || cinfo.output_width > (0xffffffffu / (unsigned int)comps)) {
+    jpeg_destroy_decompress(&cinfo);
+    job_error_set(&job->error, "IIOException", "Invalid number of output components");
+    return;
+  }
+  size_t stride = (size_t)cinfo.output_width * (size_t)comps;
+  size_t total = stride * (size_t)cinfo.output_height;
+  job->out = (unsigned char *)malloc(total > 0 ? total : 1);
+  if (job->out == NULL) {
+    jpeg_destroy_decompress(&cinfo);
+    job_error_set(&job->error, NULL, "Out of memory");
+    return;
+  }
+
+  if (progressive) {
+    while (!jpeg_input_complete(&cinfo)) {
+      if (jpeg_consume_input(&cinfo) == JPEG_SUSPENDED) break;
+    }
+    jpeg_start_output(&cinfo, cinfo.input_scan_number);
+  }
+  while (cinfo.output_scanline < cinfo.output_height) {
+    row = (JSAMPROW)(job->out + stride * cinfo.output_scanline);
+    jpeg_read_scanlines(&cinfo, &row, 1);
+  }
+  if (progressive) jpeg_finish_output(&cinfo);
+  jpeg_finish_decompress(&cinfo);
+
+  job->width = (int)cinfo.output_width;
+  job->height = (int)cinfo.output_height;
+  job->comps = comps;
+  job->ok = 1;
+  jpeg_destroy_decompress(&cinfo);
+}
+
+static void free_finalizer(napi_env env, void *data, void *hint) {
+  (void)env;
+  (void)hint;
+  free(data);
+}
+
+/* tampon Node sur une zone allouée par malloc (libérée par le tampon, ou tout de suite si copiée) */
+static napi_status buffer_from_malloc(napi_env env, unsigned char *data, size_t len, napi_value *result) {
+  napi_status st = napi_create_external_buffer(env, len, data, free_finalizer, NULL, result);
+  if (st == napi_ok) return st;
+  void *copy;
+  st = napi_create_buffer_copy(env, len, data, &copy, result);
+  free(data);
+  return st;
+}
+
+static void reject_job(napi_env env, napi_deferred deferred, struct job_error *error) {
+  napi_value msg, code = NULL, err;
+  napi_create_string_utf8(env, error->message, NAPI_AUTO_LENGTH, &msg);
+  if (error->code != NULL) napi_create_string_utf8(env, error->code, NAPI_AUTO_LENGTH, &code);
+  napi_create_error(env, code, msg, &err);
+  napi_reject_deferred(env, deferred, err);
+}
+
+static void decode_complete(napi_env env, napi_status status, void *arg) {
+  struct decode_job *job = (struct decode_job *)arg;
+  if (status != napi_ok && job->ok) {
+    free(job->out);
+    job->out = NULL;
+    job->ok = 0;
+    job_error_set(&job->error, NULL, "Cancelled");
+  }
+  if (job->ok) {
+    napi_value result, buffer;
+    size_t total = (size_t)job->width * (size_t)job->height * (size_t)job->comps;
+    if (buffer_from_malloc(env, job->out, total, &buffer) != napi_ok) {
+      job_error_set(&job->error, NULL, "Out of memory");
+      reject_job(env, job->deferred, &job->error);
+    } else {
+      napi_create_object(env, &result);
+      set_int(env, result, "width", job->width);
+      set_int(env, result, "height", job->height);
+      set_int(env, result, "components", job->comps);
+      napi_set_named_property(env, result, "data", buffer);
+      napi_resolve_deferred(env, job->deferred, result);
+    }
+  } else reject_job(env, job->deferred, &job->error);
+  napi_delete_reference(env, job->input_ref);
+  napi_delete_async_work(env, job->work);
+  free(job);
+}
+
+/* jpegDecodeAsync(bytes, outColorSpace) -> Promise<{ width, height, components, data }> */
+static napi_value js_jpeg_decode_async(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value argv[2];
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  const unsigned char *data;
+  size_t len;
+  int32_t out_cs = -1;
+  if (argc < 1 || !get_bytes(env, argv[0], &data, &len) || (argc > 1 && !get_int(env, argv[1], &out_cs))) {
+    napi_throw_type_error(env, NULL, "jpegDecodeAsync(bytes: Uint8Array, outColorSpace: number)");
+    return NULL;
+  }
+  struct decode_job *job = (struct decode_job *)calloc(1, sizeof(struct decode_job));
+  if (job == NULL) {
+    napi_throw_error(env, NULL, "Out of memory");
+    return NULL;
+  }
+  job->data = data;
+  job->len = len;
+  job->out_cs = out_cs;
+  napi_value promise, name;
+  NAPI_CALL(env, napi_create_reference(env, argv[0], 1, &job->input_ref));
+  NAPI_CALL(env, napi_create_promise(env, &job->deferred, &promise));
+  napi_create_string_utf8(env, "komgaJpegDecode", NAPI_AUTO_LENGTH, &name);
+  NAPI_CALL(env, napi_create_async_work(env, NULL, name, decode_execute, decode_complete, job, &job->work));
+  NAPI_CALL(env, napi_queue_async_work(env, job->work));
+  return promise;
+}
+
+struct encode_job {
+  napi_async_work work;
+  napi_deferred deferred;
+  napi_ref refs[7];
+  const unsigned char *pixels, *markers;
+  size_t markers_len;
+  int32_t width, height, comps, in_cs, out_cs, restart;
+  const int32_t *qtables, *ids, *hs, *vs, *qs;
+  size_t qlen;
+  JOCTET *out;
+  size_t out_len;
+  int ok;
+  struct job_error error;
+};
+
+static void encode_execute(napi_env env, void *arg) {
+  (void)env;
+  struct encode_job *job = (struct encode_job *)arg;
+  struct jpeg_compress_struct cinfo;
+  struct komga_error_mgr jerr;
+  struct mem_dest dest;
+  job->ok = 0;
+  dest.size = 65536;
+  dest.buf = (JOCTET *)malloc(dest.size);
+  if (dest.buf == NULL) {
+    job_error_set(&job->error, NULL, "Out of memory");
+    return;
+  }
+
+  cinfo.err = jpeg_std_error(&jerr.pub);
+  jerr.pub.error_exit = komga_error_exit;
+  jerr.pub.output_message = komga_output_message;
+  if (setjmp(jerr.setjmp_buffer)) {
+    jpeg_error_to_job(&job->error, (j_common_ptr)&cinfo);
+    jpeg_destroy_compress(&cinfo);
+    free(dest.buf);
+    return;
+  }
+  jpeg_create_compress(&cinfo);
+  dest.pub.init_destination = mem_init_destination;
+  dest.pub.empty_output_buffer = mem_empty_output_buffer;
+  dest.pub.term_destination = mem_term_destination;
+  cinfo.dest = &dest.pub;
+
+  cinfo.image_width = (JDIMENSION)job->width;
+  cinfo.image_height = (JDIMENSION)job->height;
+  cinfo.input_components = job->comps;
+  cinfo.in_color_space = (J_COLOR_SPACE)job->in_cs;
+  jpeg_set_defaults(&cinfo);
+  jpeg_set_colorspace(&cinfo, (J_COLOR_SPACE)job->out_cs);
+  cinfo.optimize_coding = FALSE;
+  cinfo.write_JFIF_header = FALSE;
+  cinfo.write_Adobe_marker = FALSE;
+  for (int i = 0; i < job->comps; i++) {
+    cinfo.comp_info[i].component_id = job->ids[i];
+    cinfo.comp_info[i].h_samp_factor = job->hs[i];
+    cinfo.comp_info[i].v_samp_factor = job->vs[i];
+    cinfo.comp_info[i].quant_tbl_no = job->qs[i];
+  }
+  jpeg_suppress_tables(&cinfo, TRUE);
+  size_t nq = job->qlen / 64;
+  if (nq > NUM_QUANT_TBLS) nq = NUM_QUANT_TBLS;
+  for (size_t t = 0; t < nq; t++) {
+    if (cinfo.quant_tbl_ptrs[t] == NULL) cinfo.quant_tbl_ptrs[t] = jpeg_alloc_quant_table((j_common_ptr)&cinfo);
+    for (int j = 0; j < DCTSIZE2; j++) cinfo.quant_tbl_ptrs[t]->quantval[j] = (UINT16)job->qtables[t * 64 + j];
+    cinfo.quant_tbl_ptrs[t]->sent_table = FALSE;
+  }
+  for (int t = 0; t < 2; t++) {
+    if (cinfo.dc_huff_tbl_ptrs[t] != NULL) cinfo.dc_huff_tbl_ptrs[t]->sent_table = FALSE;
+    if (cinfo.ac_huff_tbl_ptrs[t] != NULL) cinfo.ac_huff_tbl_ptrs[t]->sent_table = FALSE;
+  }
+  cinfo.restart_interval = (unsigned int)job->restart;
+
+  jpeg_start_compress(&cinfo, FALSE);
+  if (job->markers_len > 0) {
+    if (!mem_grow(&dest, job->markers_len)) ERREXIT1(&cinfo, JERR_OUT_OF_MEMORY, 11);
+    memcpy(dest.pub.next_output_byte, job->markers, job->markers_len);
+    dest.pub.next_output_byte += job->markers_len;
+    dest.pub.free_in_buffer -= job->markers_len;
+  }
+  size_t stride = (size_t)job->width * (size_t)job->comps;
+  while (cinfo.next_scanline < cinfo.image_height) {
+    JSAMPROW row = (JSAMPROW)(job->pixels + stride * cinfo.next_scanline);
+    jpeg_write_scanlines(&cinfo, &row, 1);
+  }
+  jpeg_finish_compress(&cinfo);
+
+  job->out_len = dest.size - dest.pub.free_in_buffer;
+  job->out = dest.buf;
+  job->ok = 1;
+  jpeg_destroy_compress(&cinfo);
+}
+
+static void encode_complete(napi_env env, napi_status status, void *arg) {
+  struct encode_job *job = (struct encode_job *)arg;
+  if (status != napi_ok && job->ok) {
+    free(job->out);
+    job->out = NULL;
+    job->ok = 0;
+    job_error_set(&job->error, NULL, "Cancelled");
+  }
+  if (job->ok) {
+    napi_value buffer;
+    if (buffer_from_malloc(env, (unsigned char *)job->out, job->out_len, &buffer) != napi_ok) {
+      job_error_set(&job->error, NULL, "Out of memory");
+      reject_job(env, job->deferred, &job->error);
+    } else napi_resolve_deferred(env, job->deferred, buffer);
+  } else reject_job(env, job->deferred, &job->error);
+  for (int i = 0; i < 7; i++) napi_delete_reference(env, job->refs[i]);
+  napi_delete_async_work(env, job->work);
+  free(job);
+}
+
+/* jpegEncodeAsync(mêmes arguments que jpegEncode) -> Promise<Buffer> */
+static napi_value js_jpeg_encode_async(napi_env env, napi_callback_info info) {
+  size_t argc = 13;
+  napi_value argv[13];
+  NAPI_CALL(env, napi_get_cb_info(env, info, &argc, argv, NULL, NULL));
+  const unsigned char *pixels, *markers;
+  size_t pixels_len, markers_len;
+  int32_t width, height, comps, in_cs, out_cs, restart;
+  const int32_t *qtables, *ids, *hs, *vs, *qs;
+  size_t qlen, idlen, hlen, vlen, qslen;
+  if (argc < 13 || !get_bytes(env, argv[0], &pixels, &pixels_len) || !get_int(env, argv[1], &width) ||
+      !get_int(env, argv[2], &height) || !get_int(env, argv[3], &comps) || !get_int(env, argv[4], &in_cs) ||
+      !get_int(env, argv[5], &out_cs) || !get_int32_array(env, argv[6], &qtables, &qlen) ||
+      !get_int32_array(env, argv[7], &ids, &idlen) || !get_int32_array(env, argv[8], &hs, &hlen) ||
+      !get_int32_array(env, argv[9], &vs, &vlen) || !get_int32_array(env, argv[10], &qs, &qslen) ||
+      !get_bytes(env, argv[11], &markers, &markers_len) || !get_int(env, argv[12], &restart)) {
+    napi_throw_type_error(env, NULL, "jpegEncodeAsync: invalid arguments");
+    return NULL;
+  }
+  if (width <= 0 || height <= 0 || comps < 1 || comps > 4 || (size_t)width * (size_t)height * (size_t)comps > pixels_len ||
+      idlen < (size_t)comps || hlen < (size_t)comps || vlen < (size_t)comps || qslen < (size_t)comps || qlen % 64 != 0) {
+    napi_throw_error(env, "IIOException", "Invalid argument to native writeImage");
+    return NULL;
+  }
+  struct encode_job *job = (struct encode_job *)calloc(1, sizeof(struct encode_job));
+  if (job == NULL) {
+    napi_throw_error(env, NULL, "Out of memory");
+    return NULL;
+  }
+  job->pixels = pixels;
+  job->markers = markers;
+  job->markers_len = markers_len;
+  job->width = width;
+  job->height = height;
+  job->comps = comps;
+  job->in_cs = in_cs;
+  job->out_cs = out_cs;
+  job->restart = restart;
+  job->qtables = qtables;
+  job->qlen = qlen;
+  job->ids = ids;
+  job->hs = hs;
+  job->vs = vs;
+  job->qs = qs;
+  const int held[7] = {0, 6, 7, 8, 9, 10, 11};
+  for (int i = 0; i < 7; i++) NAPI_CALL(env, napi_create_reference(env, argv[held[i]], 1, &job->refs[i]));
+  napi_value promise, name;
+  NAPI_CALL(env, napi_create_promise(env, &job->deferred, &promise));
+  napi_create_string_utf8(env, "komgaJpegEncode", NAPI_AUTO_LENGTH, &name);
+  NAPI_CALL(env, napi_create_async_work(env, NULL, name, encode_execute, encode_complete, job, &job->work));
+  NAPI_CALL(env, napi_queue_async_work(env, job->work));
+  return promise;
+}
+
+/* ------------------------------------------------------------------------- */
 /* LittleCMS                                                                  */
 /* ------------------------------------------------------------------------- */
 
@@ -688,6 +1043,8 @@ NAPI_MODULE_INIT(/* napi_env env, napi_value exports */) {
       {"jpegHeader", NULL, js_jpeg_header, NULL, NULL, NULL, napi_default, NULL},
       {"jpegDecode", NULL, js_jpeg_decode, NULL, NULL, NULL, napi_default, NULL},
       {"jpegEncode", NULL, js_jpeg_encode, NULL, NULL, NULL, napi_default, NULL},
+      {"jpegDecodeAsync", NULL, js_jpeg_decode_async, NULL, NULL, NULL, napi_default, NULL},
+      {"jpegEncodeAsync", NULL, js_jpeg_encode_async, NULL, NULL, NULL, napi_default, NULL},
       {"iccSave", NULL, js_icc_save, NULL, NULL, NULL, napi_default, NULL},
       {"iccTransform", NULL, js_icc_transform, NULL, NULL, NULL, napi_default, NULL},
       {"mallocTrim", NULL, js_malloc_trim, NULL, NULL, NULL, napi_default, NULL},

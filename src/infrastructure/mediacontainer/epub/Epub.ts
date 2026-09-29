@@ -5,7 +5,7 @@ import { use as useCloseable } from '../../../port/java-io.js'
 import { pathParent, pathsGet } from '../../../port/java-nio-file.js'
 import { type Document, Jsoup, Parser } from '../../../port/jsoup-parser.js'
 import { DataClass } from '../../../port/kotlin.js'
-import { getEntryInputStream, use } from '../../util/ZipFileUtils.js'
+import { getEntryInputStream, use, useAsync } from '../../util/ZipFileUtils.js'
 import type { ManifestItem } from './ManifestItem.js'
 import { getManifest } from './Opf.js'
 
@@ -39,6 +39,21 @@ export function epub<R>(self: string, block: (epub: EpubPackage) => R): R {
     if (opfDoc === null) throw new MediaUnsupportedException('Could not open OPF resource')
     const opfDir = pathParent(pathsGet(opfFile))
     return block(new EpubPackage({ zip: zip, opfDoc: opfDoc, opfDir: opfDir, manifest: getManifest(opfDoc) }))
+  })
+}
+
+/**
+ * PORT: `epub { }` avec un bloc asynchrone et l'archive ouverte sur le pool de libuv (répertoire central et en-têtes
+ * locaux lus d'avance, voir ZipFileBuilder.getAsync) ; l'archive est fermée à la fin du bloc
+ */
+export async function epubAsync<R>(self: string, block: (epub: EpubPackage) => Promise<R> | R): Promise<R> {
+  return await useAsync(ZipFileClass.builder().setPath(self), async (zip) => {
+    const opfFile = getPackagePath(zip)
+    const stream = getEntryInputStream(zip, opfFile)
+    const opfDoc = stream !== null ? useCloseable(stream, (it) => Jsoup.parse(it, null, '', Parser.xmlParser())) : null
+    if (opfDoc === null) throw new MediaUnsupportedException('Could not open OPF resource')
+    const opfDir = pathParent(pathsGet(opfFile))
+    return await block(new EpubPackage({ zip: zip, opfDoc: opfDoc, opfDir: opfDir, manifest: getManifest(opfDoc) }))
   })
 }
 

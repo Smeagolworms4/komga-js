@@ -6,7 +6,9 @@ export abstract class DivinaExtractor {
   abstract mediaTypes(): string[]
 
   // @Throws(MediaUnsupportedException::class)
-  abstract getEntries(path: string, analyzeDimensions: boolean): MediaContainerEntry[]
+  // PORT: async (lectures sur le pool de libuv et passages coopératifs, voir PORTING.md « Architecture d'exécution »)
+  abstract getEntries(path: string, analyzeDimensions: boolean): Promise<MediaContainerEntry[]>
 
-  abstract getEntryStream(path: string, entryName: string): Uint8Array
+  // PORT: async
+  abstract getEntryStream(path: string, entryName: string): Promise<Uint8Array>
 }

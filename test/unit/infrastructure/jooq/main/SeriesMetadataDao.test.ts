@@ -62,8 +62,8 @@ const summary = (m: SeriesMetadata) => [
 ]
 
 func('count', () => {
-  kase('seeded', () => {
-    seed(db)
+  kase('seeded', async () => {
+    await seed(db)
     return dao.count()
   })
 })

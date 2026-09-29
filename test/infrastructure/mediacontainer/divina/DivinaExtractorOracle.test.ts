@@ -19,7 +19,7 @@ import { TikaConfig } from '../../../../src/port/tika.js'
 
 const NOT_PORTED = new Set(['implode-method.zip'])
 
-function check(ex: DivinaExtractor, dir: string, jsonl: string, expectedCount: number): void {
+async function check(ex: DivinaExtractor, dir: string, jsonl: string, expectedCount: number): Promise<void> {
   const lines = readFileSync(jsonl, 'utf8').trim().split('\n')
   const mismatches: string[] = []
   for (const line of lines) {
@@ -28,18 +28,20 @@ function check(ex: DivinaExtractor, dir: string, jsonl: string, expectedCount: n
     const p = `${dir}/${exp.file}`
     const res: Record<string, unknown> = { file: exp.file }
     try {
-      res.entries = ex.getEntries(p, false).map((e) => {
+      const entries: unknown[] = []
+      for (const e of await ex.getEntries(p, false)) {
         const m: Record<string, unknown> = { name: e.name, mediaType: e.mediaType, fileSize: e.fileSize, comment: e.comment }
         try {
-          const b = ex.getEntryStream(p, e.name)
+          const b = await ex.getEntryStream(p, e.name)
           m.len = b.length
           m.crc = crc32(b)
         } catch (t) {
           const x = t as Error
           m.streamErr = `${x.constructor.name}: ${x.message === '' ? 'null' : x.message}`
         }
-        return m
-      })
+        entries.push(m)
+      }
+      res.entries = entries
     } catch (t) {
       if (t instanceof MediaUnsupportedException) res.unsupported = t.code
       else res.error = (t as Error).constructor.name
@@ -55,11 +57,11 @@ describe('DivinaExtractorOracle', () => {
   const contentDetector = new ContentDetector(new TikaConfig())
   const imageAnalyzer = { getDimension: () => null } as never
 
-  it('ZipExtractor gives the same entries and contents as Komga', () => {
-    check(new ZipExtractor(contentDetector, imageAnalyzer), fileURLToPath(new URL('../../../port/fixtures/zip', import.meta.url)), fileURLToPath(new URL('../fixtures/zip-extractor.java.jsonl', import.meta.url)), 42)
+  it('ZipExtractor gives the same entries and contents as Komga', async () => {
+    await check(new ZipExtractor(contentDetector, imageAnalyzer), fileURLToPath(new URL('../../../port/fixtures/zip', import.meta.url)), fileURLToPath(new URL('../fixtures/zip-extractor.java.jsonl', import.meta.url)), 42)
   })
 
-  it('RarExtractor gives the same entries and contents as Komga', () => {
-    check(new RarExtractor(contentDetector, imageAnalyzer), fileURLToPath(new URL('../fixtures/rar', import.meta.url)), fileURLToPath(new URL('../fixtures/rar.java.jsonl', import.meta.url)), 25)
+  it('RarExtractor gives the same entries and contents as Komga', async () => {
+    await check(new RarExtractor(contentDetector, imageAnalyzer), fileURLToPath(new URL('../fixtures/rar', import.meta.url)), fileURLToPath(new URL('../fixtures/rar.java.jsonl', import.meta.url)), 25)
   })
 })

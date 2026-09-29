@@ -53,7 +53,7 @@ func('getEntryStream', () => {
   for (const [label, p] of files) {
     kase(label, async () => {
       const out: unknown[] = []
-      for (const it of ['mimetype', 'META-INF/container.xml', 'missing', '']) out.push([it, await pathless(p, () => digest(extractor.getEntryStream(p, it)))])
+      for (const it of ['mimetype', 'META-INF/container.xml', 'missing', '']) out.push([it, await pathless(p, async () => digest(await extractor.getEntryStream(p, it)))])
       return out
     })
   }
@@ -70,7 +70,7 @@ func('isEpub', () => {
 })
 
 func('getCover', () => {
-  for (const [label, p] of files) kase(label, () => pathless(p, () => cover(extractor.getCover(p))))
+  for (const [label, p] of files) kase(label, () => pathless(p, async () => cover(await extractor.getCover(p))))
 })
 
 func('getResources', () => {

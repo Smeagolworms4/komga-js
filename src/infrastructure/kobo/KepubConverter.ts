@@ -9,6 +9,7 @@ import { KEPUB_DEFAULT } from '../../domain/model/BookProjectionProfiles.js'
 import type { BookWithMedia } from '../../domain/model/BookWithMedia.js'
 import { MediaType } from '../../domain/model/MediaType.js'
 import { BookProjectionRepository } from '../../domain/persistence/BookProjectionRepository.js'
+import { spawnAsync } from '../../port/async-io.js'
 import { filesIsDirectory } from '../../port/java.js'
 import { check, isBlank, require } from '../../port/kotlin.js'
 import { deleteIfExists, exists, nameWithoutExtension } from '../../port/kotlin-io-path.js'
@@ -107,12 +108,13 @@ export class KepubConverter {
    * @throws IllegalArgumentException if the source book is not an EPUB, or is already a KEPUB
    * @return the [Path] of the converted file in case of success, else null
    */
-  convertEpubToKepub(bookWithMedia: BookWithMedia, destinationDir: string | null = null): string | null {
+  // PORT: async (convertEpubToKepubWithoutChecks)
+  async convertEpubToKepub(bookWithMedia: BookWithMedia, destinationDir: string | null = null): Promise<string | null> {
     require(bookWithMedia.media.mediaType === MediaType.EPUB.type, () => `Cannot convert, not an EPUB: ${bookWithMedia.book.path}`)
     require(!bookWithMedia.media.epubIsKepub, () => `Cannot convert, EPUB is already a KEPUB: ${bookWithMedia.book.path}`)
     require(exists(bookWithMedia.book.path), () => `Source file does not exist: ${bookWithMedia.book.path}`)
 
-    return this.convertEpubToKepubWithoutChecks(bookWithMedia.book, destinationDir)
+    return await this.convertEpubToKepubWithoutChecks(bookWithMedia.book, destinationDir)
   }
 
   /**
@@ -121,7 +123,8 @@ export class KepubConverter {
    *
    * This is intended for internal use in the EpubExtractor
    */
-  convertEpubToKepubWithoutChecks(book: Book, destinationDir: string | null = null): string | null {
+  // PORT: async (processus kepubify attendu sans bloquer le thread, voir PORTING.md « Architecture d'exécution »)
+  async convertEpubToKepubWithoutChecks(book: Book, destinationDir: string | null = null): Promise<string | null> {
     check(this.isAvailable, () => 'Kepub conversion is not available, kepubify path may not be set, or may be invalid')
 
     if (destinationDir !== null) require(filesIsDirectory(destinationDir), () => `Destination directory does not exist: ${destinationDir}`)
@@ -132,9 +135,9 @@ export class KepubConverter {
 
     const command = [String(this.kepubifyPath), book.path, '-o', destinationPath]
     logger.debug(() => `Starting conversion with: ${command.join(' ')}`)
-    // PORT: Runtime.exec(command) + waitFor(10, SECONDS) -> spawnSync synchrone avec délai (le processus est arrêté
-    // à l'expiration du délai, Java le laisse tourner)
-    const process = spawnSync(command[0] as string, command.slice(1), { timeout: 10_000, maxBuffer: 64 * 1024 * 1024 })
+    // PORT: Runtime.exec(command) + waitFor(10, SECONDS) -> spawnAsync (spawnSync sans bloquer) avec délai (le processus
+    // est arrêté à l'expiration du délai, Java le laisse tourner)
+    const process = await spawnAsync(command[0] as string, command.slice(1), { timeout: 10_000, maxBuffer: 64 * 1024 * 1024 })
     if (process.error && (process.error as NodeJS.ErrnoException).code !== 'ETIMEDOUT') {
       logger.error(process.error, () => 'Failed to create process')
       return null

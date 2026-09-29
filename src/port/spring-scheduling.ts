@@ -11,11 +11,13 @@
 // avant l'exécution de la tâche). Le corps d'une tâche peut être asynchrone : le worker attend la promesse avant de prendre
 // la tâche suivante, ce qui limite la concurrence à corePoolSize. Pendant une tâche, `Thread.currentThread().name`
 // (port/java.ts) renvoie le nom du worker (colonne OWNER de la table TASK).
-// Écarts : une tâche synchrone bloque tout le processus pendant son exécution ; un thread inactif qui attend dans la file
-// (`queue.take()`) reçoit la tâche soumise immédiatement (activeCount augmente dès execute(), là où Java l'augmente au
-// démarrage effectif du thread, quelques microsecondes plus tard).
-// Le TaskProcessor de Komga et son pool tournent eux-mêmes dans un worker_thread dédié, avec son propre contexte et ses
-// connexions (port/task-worker.ts) : une tâche synchrone y bloque les autres tâches, pas le serveur HTTP.
+// Les tâches asynchrones de plusieurs threads logiques s'entrelacent à leurs `await` (au plus corePoolSize à la fois),
+// comme des threads Java ; les longues portions synchrones rendent la main par `cooperativeYield` (port/async-io.ts).
+// Écarts : une portion synchrone bloque tout le processus pendant son exécution ; un thread inactif qui attend dans la
+// file (`queue.take()`) reçoit la tâche soumise immédiatement (activeCount augmente dès execute(), là où Java l'augmente
+// au démarrage effectif du thread, quelques microsecondes plus tard).
+// Avec KOMGAJS_TASK_WORKER=true, le TaskProcessor de Komga et son pool tournent dans un worker_thread dédié, avec son
+// propre contexte et ses connexions (port/task-worker.ts).
 import { Duration, Instant } from '@js-joda/core'
 import { runInThread } from './java.js'
 import { IllegalArgumentException, IllegalStateException, RuntimeException } from './kotlin.js'

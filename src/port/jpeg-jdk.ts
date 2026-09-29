@@ -36,6 +36,9 @@ type Native = {
     markers: Uint8Array,
     restartInterval: number,
   ): Uint8Array
+  /** variantes asynchrones (pool de threads de libuv), absentes d'une extension compilée avant leur ajout */
+  jpegDecodeAsync?(bytes: Uint8Array, outColorSpace: number): Promise<{ width: number; height: number; components: number; data: Uint8Array }>
+  jpegEncodeAsync?(...args: Parameters<Native['jpegEncode']>): Promise<Uint8Array>
   iccSave(profile: Uint8Array, srgb?: Uint8Array): Uint8Array
   iccTransform(src: Uint8Array, dst: Uint8Array, intent: number, inFormat: number, outFormat: number, pixels: Uint8Array, width: number, height: number, inStride: number, outStride: number): Uint8Array
 }
@@ -83,6 +86,24 @@ function nativeCall<T>(f: () => T): T {
     if (e instanceof IIOException) throw e
     throw new IIOException((e as Error).message, e)
   }
+}
+
+/** `nativeCall` pour un appel asynchrone */
+async function nativeCallAsync<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f()
+  } catch (e) {
+    if (e instanceof IIOException) throw e
+    throw new IIOException((e as Error).message, e)
+  }
+}
+
+/**
+ * PORT: décodage JPEG sur le pool de threads de libuv (thread JS unique, voir PORTING.md « Architecture
+ * d'exécution ») ; mêmes appels à libjpeg que jpegDecode
+ */
+function jpegDecode(nat: Native, bytes: Uint8Array, outColorSpace: number): Promise<{ width: number; height: number; components: number; data: Uint8Array }> {
+  return nat.jpegDecodeAsync !== undefined ? nat.jpegDecodeAsync(bytes, outColorSpace) : Promise.resolve().then(() => nat.jpegDecode(bytes, outColorSpace))
 }
 
 // ---------------------------------------------------------------------------
@@ -689,7 +710,8 @@ export type JdkJpegImage = { width: number; height: number; channels: 1 | 2 | 3 
  * (TYPE_BYTE_GRAY), RGBA ou gris + alpha pour les JPEG à 4 ou 2 composantes avec alpha, et le profil ICC de l'espace de couleur de l'image quand il n'est pas standard (gris avec profil
  * embarqué), que l'écrivain JPEG du JDK réécrit. Null pour les cas non reproduits.
  */
-export function readJpegLikeJdk(bytes: Uint8Array): JdkJpegImage | null {
+// PORT: async (décodage sur le pool de threads de libuv)
+export async function readJpegLikeJdk(bytes: Uint8Array): Promise<JdkJpegImage | null> {
   const nat = native()
   const header = readHeader(bytes)
   const sof = header.frame
@@ -722,7 +744,7 @@ export function readJpegLikeJdk(bytes: Uint8Array): JdkJpegImage | null {
 
   if (!useRaster) {
     // delegate.read : destination TYPE_3BYTE_BGR (sortie RGB de libjpeg) ou TYPE_BYTE_GRAY
-    const d = nativeCall(() => nat.jpegDecode(stream, -1))
+    const d = await nativeCallAsync(() => jpegDecode(nat, stream, -1))
     if (d.components !== 1 && d.components !== 3) throw new IIOException('Invalid argument to native readImage')
     return { width: d.width, height: d.height, channels: d.components as 1 | 3, hasAlpha: false, data: d.data, iccProfile: null }
   }
@@ -739,7 +761,7 @@ export function readJpegLikeJdk(bytes: Uint8Array): JdkJpegImage | null {
   const gray = csType === 'Gray' || csType === 'GrayA'
   // getRawImageType (Gray) : espace du profil embarqué s'il a une composante
   const grayProfile = gray && profile !== null && profile.getNumComponents() === 1 ? createColorSpace(profile) : null
-  const raw = nativeCall(() => nat.jpegDecode(stream, jdk.jpegColorSpace))
+  const raw = await nativeCallAsync(() => jpegDecode(nat, stream, jdk.jpegColorSpace))
   const { width, height } = raw
   const data = raw.data
   const bands = raw.components
@@ -855,11 +877,12 @@ function iccSegments(data: Uint8Array): Uint8Array[] {
  * TYPE_3BYTE_BGR / TYPE_INT_RGB (3 canaux RGB) ou TYPE_BYTE_GRAY (1 canal), sans alpha. `iccProfile` : profil d'un
  * espace de couleur non standard, écrit après le segment JFIF.
  */
-export function writeJpegLikeJdk(
+// PORT: async (encodage sur le pool de threads de libuv)
+export async function writeJpegLikeJdk(
   image: { width: number; height: number; channels: 1 | 3; data: Uint8Array },
   iccProfile: Uint8Array | null = null,
   compressionQuality: number | undefined = undefined,
-): Uint8Array {
+): Promise<Uint8Array> {
   const gray = image.channels === 1
   let tables: number[][]
   if (compressionQuality === undefined) tables = [K1Div2Luminance, K2Div2Chrominance]
@@ -868,8 +891,10 @@ export function writeJpegLikeJdk(
     tables = [scaledTable(K1Luminance, q), scaledTable(K2Chrominance, q)]
   }
   const markers = Buffer.concat([JFIF_APP0, ...(iccProfile !== null ? iccSegments(iccProfile) : [])])
-  return nativeCall(() =>
-    native().jpegEncode(
+  const nat = native()
+  const encode = nat.jpegEncodeAsync !== undefined ? nat.jpegEncodeAsync.bind(nat) : (...a: Parameters<Native['jpegEncode']>) => Promise.resolve().then(() => nat.jpegEncode(...a))
+  return await nativeCallAsync(() =>
+    encode(
       image.data,
       image.width,
       image.height,

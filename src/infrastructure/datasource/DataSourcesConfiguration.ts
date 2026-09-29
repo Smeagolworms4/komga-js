@@ -23,6 +23,12 @@ export class DataSourcesConfiguration {
 
   tasksDataSourceRW(): DataSource {
     const ds = this.buildDataSource('SqliteTasksPoolRW', SQLiteDataSource, this.komgaProperties.tasksDb)
+    // PORT: file des tâches en WAL avec synchronous NORMAL (sqlite-jdbc : FULL) : chaque tâche prise, supprimée ou émise
+    // est une transaction, et FULL synchronise le disque à chacune ; sur le thread unique de KomgaJS ces attentes
+    // bloquaient le serveur (plusieurs dizaines de ms par tâche sur une carte SD). Seul effet : après une coupure de
+    // courant (pas un arrêt du processus), les dernières tâches enregistrées peuvent manquer, comme si elles n'avaient pas
+    // été émises (le scan suivant les réémet). La base principale reste en FULL. Réglable par komga.tasks-db.pragmas
+    ds.dataSource.config.walSynchronous = 'NORMAL'
     // pool size is always 1:
     // - if there's only 1 pool for read and writes, size should be 1
     // - if there's a separate read pool, the write pool size should be 1
@@ -31,9 +37,12 @@ export class DataSourcesConfiguration {
   }
 
   tasksDataSourceRO(): DataSource {
-    if (this.shouldSeparateReadFromWrites(this.komgaProperties.tasksDb))
-      return this.buildDataSource('SqliteTasksPoolRO', SQLiteDataSource, this.komgaProperties.tasksDb)
-    else return this.tasksDataSourceRW()
+    if (this.shouldSeparateReadFromWrites(this.komgaProperties.tasksDb)) {
+      const ds = this.buildDataSource('SqliteTasksPoolRO', SQLiteDataSource, this.komgaProperties.tasksDb)
+      // PORT: synchronous NORMAL, voir tasksDataSourceRW
+      ds.dataSource.config.walSynchronous = 'NORMAL'
+      return ds
+    } else return this.tasksDataSourceRW()
   }
 
   private buildDataSource(poolName: string, dataSourceClass: new () => SQLiteDataSource, databaseProps: KomgaProperties.Database): HikariDataSource {

@@ -15,7 +15,7 @@ import { LibraryRepository } from '../persistence/LibraryRepository.js'
 import { MediaRepository } from '../persistence/MediaRepository.js'
 import { notEquals } from '../../language/LanguageUtils.js'
 import { FilenameUtils } from '../../port/commons-io.js'
-import { use } from '../../port/java-io.js'
+import { useAsync } from '../../port/java-io.js'
 import { IllegalStateException, str } from '../../port/kotlin.js'
 import {
   FileAlreadyExistsException,
@@ -70,7 +70,8 @@ export class BookConverter {
     }
   }
 
-  convertToCbz(book: Book): void {
+  // PORT: async (BookAnalyzer.getFileContent, BookAnalyzer.analyze)
+  async convertToCbz(book: Book): Promise<void> {
     // perform various checks
     if (!this.libraryRepository.findById(book.libraryId).convertToCbz)
       return logger.info(() => 'Book conversion is disabled for the library, it may have changed since the task was submitted, skipping')
@@ -95,15 +96,16 @@ export class BookConverter {
     if (exists(destinationPath)) throw new FileAlreadyExistsException(`Destination file already exists: ${destinationPath}`)
 
     logger.info(() => `Copying archive content to ${destinationPath}`)
-    use(new ZipArchiveOutputStream(destinationPath), (zipStream) => {
+    await useAsync(new ZipArchiveOutputStream(destinationPath), async (zipStream) => {
       zipStream.setMethod(ZipArchiveOutputStream.DEFLATED)
       zipStream.setLevel(Deflater.NO_COMPRESSION)
 
-      new Set([...media.pages.map((it) => it.fileName), ...media.files.map((it) => it.fileName)]).forEach((entry) => {
+      // PORT: forEach -> for..of (lecture asynchrone de chaque entrée)
+      for (const entry of new Set([...media.pages.map((it) => it.fileName), ...media.files.map((it) => it.fileName)])) {
         zipStream.putArchiveEntry(zipArchiveEntry(entry))
-        zipStream.write(this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), entry))
+        zipStream.write(await this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), entry))
         zipStream.closeArchiveEntry()
-      })
+      }
     })
 
     // perform checks on new file
@@ -115,7 +117,7 @@ export class BookConverter {
       }) ?? null
     if (convertedBook === null) throw new IllegalStateException(`Newly converted book could not be scanned: ${destinationFilename}`)
 
-    const convertedMedia = this.bookAnalyzer.analyze(convertedBook, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
+    const convertedMedia = await this.bookAnalyzer.analyze(convertedBook, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
 
     try {
       if (convertedMedia.status !== Media.Status.READY) throw new BookConversionException('Converted file could not be analyzed, aborting conversion')

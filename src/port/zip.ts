@@ -5,9 +5,15 @@
 // '\' -> '/' pour les archives FAT), mêmes tailles (ZIP64), mêmes erreurs et messages.
 // Méthodes : STORED, DEFLATED (zlib), ENHANCED_DEFLATED/Deflate64 (inflate64 ci-dessous), BZIP2 (seek-bzip).
 // Vérifié contre la vraie bibliothèque (jshell) : test/port/zip.test.ts.
+// PORT: thread unique (voir PORTING.md « Architecture d'exécution ») : `ZipFileBuilder.getAsync()` lit d'avance, sur le
+// pool de libuv, les zones dont le lecteur synchrone aura besoin (fin du fichier, répertoire central, en-têtes locaux et
+// début des données des entrées) ; `ZipFile.readEntryBytesAsync` lit une entrée entière et la décompresse sur le pool.
+// Le code de lecture reste celui, synchrone, ci-dessous : une lecture hors des zones préchargées se fait par
+// fs.readSync, avec le même résultat.
 import { closeSync, fstatSync, openSync, readSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { constants as zc, crc32, inflateRawSync } from 'node:zlib'
+import { closeAsync, inflateRawAsync, openAsync, preadFullyAsync } from './async-io.js'
 import { EOFException, IOException, InputStream } from './java-io.js'
 import { translateError } from './java-nio-file.js'
 import { IllegalArgumentException } from './kotlin.js'
@@ -328,9 +334,62 @@ function mergeExtra(ze: ZipArchiveEntry, fields: ExtraState[], local: boolean, r
 class FileChannel {
   private pos = 0
   readonly length: number
+  /** PORT: zones lues d'avance de façon asynchrone (triées par début) */
+  private regions: { start: number; data: Uint8Array }[] = []
+  private sorted = true
 
   constructor(readonly fd: number) {
     this.length = fstatSync(fd).size
+  }
+
+  /** PORT: lit d'avance [pos, pos + len) sur le pool de libuv ; les lectures comprises dans cette zone la réutilisent */
+  async prefetch(pos: number, len: number): Promise<void> {
+    const start = Math.max(0, pos)
+    const end = Math.min(this.length, pos + len)
+    if (end <= start || this.cached(start, end - start) !== null) return
+    const data = new Uint8Array(end - start)
+    const n = await preadFullyAsync(this.fd, data, 0, data.length, start)
+    this.regions.push({ start, data: n < data.length ? data.subarray(0, n) : data })
+    this.sorted = false
+  }
+
+  /** PORT: lit d'avance plusieurs zones (regroupées si elles se touchent), en parallèle */
+  async prefetchAll(ranges: [number, number][]): Promise<void> {
+    const r = ranges.map(([p, l]) => [Math.max(0, p), Math.min(this.length, p + l)] as [number, number]).filter(([a, b]) => b > a)
+    r.sort((a, b) => a[0] - b[0])
+    const merged: [number, number][] = []
+    for (const [a, b] of r) {
+      const last = merged[merged.length - 1]
+      if (last !== undefined && a <= last[1]) last[1] = Math.max(last[1], b)
+      else merged.push([a, b])
+    }
+    await Promise.all(merged.map(([a, b]) => this.prefetch(a, b - a)))
+  }
+
+  /** zone préchargée contenant [pos, pos + len), et position dans cette zone */
+  private cached(pos: number, len: number): { data: Uint8Array; off: number } | null {
+    const regions = this.regions
+    if (regions.length === 0) return null
+    if (!this.sorted) {
+      regions.sort((a, b) => a.start - b.start)
+      this.sorted = true
+    }
+    // dernière zone qui commence au plus à pos (les zones ne se chevauchent pas, sauf préchargements répétés)
+    let lo = 0
+    let hi = regions.length - 1
+    let found = -1
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1
+      if ((regions[mid] as { start: number }).start <= pos) {
+        found = mid
+        lo = mid + 1
+      } else hi = mid - 1
+    }
+    for (let i = found; i >= 0 && i >= found - 2; i--) {
+      const r = regions[i] as { start: number; data: Uint8Array }
+      if (pos + len <= r.start + r.data.length) return { data: r.data, off: pos - r.start }
+    }
+    return null
   }
 
   position(p?: number): number {
@@ -344,6 +403,13 @@ class FileChannel {
 
   /** lecture positionnelle, nombre d'octets lus (0 en fin de fichier) */
   pread(buf: Uint8Array, off: number, len: number, pos: number): number {
+    // PORT: zone préchargée (en fin de fichier, seulement les octets existants)
+    const hit = pos >= 0 ? this.cached(pos, Math.min(len, Math.max(0, this.length - pos))) : null
+    if (hit !== null) {
+      const n = Math.min(len, hit.data.length - hit.off)
+      buf.set(hit.data.subarray(hit.off, hit.off + n), off)
+      return n
+    }
     let total = 0
     while (total < len) {
       const n = readSync(this.fd, buf, off + total, len - total, pos + total)
@@ -371,6 +437,7 @@ class FileChannel {
   }
 
   close(): void {
+    this.regions = []
     closeSync(this.fd)
   }
 }
@@ -421,7 +488,80 @@ function openZipChannel(path: string): FileChannel {
     // FileChannel.open : NoSuchFileException, AccessDeniedException...
     throw translateError(e, path)
   }
-  const channel = new FileChannel(fd)
+  return checkZipChannel(new FileChannel(fd))
+}
+
+/**
+ * PORT: `openZipChannel` asynchrone : ouverture sur le pool de libuv, fin du fichier (enregistrement de fin du
+ * répertoire central) lue d'avance, puis le même contrôle
+ */
+async function openZipChannelAsync(path: string): Promise<FileChannel> {
+  let fd: number
+  try {
+    fd = await openAsync(path, false)
+  } catch (e) {
+    throw translateError(e, path)
+  }
+  let channel: FileChannel
+  try {
+    channel = new FileChannel(fd)
+    await channel.prefetch(channel.size() - MAX_EOCD_SIZE - ZIP64_EOCDL_LENGTH, MAX_EOCD_SIZE + ZIP64_EOCDL_LENGTH)
+  } catch (e) {
+    await closeAsync(fd)
+    throw e
+  }
+  return checkZipChannel(channel)
+}
+
+/**
+ * PORT: zones à lire d'avance pour ZipFile : répertoire central, puis (`entryBytes` > 0) en-tête local et début des
+ * données de chaque entrée. Simple indication (lecture tolérante du répertoire central) : le vrai décodage reste celui
+ * de ZipFile, qui relit de façon synchrone ce qui n'a pas été préchargé.
+ */
+async function prefetchZipContent(channel: FileChannel, entryBytes: number): Promise<void> {
+  const eocd = channel.position()
+  const word = new Uint8Array(8)
+  let cdStart: number
+  let cdEnd: number
+  let base = 0
+  // enregistrement ZIP64 : position lue dans l'enregistrement de fin ZIP64 (lecture synchrone d'au plus 56 octets)
+  if (eocd >= ZIP64_EOCDL_LENGTH && channel.pread(word, 0, 4, eocd - ZIP64_EOCDL_LENGTH) === 4 && sigEquals(word.subarray(0, 4), ZIP64_EOCD_LOC_SIG)) {
+    if (channel.pread(word, 0, 8, eocd - ZIP64_EOCDL_LENGTH + ZIP64_EOCDL_LOCATOR_OFFSET) !== 8) return
+    const z64 = i64(word, 0)
+    const rec = new Uint8Array(ZIP64_EOCD_CFD_LOCATOR_OFFSET + 8)
+    if (z64 < 0 || channel.pread(rec, 0, rec.length, z64) !== rec.length) return
+    cdStart = i64(rec, ZIP64_EOCD_CFD_LOCATOR_OFFSET)
+    cdEnd = z64
+  } else {
+    const rec = new Uint8Array(MIN_EOCD_SIZE)
+    if (channel.pread(rec, 0, rec.length, eocd) !== rec.length) return
+    const cdLength = u32(rec, CFD_LENGTH_OFFSET)
+    const cdRelative = u32(rec, CFD_LENGTH_OFFSET + 4)
+    base = Math.max(eocd - cdLength - cdRelative, 0)
+    cdStart = cdRelative + base
+    cdEnd = eocd
+  }
+  if (cdStart < 0 || cdEnd <= cdStart || cdEnd > channel.size()) return
+  await channel.prefetch(cdStart, cdEnd - cdStart)
+  if (entryBytes <= 0) return
+  const cd = new Uint8Array(cdEnd - cdStart)
+  if (channel.pread(cd, 0, cd.length, cdStart) !== cd.length) return
+  const ranges: [number, number][] = []
+  let off = 0
+  while (off + 46 <= cd.length && u32(cd, off) === CFH_SIG) {
+    const nameLen = u16(cd, off + 28)
+    const extraLen = u16(cd, off + 30)
+    const commentLen = u16(cd, off + 32)
+    const lfh = u32(cd, off + 42)
+    // en-tête local (30 octets + nom + extra, supposé au plus aussi long que dans le répertoire central + 1 Kio) et
+    // début des données
+    if (lfh !== ZIP64_MAGIC) ranges.push([lfh + base, 30 + nameLen + extraLen + 1024 + entryBytes])
+    off += 46 + nameLen + extraLen + commentLen
+  }
+  await channel.prefetchAll(ranges)
+}
+
+function checkZipChannel(channel: FileChannel): FileChannel {
   try {
     const is64 = positionAtEndOfCentralDirectoryRecord(channel)
     let numberOfDisks: number
@@ -467,6 +607,22 @@ export class ZipFileBuilder {
   get(): ZipFile {
     if (this.path === null) throw new IllegalArgumentException('origin == null')
     const channel = openZipChannel(this.path)
+    return new ZipFile(channel, this.path, this.useUnicodeExtraFields, this.ignoreLocalFileHeader)
+  }
+
+  /**
+   * PORT: `get()` avec lectures anticipées sur le pool de libuv (thread unique) : répertoire central, en-têtes locaux
+   * (sauf `setIgnoreLocalFileHeader(true)`) et, avec `entryBytes` > 0, les `entryBytes` premiers octets des données de
+   * chaque entrée (analyse d'un livre : type et dimensions de chaque page). Même résultat et mêmes exceptions que `get()`.
+   */
+  async getAsync({ entryBytes = 0 }: { entryBytes?: number } = {}): Promise<ZipFile> {
+    if (this.path === null) throw new IllegalArgumentException('origin == null')
+    const channel = await openZipChannelAsync(this.path)
+    try {
+      await prefetchZipContent(channel, this.ignoreLocalFileHeader ? entryBytes : Math.max(entryBytes, 1))
+    } catch {
+      // indication seulement : le décodage synchrone relit ce qui manque
+    }
     return new ZipFile(channel, this.path, this.useUnicodeExtraFields, this.ignoreLocalFileHeader)
   }
 }
@@ -697,6 +853,26 @@ export class ZipFile {
     return ze.dataOffset
   }
 
+  /**
+   * PORT: `getInputStream(entry).readBytes()` avec les données de l'entrée lues sur le pool de libuv, et la
+   * décompression DEFLATED faite sur le pool de libuv (même zlib, mêmes octets, mêmes exceptions)
+   */
+  async readEntryBytesAsync(entry: ZipArchiveEntry): Promise<Uint8Array> {
+    // en-tête local (position des données, lue par getDataOffset) et données, en une lecture ; au-delà de 256 Mio,
+    // lecture synchrone à la demande
+    if (entry.compressedSize >= 0 && entry.compressedSize < 256 * 1024 * 1024) {
+      if (entry.dataOffset === -1) await this.archive.prefetch(entry.localHeaderOffset, 30 + entry.rawName.length + 1024 + entry.compressedSize)
+      else await this.archive.prefetch(entry.dataOffset, entry.compressedSize)
+    }
+    const stream = this.getInputStream(entry)
+    try {
+      if (stream instanceof DecodingInputStream) return await stream.readAllAsync()
+      return stream.readBytes()
+    } finally {
+      stream.close()
+    }
+  }
+
   /** `getInputStream(entry)` : flux décompressé, lu à la demande */
   getInputStream(entry: ZipArchiveEntry): InputStream {
     // ZipUtil.checkRequestedFeatures
@@ -841,6 +1017,26 @@ class DecodingInputStream extends InputStream {
       }
     }
     this.complete = true
+  }
+
+  /** PORT: lecture complète ; DEFLATED : décompression de l'entrée entière sur le pool de libuv, comme `grow()` */
+  async readAllAsync(): Promise<Uint8Array> {
+    if (this.pos !== 0 || this.out.length !== 0 || this.kind !== 'deflate') return this.readBytes()
+    this.prefixLen = this.compressedSize
+    const all = this.compressedPrefix(this.compressedSize)
+    // InflaterInputStream + SequenceInputStream(is, 1 octet nul)
+    const input = new Uint8Array(all.length + 1)
+    input.set(all)
+    let out: Uint8Array
+    try {
+      out = new Uint8Array(await inflateRawAsync(input))
+    } catch (e) {
+      throw mapZlibError(e)
+    }
+    this.out = out
+    this.complete = true
+    this.pos = out.length
+    return out
   }
 
   read(b: Uint8Array, off = 0, len = b.length - off): number {

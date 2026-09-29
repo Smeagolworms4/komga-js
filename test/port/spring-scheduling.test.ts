@@ -1,8 +1,10 @@
 // Tests du support de portage port/spring-scheduling.ts (sans jumeau Kotlin) : comportement d'un ThreadPoolExecutor
 // Java à file non bornée, et du ThreadPoolTaskScheduler.
 import { Duration, Instant } from '@js-joda/core'
+import { readFile } from 'node:fs/promises'
 import { setTimeout as delay } from 'node:timers/promises'
 import { describe, expect, it } from 'vitest'
+import { cooperativeYield } from '../../src/port/async-io.js'
 import { Thread } from '../../src/port/java.js'
 import { ApplicationContext, ContextClosedEvent, Environment, component } from '../../src/port/spring.js'
 import {
@@ -88,6 +90,66 @@ describe('ThreadPoolTaskExecutor', () => {
     expect(max).toBe(3)
     e.corePoolSize = 1
     expect(e.poolSize).toBe(1)
+  })
+
+  it('asynchronous tasks interleave at await points, at most corePoolSize at once, each on its own thread', async () => {
+    const e = new ThreadPoolTaskExecutorBuilder().threadNamePrefix('taskProcessor-').corePoolSize(2).build()
+    e.initialize()
+    const events: string[] = []
+    let running = 0
+    let max = 0
+    const task = (id: number) => async () => {
+      running++
+      max = Math.max(max, running)
+      for (let step = 0; step < 3; step++) {
+        events.push(`${id}.${step} ${Thread.currentThread().name}`)
+        // attente d'une entrée/sortie (pool de libuv), comme la lecture d'un fichier
+        await readFile(new URL(import.meta.url))
+      }
+      running--
+    }
+    for (let i = 1; i <= 3; i++) e.execute(task(i))
+    await delay(500)
+    expect(max).toBe(2)
+    // les tâches 1 et 2 progressent ensemble, chacune garde le nom de son thread après chaque attente
+    const t1 = events.filter((it) => it.startsWith('1.'))
+    const t2 = events.filter((it) => it.startsWith('2.'))
+    expect(t1).toEqual(['1.0 taskProcessor-1', '1.1 taskProcessor-1', '1.2 taskProcessor-1'])
+    expect(t2).toEqual(['2.0 taskProcessor-2', '2.1 taskProcessor-2', '2.2 taskProcessor-2'])
+    expect(events.indexOf('2.0 taskProcessor-2')).toBeLessThan(events.indexOf('1.2 taskProcessor-1'))
+    // la troisième attend qu'un thread se libère
+    expect(events.indexOf('3.0 taskProcessor-1') > events.indexOf('1.2 taskProcessor-1') || events.indexOf('3.0 taskProcessor-2') > events.indexOf('2.2 taskProcessor-2')).toBe(true)
+    expect(events.filter((it) => it.startsWith('3.'))).toHaveLength(3)
+    expect(Thread.currentThread().name).toBe('main')
+  })
+
+  it('a long synchronous task with cooperative yields lets the event loop run', async () => {
+    const e = new ThreadPoolTaskExecutorBuilder().threadNamePrefix('p-').corePoolSize(1).build()
+    e.initialize()
+    // « requête HTTP » : minuterie de 5 ms dont on mesure le retard pendant la tâche
+    const lags: number[] = []
+    let last = performance.now()
+    const timer = setInterval(() => {
+      const now = performance.now()
+      lags.push(now - last - 5)
+      last = now
+    }, 5)
+    let done = false
+    e.execute(async () => {
+      const end = performance.now() + 300
+      while (performance.now() < end) {
+        // travail synchrone (~1 ms) puis passage coopératif
+        const t = performance.now()
+        while (performance.now() - t < 1);
+        await cooperativeYield()
+      }
+      done = true
+    })
+    while (!done) await delay(20)
+    clearInterval(timer)
+    expect(lags.length).toBeGreaterThan(10)
+    // sans passage coopératif, la minuterie serait retardée de 300 ms
+    expect(Math.max(...lags)).toBeLessThan(100)
   })
 
   it('a failing task kills its thread, which is replaced', async () => {

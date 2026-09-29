@@ -18,43 +18,50 @@ function err(e: unknown): string {
   return `${x.constructor.name}: ${x.message === '' ? 'null' : x.message}`
 }
 
-describe('zip', () => {
-  it('reads the same entries, names, sizes, contents and errors as commons-compress', () => {
-    const lines = readFileSync(`${dir}.java.jsonl`, 'utf8').trim().split('\n')
-    const mismatches: string[] = []
-    for (const line of lines) {
-      const exp = JSON.parse(line.replaceAll('@DIR@', dir)) as { file: string; mode: number }
-      if (NOT_PORTED.has(exp.file)) continue
-      const res: Record<string, unknown> = { file: exp.file, mode: exp.mode }
+// mode synchrone (get, getInputStream) ou asynchrone (getAsync avec lectures anticipées, readEntryBytesAsync)
+async function check(async: boolean): Promise<void> {
+  const lines = readFileSync(`${dir}.java.jsonl`, 'utf8').trim().split('\n')
+  const mismatches: string[] = []
+  for (const line of lines) {
+    const exp = JSON.parse(line.replaceAll('@DIR@', dir)) as { file: string; mode: number }
+    if (NOT_PORTED.has(exp.file)) continue
+    const res: Record<string, unknown> = { file: exp.file, mode: exp.mode }
+    try {
+      const b = ZipFile.builder().setPath(`${dir}/${exp.file}`)
+      if (exp.mode === 1) b.setUseUnicodeExtraFields(true).setIgnoreLocalFileHeader(true)
+      const z = async ? await b.getAsync({ entryBytes: 16 * 1024 }) : b.get()
       try {
-        const b = ZipFile.builder().setPath(`${dir}/${exp.file}`)
-        if (exp.mode === 1) b.setUseUnicodeExtraFields(true).setIgnoreLocalFileHeader(true)
-        const z = b.get()
-        try {
-          res.entries = z.getEntries().map((e) => {
-            const m: Record<string, unknown> = { name: e.getName(), dir: e.isDirectory(), size: e.getSize(), csize: e.getCompressedSize() }
-            try {
-              const bytes = z.getInputStream(e).readAllBytes()
-              m.len = bytes.length
-              m.crc = crc32(bytes)
-            } catch (t) {
-              m.err = err(t)
-            }
-            m.first = z.getEntry(e.getName()) === e
-            return m
-          })
-        } finally {
-          z.close()
+        const entries: unknown[] = []
+        for (const e of z.getEntries()) {
+          const m: Record<string, unknown> = { name: e.getName(), dir: e.isDirectory(), size: e.getSize(), csize: e.getCompressedSize() }
+          try {
+            const bytes = async ? await z.readEntryBytesAsync(e) : z.getInputStream(e).readAllBytes()
+            m.len = bytes.length
+            m.crc = crc32(bytes)
+          } catch (t) {
+            m.err = err(t)
+          }
+          m.first = z.getEntry(e.getName()) === e
+          entries.push(m)
         }
-      } catch (t) {
-        res.openErr = err(t)
-        if ((t as Error).cause) res.cause = err((t as Error).cause)
+        res.entries = entries
+      } finally {
+        z.close()
       }
-      if (JSON.stringify(res) !== JSON.stringify(exp)) mismatches.push(`java=${JSON.stringify(exp)}\nts  =${JSON.stringify(res)}`)
+    } catch (t) {
+      res.openErr = err(t)
+      if ((t as Error).cause) res.cause = err((t as Error).cause)
     }
-    expect(mismatches).toEqual([])
-    expect(lines.length).toBe(84)
-  })
+    if (JSON.stringify(res) !== JSON.stringify(exp)) mismatches.push(`java=${JSON.stringify(exp)}\nts  =${JSON.stringify(res)}`)
+  }
+  expect(mismatches).toEqual([])
+  expect(lines.length).toBe(84)
+}
+
+describe('zip', () => {
+  it('reads the same entries, names, sizes, contents and errors as commons-compress', () => check(false))
+
+  it('asynchronous reads (prefetched regions, inflate on the libuv pool) give the same results', () => check(true))
 })
 
 describe('zip streams', () => {

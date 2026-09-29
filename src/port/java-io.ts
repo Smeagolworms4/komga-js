@@ -123,6 +123,12 @@ export function fileNotFound(e: unknown, path: string): unknown {
   return e
 }
 
+/** PORT: erreur système de lecture -> IOException (ex. lecture d'un répertoire ouvert par Files.newInputStream) */
+export function readError(e: unknown): IOException {
+  const code = (e as NodeJS.ErrnoException | null)?.code
+  return new IOException(code !== undefined && code in ERRNO_TEXT ? (ERRNO_TEXT[code] as string) : String(e))
+}
+
 /** Ouverture en lecture à la manière de `java.io.FileInputStream` : un répertoire est refusé (FileNotFoundException) */
 export function openForRead(path: string): number {
   let fd: number
@@ -165,9 +171,7 @@ export class FileInputStream extends InputStream {
     try {
       n = readSync(this.fd, b, off, len, this.pos)
     } catch (e) {
-      // PORT: erreur système de lecture -> IOException (ex. lecture d'un répertoire ouvert par Files.newInputStream)
-      const code = (e as NodeJS.ErrnoException | null)?.code
-      throw new IOException(code !== undefined && code in ERRNO_TEXT ? ERRNO_TEXT[code] : String(e))
+      throw readError(e)
     }
     if (n === 0) return -1
     this.pos += n
@@ -302,6 +306,15 @@ export class ByteArrayOutputStream {
 export function use<C extends { close(): void }, R>(c: C, block: (c: C) => R): R {
   try {
     return block(c)
+  } finally {
+    c.close()
+  }
+}
+
+/** `use { }` avec un bloc asynchrone : la ressource est fermée à la fin du bloc (PORT: async) */
+export async function useAsync<C extends { close(): void }, R>(c: C, block: (c: C) => Promise<R> | R): Promise<R> {
+  try {
+    return await block(c)
   } finally {
     c.close()
   }

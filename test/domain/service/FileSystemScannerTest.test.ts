@@ -35,6 +35,16 @@ vi.mock('node:fs', async (importOriginal) => {
   return { ...wrapped, default: wrapped }
 })
 
+// PORT: le parcours (walkFileTree) utilise les API asynchrones de node:fs/promises : même redirection
+vi.mock('node:fs/promises', async (importOriginal) => {
+  const fsp = await importOriginal<typeof import('node:fs/promises')>()
+  const map = (p: unknown): unknown => (typeof p === 'string' && chroot.root !== null && p.startsWith('/') ? chroot.root + p : p)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wrap1 = (fn: (...a: any[]) => unknown) => (p: unknown, ...rest: unknown[]) => fn(map(p), ...rest)
+  const wrapped = { ...fsp, stat: wrap1(fsp.stat), lstat: wrap1(fsp.lstat), opendir: wrap1(fsp.opendir), readdir: wrap1(fsp.readdir), access: wrap1(fsp.access) }
+  return { ...wrapped, default: wrapped }
+})
+
 import { mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -89,14 +99,14 @@ describe('FileSystemScannerTest', () => {
   beforeEach(() => newFileSystem())
   afterEach(() => closeFileSystem())
 
-  it('given unavailable root directory when scanning then throw exception', () => {
+  it('given unavailable root directory when scanning then throw exception', async () => {
     // given
     const root = '/root'
 
     // when
     let thrown: unknown = null
     try {
-      scanner.scanRootFolder(root)
+      await scanner.scanRootFolder(root)
     } catch (e) {
       thrown = e
     }
@@ -105,19 +115,19 @@ describe('FileSystemScannerTest', () => {
     expect(thrown).toBeInstanceOf(DirectoryNotFoundException)
   })
 
-  it('given empty root directory when scanning then return empty list', () => {
+  it('given empty root directory when scanning then return empty list', async () => {
     // given
     const root = '/root'
     createDirectory(root)
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
 
     // then
     expect(scan.size).toBe(0)
   })
 
-  it('given root directory with only files when scanning then return 1 series containing those files as books', () => {
+  it('given root directory with only files when scanning then return 1 series containing those files as books', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -126,7 +136,7 @@ describe('FileSystemScannerTest', () => {
     files.forEach((it) => createFile(pathResolve(root, it)))
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
     const series = [...scan.keys()][0]!
     const books = scan.get(series)!
 
@@ -136,7 +146,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted(books.map((it) => it.name))).toEqual(sorted(files.map((it) => removeExtension(it))))
   })
 
-  it('given root directory as filesystem root when scanning then return 1 series containing those files as books', () => {
+  it('given root directory as filesystem root when scanning then return 1 series containing those files as books', async () => {
     // given
     const root = '/'
 
@@ -144,7 +154,7 @@ describe('FileSystemScannerTest', () => {
     files.forEach((it) => createFile(pathResolve(root, it)))
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
     const series = [...scan.keys()][0]!
     const books = scan.get(series)!
 
@@ -155,7 +165,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted(books.map((it) => it.name))).toEqual(sorted(files.map((it) => removeExtension(it))))
   })
 
-  it('given directory with unsupported files when scanning then return a series excluding those files as books', () => {
+  it('given directory with unsupported files when scanning then return a series excluding those files as books', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -164,7 +174,7 @@ describe('FileSystemScannerTest', () => {
     files.forEach((it) => createFile(pathResolve(root, it)))
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
     const series = [...scan.keys()][0]!
     const books = scan.get(series)!
 
@@ -177,7 +187,7 @@ describe('FileSystemScannerTest', () => {
   // @ParameterizedTest @MethodSource("libraryScanFileTypesArguments")
   it.each(libraryScanFileTypesArguments())(
     'given directory when scanning excluding some files then return a series excluding those files as books',
-    (sourceFiles, scanCbz, scanPdf, scanEpub, resultBookNames) => {
+    async (sourceFiles, scanCbz, scanPdf, scanEpub, resultBookNames) => {
       // given
       const root = '/root'
       createDirectory(root)
@@ -185,7 +195,7 @@ describe('FileSystemScannerTest', () => {
       sourceFiles.forEach((it) => createFile(pathResolve(root, it)))
 
       // when
-      const scan = scanner.scanRootFolder(root, { scanCbx: scanCbz, scanPdf: scanPdf, scanEpub: scanEpub }).series
+      const scan = (await scanner.scanRootFolder(root, { scanCbx: scanCbz, scanPdf: scanPdf, scanEpub: scanEpub })).series
 
       // then
       if (resultBookNames.length > 0) {
@@ -213,7 +223,7 @@ describe('FileSystemScannerTest', () => {
     ]
   }
 
-  it('given directory with sub-directories containing files when scanning then return 1 series per folder containing direct files as books', () => {
+  it('given directory with sub-directories containing files when scanning then return 1 series per folder containing direct files as books', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -228,7 +238,7 @@ describe('FileSystemScannerTest', () => {
     })
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
     const series = [...scan.keys()]
 
     // then
@@ -240,7 +250,7 @@ describe('FileSystemScannerTest', () => {
     })
   })
 
-  it('given symlink root directory when scanning then return series and books', () => {
+  it('given symlink root directory when scanning then return series and books', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -258,7 +268,7 @@ describe('FileSystemScannerTest', () => {
     })
 
     // when
-    const scan = scanner.scanRootFolder(link).series
+    const scan = (await scanner.scanRootFolder(link)).series
     const series = [...scan.keys()]
 
     // then
@@ -270,7 +280,7 @@ describe('FileSystemScannerTest', () => {
     })
   })
 
-  it('given root directory with symlinks when scanning then return series and books', () => {
+  it('given root directory with symlinks when scanning then return series and books', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -286,7 +296,7 @@ describe('FileSystemScannerTest', () => {
     })
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
     const series = [...scan.keys()]
 
     // then
@@ -300,7 +310,7 @@ describe('FileSystemScannerTest', () => {
     })
   })
 
-  it('given directory structure with excluded directories when scanning then excluded directories are not returned', () => {
+  it('given directory structure with excluded directories when scanning then excluded directories are not returned', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -311,7 +321,7 @@ describe('FileSystemScannerTest', () => {
     makeSubDir(recycle, 'subtrash', ['trash2.cbz'])
 
     // when
-    const scan = scanner.scanRootFolder(root, { directoryExclusions: new Set(['#recycle']) }).series
+    const scan = (await scanner.scanRootFolder(root, { directoryExclusions: new Set(['#recycle']) })).series
 
     // then
     expect(scan.size).toBe(2)
@@ -320,7 +330,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted([...scan.values()].flatMap((list) => list.map((it) => it.name)))).toEqual(sorted(['comic', 'comic2']))
   })
 
-  it('given directory structure with hidden directories when scanning then hidden directories are not returned', () => {
+  it('given directory structure with hidden directories when scanning then hidden directories are not returned', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -331,7 +341,7 @@ describe('FileSystemScannerTest', () => {
     makeSubDir(hidden, 'subhidden', ['hidden2.cbz'])
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
 
     // then
     expect(scan.size).toBe(2)
@@ -340,7 +350,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted([...scan.values()].flatMap((list) => list.map((it) => it.name)))).toEqual(sorted(['comic', 'comic2']))
   })
 
-  it('given directory structure with hidden files when scanning then hidden files are not returned', () => {
+  it('given directory structure with hidden files when scanning then hidden files are not returned', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -349,7 +359,7 @@ describe('FileSystemScannerTest', () => {
     makeSubDir(dir1, 'subdir1', ['comic2.cbz', '.comic2.cbz'])
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
 
     // then
     expect(scan.size).toBe(2)
@@ -358,7 +368,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted([...scan.values()].flatMap((list) => list.map((it) => it.name)))).toEqual(sorted(['comic', 'comic2']))
   })
 
-  it('given file with mixed-case extension when scanning then files are returned', () => {
+  it('given file with mixed-case extension when scanning then files are returned', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -366,7 +376,7 @@ describe('FileSystemScannerTest', () => {
     makeSubDir(root, 'dir1', ['comic.Cbz', 'comic2.CBR'])
 
     // when
-    const scan = scanner.scanRootFolder(root).series
+    const scan = (await scanner.scanRootFolder(root)).series
 
     // then
     expect(scan.size).toBe(1)
@@ -375,7 +385,7 @@ describe('FileSystemScannerTest', () => {
     expect(sorted([...scan.values()].flatMap((list) => list.map((it) => it.name)))).toEqual(sorted(['comic', 'comic2']))
   })
 
-  it('given oneshot directory when scanning then return a series per file', () => {
+  it('given oneshot directory when scanning then return a series per file', async () => {
     // given
     const root = '/root'
     createDirectory(root)
@@ -385,7 +395,7 @@ describe('FileSystemScannerTest', () => {
     makeSubDir(root, '_oneshots', ['single.cbz', 'single2.cbz', 'single3.cbz'])
 
     // when
-    const scan = scanner.scanRootFolder(root, { oneshotsDir: '_oneshots' }).series
+    const scan = (await scanner.scanRootFolder(root, { oneshotsDir: '_oneshots' })).series
 
     // then
     expect(scan.size).toBe(6)

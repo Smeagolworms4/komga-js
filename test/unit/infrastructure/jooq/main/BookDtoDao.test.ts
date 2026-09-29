@@ -34,8 +34,8 @@ function attempt(block: () => unknown): unknown {
 }
 
 func('findAll@98', () => {
-  kase('anonymous sorted by name', () => {
-    seed(db, true)
+  kase('anonymous sorted by name', async () => {
+    await seed(db, true)
     return dao.findAll(Pageable.unpaged(byName))
   })
   kase('paged', () => ids(dao.findAll(PageRequest.of(2, 4, byName))))

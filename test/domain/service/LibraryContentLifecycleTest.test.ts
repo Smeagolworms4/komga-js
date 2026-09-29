@@ -102,9 +102,9 @@ import { any, capture, clearMocks, every, match, mockk, slot, verify } from '../
 import { toScanResult } from '../../Utils.js'
 import { makeBook, makeBookPage, makeLibrary, makeSeries } from '../model/Utils.js'
 
-function catchThrowable(block: () => unknown): unknown {
+async function catchThrowable(block: () => unknown): Promise<unknown> {
   try {
-    block()
+    await block()
     return null
   } catch (e) {
     return e
@@ -182,7 +182,7 @@ describe('LibraryContentLifecycleTest', () => {
   })
 
   describe('Scan', () => {
-    it('given existing series when adding files and scanning then only updated books are persisted', () => {
+    it('given existing series when adding files and scanning then only updated books are persisted', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -191,10 +191,10 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1')]]),
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -207,7 +207,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.name)).toEqual(['book1', 'book2'])
     })
 
-    it('given existing series when removing files and scanning then updated books are persisted and removed books are marked as such', () => {
+    it('given existing series when removing files and scanning then updated books are persisted and removed books are marked as such', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -216,10 +216,10 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book2')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -233,7 +233,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.filter((it) => it.deletedDate !== null).map((it) => it.name)).toEqual(['book2'])
     })
 
-    it('given existing series when updating files and scanning then books are updated', () => {
+    it('given existing series when updating files and scanning then books are updated', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -242,10 +242,10 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -263,7 +263,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(media.status).toBe(Media.Status.OUTDATED)
     })
 
-    it('given existing series when scanning and updated files have a different size then books are marked outdated', () => {
+    it('given existing series when scanning and updated files have a different size then books are marked outdated', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -272,7 +272,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1').copy({ fileSize: 1 })]]),
         scan([makeSeries('series'), [makeBook('book1').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       {
         const book = bookRepository.findAll()[0]!
@@ -281,7 +281,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -300,7 +300,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(media.status).toBe(Media.Status.OUTDATED)
     })
 
-    it('given existing series when scanning and updated files have the same hash then books are not marked outdated', () => {
+    it('given existing series when scanning and updated files have the same hash then books are not marked outdated', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -309,7 +309,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       {
         const book = bookRepository.findAll()[0]!
@@ -320,7 +320,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('hashed')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -340,16 +340,16 @@ describe('LibraryContentLifecycleTest', () => {
       expect(media.status).toBe(Media.Status.READY)
     })
 
-    it('given existing series when deleting all books and scanning then Series and Books are marked as deleted', () => {
+    it('given existing series when deleting all books and scanning then Series and Books are marked as deleted', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
 
       every(() => mockScanner.scanRootFolder(any())).returnsMany(scan([makeSeries('series'), [makeBook('book1')]]), scan())
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -363,7 +363,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks).toHaveLength(1)
     })
 
-    it('given existing series when deleting all books of one series and scanning then series and its books are marked as deleted', () => {
+    it('given existing series when deleting all books of one series and scanning then series and its books are marked as deleted', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -372,10 +372,10 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book2')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -396,7 +396,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(sorted(deletedBooks.map((it) => it.name))).toEqual(['book2'])
     })
 
-    it('given existing book with media when rescanning then media is kept intact', () => {
+    it('given existing book with media when rescanning then media is kept intact', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -406,15 +406,15 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book1]]),
         scan([makeSeries('series'), [makeBook('book1', { fileLastModified: book1.fileLastModified })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       every(() => mockAnalyzer.analyze(any(), any())).returns(
         new Media({ status: Media.Status.READY, mediaType: 'application/zip', pages: [makeBookPage('1.jpg'), makeBookPage('2.jpg')], bookId: book1.id }),
       )
-      bookRepository.findAll().map((it) => bookLifecycle.analyzeAndPersist(it))
+      for (const it of bookRepository.findAll()) await bookLifecycle.analyzeAndPersist(it)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -432,27 +432,27 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given existing book with different last modified date and hash when rescanning then media is marked as outdated and hash is reset', () => {
+    it('given existing book with different last modified date and hash when rescanning then media is marked as outdated and hash is reset', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
 
       const book1 = makeBook('book1')
       every(() => mockScanner.scanRootFolder(any())).returnsMany(scan([makeSeries('series'), [book1]]), scan([makeSeries('series'), [makeBook('book1')]]))
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       every(() => mockAnalyzer.analyze(any(), any())).returns(
         new Media({ status: Media.Status.READY, mediaType: 'application/zip', pages: [makeBookPage('1.jpg'), makeBookPage('2.jpg')], bookId: book1.id }),
       )
       every(() => mockHasher.computeHash(any())).returnsMany('abc', 'def')
 
-      bookRepository.findAll().map((it) => {
-        bookLifecycle.analyzeAndPersist(it)
-        bookLifecycle.hashAndPersist(it)
-      })
+      for (const it of bookRepository.findAll()) {
+        await bookLifecycle.analyzeAndPersist(it)
+        await bookLifecycle.hashAndPersist(it)
+      }
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -472,7 +472,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given 2 libraries when deleting all books of one and scanning then the other library is kept intact', () => {
+    it('given 2 libraries when deleting all books of one and scanning then the other library is kept intact', async () => {
       // given
       const library1 = makeLibrary({ name: 'library1' })
       libraryRepository.insert(library1)
@@ -483,14 +483,14 @@ describe('LibraryContentLifecycleTest', () => {
 
       every(() => mockScanner.scanRootFolder(urlToPath(library2.root))).returnsMany(scan([makeSeries('series2'), [makeBook('book2')]]), scan())
 
-      libraryContentLifecycle.scanRootFolder(library1)
-      libraryContentLifecycle.scanRootFolder(library2)
+      await libraryContentLifecycle.scanRootFolder(library1)
+      await libraryContentLifecycle.scanRootFolder(library2)
 
       expect(seriesRepository.count(), 'Series repository should not be empty').toBe(2)
       expect(bookRepository.count(), 'Book repository should not be empty').toBe(2)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library2)
+      await libraryContentLifecycle.scanRootFolder(library2)
 
       // then
       verify({ exactly: 1 }, () => mockScanner.scanRootFolder(urlToPath(library1.root)))
@@ -512,7 +512,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(sorted(booksLib2.map((it) => it.name))).toEqual(['book2'])
     })
 
-    it('given library with auto empty trash when scanning then removed series and books are deleted permanently', () => {
+    it('given library with auto empty trash when scanning then removed series and books are deleted permanently', async () => {
       // given
       const library = makeLibrary().copy({ emptyTrashAfterScan: true })
       libraryRepository.insert(library)
@@ -521,10 +521,10 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book3')]], [makeSeries('series2'), [makeBook('book2')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -543,7 +543,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(deletedBooks).toHaveLength(0)
     })
 
-    it('given library when scanning and the root folder is not accessible then exception is thrown', () => {
+    it('given library when scanning and the root folder is not accessible then exception is thrown', async () => {
       // given
       const library = makeLibrary().copy({ emptyTrashAfterScan: true })
       libraryRepository.insert(library)
@@ -556,10 +556,10 @@ describe('LibraryContentLifecycleTest', () => {
         throw new DirectoryNotFoundException('')
       })
 
-      libraryContentLifecycle.scanRootFolder(library)
+      await libraryContentLifecycle.scanRootFolder(library)
 
       // when
-      const thrown = catchThrowable(() => libraryContentLifecycle.scanRootFolder(library))
+      const thrown = await catchThrowable(() => libraryContentLifecycle.scanRootFolder(library))
 
       // then
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
@@ -582,7 +582,7 @@ describe('LibraryContentLifecycleTest', () => {
   })
 
   describe('Restore', () => {
-    it('given existing series when removing files and scanning, restoring files and scanning then restored books are available and media status is not set to outdated', () => {
+    it('given existing series when removing files and scanning, restoring files and scanning then restored books are available and media status is not set to outdated', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -594,7 +594,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1')]]),
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -618,10 +618,10 @@ describe('LibraryContentLifecycleTest', () => {
 
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
-      libraryContentLifecycle.scanRootFolder(library) // deletion
+      await libraryContentLifecycle.scanRootFolder(library) // deletion
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // restore
+      await libraryContentLifecycle.scanRootFolder(library) // restore
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -644,7 +644,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given existing series when deleting all books and scanning then restoring and scanning then Series and Books are available and media status is not set to outdated', () => {
+    it('given existing series when deleting all books and scanning then restoring and scanning then Series and Books are available and media status is not set to outdated', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -654,7 +654,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan(),
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       bookRepository.findAll().forEach((book) => {
         bookRepository.update(book.copy({ fileHash: `HASH-${book.name}` }))
@@ -685,10 +685,10 @@ describe('LibraryContentLifecycleTest', () => {
       const slot_ = slot<string>()
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
-      libraryContentLifecycle.scanRootFolder(library) // deletion
+      await libraryContentLifecycle.scanRootFolder(library) // deletion
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // restore
+      await libraryContentLifecycle.scanRootFolder(library) // restore
 
       // then
       verify({ exactly: 3 }, () => mockScanner.scanRootFolder(any()))
@@ -717,7 +717,7 @@ describe('LibraryContentLifecycleTest', () => {
   })
 
   describe('FileRename', () => {
-    it('given existing series when renaming 1 file and scanning then renamed book media and generated thumbnails are kept', () => {
+    it('given existing series when renaming 1 file and scanning then renamed book media and generated thumbnails are kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -729,7 +729,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book, makeBook('book2')]]),
         scan([makeSeries('series'), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -750,7 +750,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -770,7 +770,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given existing series when renaming 1 file and scanning but series modified time did not change then renamed book media and generated thumbnails are kept', () => {
+    it('given existing series when renaming 1 file and scanning but series modified time did not change then renamed book media and generated thumbnails are kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -783,7 +783,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([series, [book, makeBook('book2')]]),
         scan([makeSeries('series').copy({ fileLastModified: series.fileLastModified }), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -804,7 +804,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -824,7 +824,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given existing series when renaming 1 file and scanning then renamed book read progress is kept', () => {
+    it('given existing series when renaming 1 file and scanning then renamed book read progress is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -836,7 +836,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book, makeBook('book2')]]),
         scan([makeSeries('series'), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -849,7 +849,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -869,7 +869,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(readProgressRepository.findAll()).toHaveLength(1)
     })
 
-    it('given existing series when renaming 1 file and scanning then renamed book is still in read lists', () => {
+    it('given existing series when renaming 1 file and scanning then renamed book is still in read lists', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -881,7 +881,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book, makeBook('book2')]]),
         scan([makeSeries('series'), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -894,7 +894,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -915,7 +915,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it("given existing series when renaming 1 file with locked title and scanning then renamed book's title is not changed and book metadata is not refreshed for title", () => {
+    it("given existing series when renaming 1 file with locked title and scanning then renamed book's title is not changed and book metadata is not refreshed for title", async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -927,7 +927,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book, makeBook('book2')]]),
         scan([makeSeries('series'), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -945,7 +945,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -966,7 +966,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it("given existing series when renaming 1 file and scanning then renamed book's title matches the filename and book metadata is refreshed for title only", () => {
+    it("given existing series when renaming 1 file and scanning then renamed book's title matches the filename and book metadata is refreshed for title only", async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -978,7 +978,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [book, makeBook('book2')]]),
         scan([makeSeries('series'), [bookRenamed, makeBook('book2')]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book.id)
@@ -990,7 +990,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -1014,7 +1014,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given series when renaming all files in its folder and scanning then series books media is kept', () => {
+    it('given series when renaming all files in its folder and scanning then series books media is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1023,7 +1023,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 })]]),
         scan([makeSeries('series1'), [makeBook('book2').copy({ fileSize: 1 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = seriesRepository.findAll()[0]!
@@ -1041,7 +1041,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -1069,7 +1069,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it('given series when renaming all files in its folder but folder modified time is not changed and scanning then series books media is kept', () => {
+    it('given series when renaming all files in its folder but folder modified time is not changed and scanning then series books media is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1079,7 +1079,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([series, [makeBook('book1').copy({ fileSize: 1 })]]),
         scan([makeSeries('series1').copy({ fileLastModified: series.fileLastModified }), [makeBook('book2').copy({ fileSize: 1 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = seriesRepository.findAll()[0]!
@@ -1097,7 +1097,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () => mockHasher.computeHash(any()))
@@ -1128,7 +1128,7 @@ describe('LibraryContentLifecycleTest', () => {
 
   describe('FileMoveToAnotherFolder', () => {
     // @DisplayName("given 2 series when moving 1 file from 1 series to another and scanning then moved book's media is kept")
-    it('file moved media kept', () => {
+    it('file moved media kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1140,7 +1140,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1'), book2]], [makeSeries('series2'), [makeBook('book1')]]),
         scan([makeSeries('series1'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book1'), book2Moved]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -1153,7 +1153,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1180,7 +1180,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it('given 2 series when moving 1 file from 1 series to another and scanning then moved book read progress is kept', () => {
+    it('given 2 series when moving 1 file from 1 series to another and scanning then moved book read progress is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1192,7 +1192,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1'), book2]], [makeSeries('series2'), [makeBook('book1')]]),
         scan([makeSeries('series1'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book1'), book2Moved]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -1205,7 +1205,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1234,7 +1234,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(readProgressRepository.findAll()).toHaveLength(1)
     })
 
-    it('given 2 series when moving 1 file from 1 series to another and scanning then moved book is still in read lists', () => {
+    it('given 2 series when moving 1 file from 1 series to another and scanning then moved book is still in read lists', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1246,7 +1246,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1'), book2]], [makeSeries('series2'), [makeBook('book1')]]),
         scan([makeSeries('series1'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book1'), book2Moved]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -1259,7 +1259,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1288,7 +1288,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it("given 2 series when moving 1 file with locked title from 1 series to another and scanning then moved book's title is not changed and book metadata is not refreshed for title", () => {
+    it("given 2 series when moving 1 file with locked title from 1 series to another and scanning then moved book's title is not changed and book metadata is not refreshed for title", async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1300,7 +1300,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1'), book2]], [makeSeries('series2'), [makeBook('book1')]]),
         scan([makeSeries('series1'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book1'), book2Moved]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -1318,7 +1318,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 0 }, () => mockTaskEmitter.refreshBookMetadata(book2Moved, { capabilities: new Set([BookMetadataPatchCapability.TITLE]) }))
@@ -1350,7 +1350,7 @@ describe('LibraryContentLifecycleTest', () => {
     })
 
     // @DisplayName("given 2 series when moving 1 file from 1 series to another and scanning then moved book's title matches the filename and book metadata is refreshed for title only")
-    it('file moved title refreshed', () => {
+    it('file moved title refreshed', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1362,7 +1362,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1'), book2]], [makeSeries('series2'), [makeBook('book1')]]),
         scan([makeSeries('series1'), [makeBook('book1')]], [makeSeries('series2'), [makeBook('book1'), book2Moved]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = bookRepository.findByIdOrNull(book2.id)
@@ -1374,7 +1374,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(any())).returns('sameHash')
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 1 }, () =>
@@ -1410,7 +1410,7 @@ describe('LibraryContentLifecycleTest', () => {
   })
 
   describe('RenameFolder', () => {
-    it('given series when renaming folder and scanning then renamed series books media is kept', () => {
+    it('given series when renaming folder and scanning then renamed series books media is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1419,7 +1419,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
         scan([makeSeries('series2'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       bookRepository.findAll().forEach((book) => {
         bookRepository.update(book.copy({ fileHash: `HASH-${book.name}` }))
@@ -1433,7 +1433,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       verify({ exactly: 2 }, () => mockHasher.computeHash(any()))
@@ -1456,7 +1456,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it('given series when renaming folder and scanning then renamed series read progress is kept', () => {
+    it('given series when renaming folder and scanning then renamed series read progress is kept', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1465,7 +1465,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
         scan([makeSeries('series2'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = seriesRepository.findAll()[0]!
@@ -1480,7 +1480,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1503,7 +1503,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(readProgressRepository.findAll()).toHaveLength(2)
     })
 
-    it('given series when renaming folder and scanning then renamed series is still in collections', () => {
+    it('given series when renaming folder and scanning then renamed series is still in collections', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1512,7 +1512,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
         scan([makeSeries('series2'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = seriesRepository.findAll()[0]!
@@ -1527,7 +1527,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1548,7 +1548,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it('given series when renaming folder with locked title and scanning then renamed series title is not changed', () => {
+    it('given series when renaming folder with locked title and scanning then renamed series title is not changed', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1557,7 +1557,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
         scan([makeSeries('series2'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       {
         const it = seriesRepository.findAll()[0]!
@@ -1572,7 +1572,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1596,7 +1596,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
     })
 
-    it('given series when renaming folder and scanning then renamed series title matches the folder name', () => {
+    it('given series when renaming folder and scanning then renamed series title matches the folder name', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1605,7 +1605,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series1'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
         scan([makeSeries('series2'), [makeBook('book1').copy({ fileSize: 1 }), makeBook('book2').copy({ fileSize: 2 })]]),
       )
-      libraryContentLifecycle.scanRootFolder(library) // creation
+      await libraryContentLifecycle.scanRootFolder(library) // creation
 
       bookRepository.findAll().forEach((book) => {
         bookRepository.update(book.copy({ fileHash: `HASH-${book.name}` }))
@@ -1615,7 +1615,7 @@ describe('LibraryContentLifecycleTest', () => {
       every(() => mockHasher.computeHash(capture(slot_))).answers(() => `HASH-${pathNameWithoutExtension(slot_.captured)}`)
 
       // when
-      libraryContentLifecycle.scanRootFolder(library) // rename
+      await libraryContentLifecycle.scanRootFolder(library) // rename
 
       // then
       const allSeries = seriesRepository.findAll()
@@ -1639,7 +1639,7 @@ describe('LibraryContentLifecycleTest', () => {
   })
 
   describe('EmptyTrash', () => {
-    it('given library with deleted series and books when emptying the trash then deleted elements are permanently removed', () => {
+    it('given library with deleted series and books when emptying the trash then deleted elements are permanently removed', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1648,7 +1648,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book3')]], [makeSeries('series2'), [makeBook('book2')]]),
         scan([makeSeries('series'), [makeBook('book1')]]),
       )
-      for (let i = 0; i < 2; i++) libraryContentLifecycle.scanRootFolder(library)
+      for (let i = 0; i < 2; i++) await libraryContentLifecycle.scanRootFolder(library)
 
       // when
       libraryContentLifecycle.emptyTrash(library)
@@ -1666,7 +1666,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(deletedBooks).toHaveLength(0)
     })
 
-    it('given series with books when emptying the trash then the series is properly sorted', () => {
+    it('given series with books when emptying the trash then the series is properly sorted', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
@@ -1675,7 +1675,7 @@ describe('LibraryContentLifecycleTest', () => {
         scan([makeSeries('series'), [makeBook('book1'), makeBook('book2'), makeBook('book3')]]),
         scan([makeSeries('series'), [makeBook('book2'), makeBook('book3')]]),
       )
-      for (let i = 0; i < 2; i++) libraryContentLifecycle.scanRootFolder(library)
+      for (let i = 0; i < 2; i++) await libraryContentLifecycle.scanRootFolder(library)
 
       // when
       libraryContentLifecycle.emptyTrash(library)
@@ -1697,13 +1697,13 @@ describe('LibraryContentLifecycleTest', () => {
       }
     })
 
-    it('given collection and read list with deleted elements when emptying the trash then those sets are deleted', () => {
+    it('given collection and read list with deleted elements when emptying the trash then those sets are deleted', async () => {
       // given
       const library = makeLibrary()
       libraryRepository.insert(library)
 
       every(() => mockScanner.scanRootFolder(any())).returnsMany(scan([makeSeries('series'), [makeBook('book1'), makeBook('book2'), makeBook('book3')]]), scan())
-      for (let i = 0; i < 2; i++) libraryContentLifecycle.scanRootFolder(library)
+      for (let i = 0; i < 2; i++) await libraryContentLifecycle.scanRootFolder(library)
 
       collectionRepository.insert(new SeriesCollection({ name: 'collection', seriesIds: [...seriesRepository.findAllIdsByLibraryId(library.id)] }))
       readListRepository.insert(new ReadList({ name: 'readlist', bookIds: toIndexedMap([...bookRepository.findAllIdsByLibraryId(library.id)]) }))

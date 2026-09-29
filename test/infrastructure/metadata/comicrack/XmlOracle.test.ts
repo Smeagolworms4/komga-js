@@ -89,7 +89,7 @@ describe('XmlOracle', () => {
   const ci = new ComicInfoProvider(new XmlMapper(), analyzer as never, new ISBNValidator(true))
   const rl = new ReadListProvider(new XmlMapper())
 
-  it('matches Komga on every fixture', () => {
+  it('matches Komga on every fixture', async () => {
     const mismatches: unknown[] = []
     for (const c of cases) {
       const bytes = new Uint8Array(Buffer.from(c.b64, 'base64'))
@@ -102,17 +102,17 @@ describe('XmlOracle', () => {
         }
         current = bytes
         try {
-          r.book = dumpBookPatch(ci.getBookMetadataFromBook(bwm))
+          r.book = dumpBookPatch(await ci.getBookMetadataFromBook(bwm))
         } catch {
           r.book = EXC
         }
         try {
-          r.series = dumpSeriesPatch(ci.getSeriesMetadataFromBook(bwm, true))
+          r.series = dumpSeriesPatch(await ci.getSeriesMetadataFromBook(bwm, true))
         } catch {
           r.series = EXC
         }
         try {
-          r.seriesNoAppend = dumpSeriesPatch(ci.getSeriesMetadataFromBook(bwm, false))
+          r.seriesNoAppend = dumpSeriesPatch(await ci.getSeriesMetadataFromBook(bwm, false))
         } catch {
           r.seriesNoAppend = EXC
         }

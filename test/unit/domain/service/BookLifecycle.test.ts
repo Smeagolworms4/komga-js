@@ -131,59 +131,61 @@ func('analyzeAndPersist', () => {
     return db.bookDao.count()
   })
   for (const id of ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']) {
-    kase(`book ${id}`, () => attempt(dir(), () => [lifecycle.analyzeAndPersist(b(id)), media(id), events()]))
+    kase(`book ${id}`, () => attempt(dir(), async () => [await lifecycle.analyzeAndPersist(b(id)), media(id), events()]))
   }
   kase('outdated with other page count adjusts progress', () => {
     db.readProgressDao.save(new ReadProgress({ bookId: 'B1', userId: 'U1', page: 5, completed: false, readDate: date, createdDate: date }))
     db.komgaUserDao.insert(new KomgaUser({ email: 'u2@example.org', password: 'p', id: 'U2', createdDate: date }))
     db.readProgressDao.save(new ReadProgress({ bookId: 'B1', userId: 'U2', page: 5, completed: true, readDate: date, createdDate: date }))
     db.mediaDao.update(db.mediaDao.findById('B1').copy({ status: Media.Status.OUTDATED, pageCount: 5 }))
-    return attempt(dir(), () => [
-      lifecycle.analyzeAndPersist(b('B1')),
+    return attempt(dir(), async () => [
+      await lifecycle.analyzeAndPersist(b('B1')),
       [...db.readProgressDao.findAllByBookId('B1')].sort(byKey((it) => it.userId)).map((it) => [it.userId, it.page, it.completed]),
     ])
   })
   kase('outdated with same page count keeps progress', () => {
     db.readProgressDao.save(new ReadProgress({ bookId: 'B1', userId: 'U1', page: 2, completed: false, readDate: date, createdDate: date }))
     db.mediaDao.update(db.mediaDao.findById('B1').copy({ status: Media.Status.OUTDATED }))
-    return attempt(dir(), () => [
-      lifecycle.analyzeAndPersist(b('B1')),
+    return attempt(dir(), async () => [
+      await lifecycle.analyzeAndPersist(b('B1')),
       [...db.readProgressDao.findAllByBookId('B1')].sort(byKey((it) => it.userId)).map((it) => [it.userId, it.page, it.completed]),
     ])
   })
   kase('unknown library', () => exceptionType(() => lifecycle.analyzeAndPersist(b('B1').copy({ libraryId: 'L9' }))))
 })
 func('hashAndPersist', () => {
-  kase('hashing enabled', () => {
-    lifecycle.hashAndPersist(b('B1'))
+  kase('hashing enabled', async () => {
+    await lifecycle.hashAndPersist(b('B1'))
     return b('B1').fileHash
   })
-  kase('already hashed', () => {
+  kase('already hashed', async () => {
     db.bookDao.update(b('B2').copy({ fileHash: 'existing' }))
-    lifecycle.hashAndPersist(b('B2'))
+    await lifecycle.hashAndPersist(b('B2'))
     return b('B2').fileHash
   })
-  kase('hashing disabled', () => {
-    lifecycle.hashAndPersist(b('B8'))
+  kase('hashing disabled', async () => {
+    await lifecycle.hashAndPersist(b('B8'))
     return b('B8').fileHash
   })
   kase('missing file', () => attempt(dir(), () => lifecycle.hashAndPersist(b('B5'))))
 })
 func('hashKoreaderAndPersist', () => {
-  kase('hashing disabled', () => {
-    lifecycle.hashKoreaderAndPersist(b('B1'))
+  kase('hashing disabled', async () => {
+    await lifecycle.hashKoreaderAndPersist(b('B1'))
     return b('B1').fileHashKoreader
   })
-  kase('hashing enabled', () => {
+  kase('hashing enabled', async () => {
     db.libraryDao.update(db.libraryDao.findById('L1').copy({ hashKoreader: true }))
-    return ['B1', 'B4'].map((it) => {
-      lifecycle.hashKoreaderAndPersist(b(it))
-      return b(it).fileHashKoreader
-    })
+    const out: (string | null)[] = []
+    for (const it of ['B1', 'B4']) {
+      await lifecycle.hashKoreaderAndPersist(b(it))
+      out.push(b(it).fileHashKoreader)
+    }
+    return out
   })
-  kase('already hashed', () => {
+  kase('already hashed', async () => {
     db.bookDao.update(b('B2').copy({ fileHashKoreader: 'existing' }))
-    lifecycle.hashKoreaderAndPersist(b('B2'))
+    await lifecycle.hashKoreaderAndPersist(b('B2'))
     return b('B2').fileHashKoreader
   })
   kase('missing file', () => attempt(dir(), () => lifecycle.hashKoreaderAndPersist(b('B5'))))
@@ -407,8 +409,8 @@ func('deleteReadProgress', () => {
   })
 })
 func('markProgression', () => {
-  kase('setup', () => {
-    lifecycle.analyzeAndPersist(b('B2'))
+  kase('setup', async () => {
+    await lifecycle.analyzeAndPersist(b('B2'))
     events()
     return (db.mediaDao.findExtensionByIdOrNull('B3') as MediaExtensionEpub).positions.map((it) => [
       it.href,

@@ -91,10 +91,10 @@ describe('TransientBookLifecycleTest', () => {
 
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
-    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
       new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: 15, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
-    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({
         title: 'BATMAN',
         titleSort: null,
@@ -124,10 +124,10 @@ describe('TransientBookLifecycleTest', () => {
 
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
-    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
       new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
-    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({
         title: null,
         titleSort: null,
@@ -157,10 +157,10 @@ describe('TransientBookLifecycleTest', () => {
 
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
-    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
       new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
-    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockReturnValue(
+    vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({
         title: ' ',
         titleSort: null,

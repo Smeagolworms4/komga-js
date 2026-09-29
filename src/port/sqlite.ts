@@ -34,6 +34,8 @@ export class SQLiteConfig {
   journalMode: string | null = null
   /** sqlite-jdbc : busy_timeout par défaut 3000 ms */
   busyTimeout = 3000
+  /** `synchronous` en mode WAL (sqlite-jdbc : FULL) */
+  walSynchronous: 'FULL' | 'NORMAL' = 'FULL'
 }
 
 /** `org.sqlite.SQLiteDataSource` */
@@ -77,7 +79,7 @@ export class SQLiteDataSource {
     db.pragma(`busy_timeout = ${Math.max(this.config.busyTimeout, HIKARI_CONNECTION_TIMEOUT)}`)
     db.pragma(`foreign_keys = ${this.config.enforceForeignKeys ? 'ON' : 'OFF'}`)
     if (this.config.journalMode) db.pragma(`journal_mode = ${this.config.journalMode}`)
-    if (String(db.pragma('journal_mode', { simple: true })).toUpperCase() === 'WAL') db.pragma('synchronous = FULL')
+    if (String(db.pragma('journal_mode', { simple: true })).toUpperCase() === 'WAL') db.pragma(`synchronous = ${this.config.walSynchronous}`)
   }
 }
 

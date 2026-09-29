@@ -100,8 +100,8 @@ const take = <T>(v: T) => {
 }
 
 func('scanTransientBooks', () => {
-  kase('sorted by path', () => [c.scanTransientBooks(scan('/t')), calls.take()])
-  kase('coded exception', () => [c.scanTransientBooks(scan('/bad')), calls.take()])
+  kase('sorted by path', async () => [await c.scanTransientBooks(scan('/t')), calls.take()])
+  kase('coded exception', async () => [await c.scanTransientBooks(scan('/bad')), calls.take()])
   kase('other exception', async () => [await exceptionType(() => c.scanTransientBooks(scan('/boom'))), calls.take()])
 })
 func('analyzeTransientBook', () => {
@@ -111,10 +111,10 @@ func('analyzeTransientBook', () => {
   kase('not found', async () => [await exceptionType(() => c.analyzeTransientBook('NOPE')), calls.take()])
 })
 func('getPageByTransientBookId', () => {
-  kase('page', async () => [await entity(c.getPageByTransientBookId('T1', 1, request())), calls.take()])
-  kase('invalid media type', async () => take(await entity(c.getPageByTransientBookId('T1', 2, request()))))
-  kase('not modified', async () => [await entity(c.getPageByTransientBookId('T1', 1, request('Thu, 06 May 2021 07:08:09 GMT'))), calls.take()])
-  kase('modified since earlier', async () => take(await entity(c.getPageByTransientBookId('T1', 1, request('Wed, 05 May 2021 07:08:09 GMT')))))
+  kase('page', async () => [await entity(await c.getPageByTransientBookId('T1', 1, request())), calls.take()])
+  kase('invalid media type', async () => take(await entity(await c.getPageByTransientBookId('T1', 2, request()))))
+  kase('not modified', async () => [await entity(await c.getPageByTransientBookId('T1', 1, request('Thu, 06 May 2021 07:08:09 GMT'))), calls.take()])
+  kase('modified since earlier', async () => take(await entity(await c.getPageByTransientBookId('T1', 1, request('Wed, 05 May 2021 07:08:09 GMT')))))
   kase('page does not exist', () => c.getPageByTransientBookId('T1', 99, request()))
   kase('media not ready', () => c.getPageByTransientBookId('T1', 98, request()))
   kase('file not found', () => c.getPageByTransientBookId('T1', 97, request()))
@@ -122,5 +122,5 @@ func('getPageByTransientBookId', () => {
   kase('unknown book', () => c.getPageByTransientBookId('NOPE', 1, request()))
 })
 func('toDto', () => {
-  kase('via scan: unanalyzed', () => take(c.scanTransientBooks(scan('/t')).map((it) => it.pages.length)))
+  kase('via scan: unanalyzed', async () => take((await c.scanTransientBooks(scan('/t'))).map((it) => it.pages.length)))
 })

@@ -31,11 +31,11 @@ describe('hash oracle', () => {
     expect(hasher.computeHash(ByteArrayInputStream.ofString('hello'))).toBe('b5e9c1ad071b3e7fc779cfaa5e523818')
   })
 
-  it('computeHash(Path) matches Komga', () => {
-    for (const f of oracle.files) expect(hasher.computeHash(join(resources, f.path)), f.path).toBe(f.xxh3_128)
+  it('computeHash(Path) matches Komga', async () => {
+    for (const f of oracle.files) expect(await hasher.computeHash(join(resources, f.path)), f.path).toBe(f.xxh3_128)
   })
 
-  it('KoreaderHasher.computeHash(Path) matches Komga', () => {
-    for (const f of oracle.files) expect(koreaderHasher.computeHash(join(resources, f.path)), f.path).toBe(f.koreader)
+  it('KoreaderHasher.computeHash(Path) matches Komga', async () => {
+    for (const f of oracle.files) expect(await koreaderHasher.computeHash(join(resources, f.path)), f.path).toBe(f.koreader)
   })
 })

@@ -108,7 +108,11 @@ export class TasksDao extends SplitDslDaoBase implements TasksRepository {
         [...tasks].map((it) => this.toQuery(it, this.dslRW)),
         this.batchSize,
       ))
-        this.dslRW.batch(chunk).execute()
+        // PORT: chaque lot dans une transaction : sqlite-jdbc (autocommit) valide chaque insertion séparément, avec une
+        // synchronisation du disque à chaque fois (WAL, synchronous FULL) ; sur le thread unique de KomgaJS, des milliers
+        // de tâches émises d'un coup (analyse et empreintes de toute une bibliothèque) bloquaient le serveur plusieurs
+        // secondes. Même contenu ; seule différence, un lot en échec est annulé en entier
+        this.dslRW.transaction(() => this.dslRW.batch(chunk).execute())
     }
   }
 
