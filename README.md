@@ -220,7 +220,15 @@ Questions about Komga itself belong on [Komga's Discord](https://discord.gg/TdRp
 [here](https://github.com/Smeagolworms4/komga-js/issues).
 
 The TypeScript port is by [SmeagolWorms4](https://github.com/Smeagolworms4), also the author
-of [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync).
+of [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). If KomgaJS is useful
+to you and you would like to support the port as well, you can sponsor it too:
+
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/Smeagolworms4?label=Github%20Sponsors&color=success)](https://github.com/sponsors/Smeagolworms4)
+
+To be clear about who deserves what: Komga, its ideas, its design and all the work behind
+them belong to Gauthier Roebroeck and the Komga contributors, and they should come first.
+Supporting the port is welcome, but it is not a substitute: if you give something, please
+give to Komga first.
 
 ## Licence
 

@@ -231,7 +231,15 @@ et [le site](https://komga.org) de Komga ; les problèmes propres à ce portage,
 [ici](https://github.com/Smeagolworms4/komga-js/issues).
 
 Le portage TypeScript est l'œuvre de [SmeagolWorms4](https://github.com/Smeagolworms4),
-auteur aussi de [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync).
+auteur aussi de [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Si
+KomgaJS vous rend service et que vous voulez aussi soutenir le portage, c'est possible :
+
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/Smeagolworms4?label=Github%20Sponsors&color=success)](https://github.com/sponsors/Smeagolworms4)
+
+Pour être clair sur ce qui revient à qui : Komga, ses idées, sa conception et tout le travail
+qui les porte sont l'œuvre de Gauthier Roebroeck et des contributeurs de Komga, et c'est à eux
+que revient la première place. Soutenir le portage fait plaisir, mais ne remplace pas le
+soutien à l'original : si vous donnez, donnez d'abord à Komga.
 
 ## Licence
 
