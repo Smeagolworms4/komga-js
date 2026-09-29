@@ -74,8 +74,8 @@ func('scanAndPersist', () => {
     return true
   })
   kase('folder outside libraries', () =>
-    attempt(dir(), () => {
-      const list = lifecycle.scanAndPersist(join(dir(), 'import'))
+    attempt(dir(), async () => {
+      const list = await lifecycle.scanAndPersist(join(dir(), 'import'))
       for (const it of list) scanned.set(it.book.name, it)
       return list.map(brief).sort(byFirst)
     }),
@@ -92,7 +92,7 @@ func('scanAndPersist', () => {
   )
   kase('library folder', () => attempt(dir(), () => lifecycle.scanAndPersist(join(dir(), 'library'))))
   kase('library subfolder', () => attempt(dir(), () => lifecycle.scanAndPersist(join(dir(), 'library/sub'))))
-  kase('parent of library', () => attempt(dir(), () => lifecycle.scanAndPersist(dir()).map(brief).sort(byFirst)))
+  kase('parent of library', () => attempt(dir(), async () => (await lifecycle.scanAndPersist(dir())).map(brief).sort(byFirst)))
   kase('missing folder', () => attempt(dir(), () => lifecycle.scanAndPersist(join(dir(), 'nope'))))
   kase('relative path', () => attempt(dir(), () => lifecycle.scanAndPersist('does/not/exist')))
 })
@@ -122,15 +122,15 @@ func('getMetadata', () => {
 })
 func('getBookPage', () => {
   kase('zip page', () =>
-    attempt(dir(), () => {
-      const it = lifecycle.getBookPage(tb('batman'), 1)
+    attempt(dir(), async () => {
+      const it = await lifecycle.getBookPage(tb('batman'), 1)
       return [digest(it.bytes), it.mediaType]
     }),
   )
   kase('page 2', () => attempt(dir(), () => lifecycle.getBookPage(tb('batman'), 2)))
   kase('pdf page', () =>
     attempt(dir(), async () => {
-      const it = lifecycle.getBookPage(tb('doc'), 1)
+      const it = await lifecycle.getBookPage(tb('doc'), 1)
       return [await graph.describeImage(it.bytes), it.mediaType]
     }),
   )

@@ -26,4 +26,5 @@ if [ -z "$HEAP_MB" ]; then
 fi
 HEAP_OPT=""
 [ -n "$HEAP_MB" ] && HEAP_OPT="--max-old-space-size=$HEAP_MB"
-exec node --max-semi-space-size=4 $HEAP_OPT "$DIR/dist/src/main.js" "$@"
+# --expose-gc : ramasse-miettes complet quand le pool de tâches devient inactif (src/port/spring-boot-application.ts)
+exec node --expose-gc --max-semi-space-size=4 $HEAP_OPT "$DIR/dist/src/main.js" "$@"

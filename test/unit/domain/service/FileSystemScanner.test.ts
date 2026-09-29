@@ -113,29 +113,29 @@ func('scanRootFolder', () => {
     touchDirs()
     return true
   })
-  kase('defaults', () => scan(() => describe(scanner.scanRootFolder(root()))))
-  kase('force directory modified time', () => scan(() => describe(scanner.scanRootFolder(root(), { forceDirectoryModifiedTime: true }))))
-  kase('oneshots directory', () => scan(() => describe(scanner.scanRootFolder(root(), { oneshotsDir: '_ONESHOTS' }))))
-  kase('blank oneshots directory', () => scan(() => describe(scanner.scanRootFolder(root(), { oneshotsDir: ' ' }))))
-  kase('cbx only', () => scan(() => describe(scanner.scanRootFolder(root(), { scanPdf: false, scanEpub: false }))))
-  kase('nothing scanned', () => scan(() => describe(scanner.scanRootFolder(root(), { scanCbx: false, scanPdf: false, scanEpub: false }))))
-  kase('directory exclusions', () => scan(() => describe(scanner.scanRootFolder(root(), { directoryExclusions: new Set(['@eaDir', 'recycle', 'SUB']) }))))
-  kase('exclusion matching root', () => scan(() => describe(scanner.scanRootFolder(root(), { directoryExclusions: new Set(['root']) }))))
-  kase('subfolder', () => scan(() => describe(scanner.scanRootFolder(r('b')))))
+  kase('defaults', () => scan(async () => describe(await scanner.scanRootFolder(root()))))
+  kase('force directory modified time', () => scan(async () => describe(await scanner.scanRootFolder(root(), { forceDirectoryModifiedTime: true }))))
+  kase('oneshots directory', () => scan(async () => describe(await scanner.scanRootFolder(root(), { oneshotsDir: '_ONESHOTS' }))))
+  kase('blank oneshots directory', () => scan(async () => describe(await scanner.scanRootFolder(root(), { oneshotsDir: ' ' }))))
+  kase('cbx only', () => scan(async () => describe(await scanner.scanRootFolder(root(), { scanPdf: false, scanEpub: false }))))
+  kase('nothing scanned', () => scan(async () => describe(await scanner.scanRootFolder(root(), { scanCbx: false, scanPdf: false, scanEpub: false }))))
+  kase('directory exclusions', () => scan(async () => describe(await scanner.scanRootFolder(root(), { directoryExclusions: new Set(['@eaDir', 'recycle', 'SUB']) }))))
+  kase('exclusion matching root', () => scan(async () => describe(await scanner.scanRootFolder(root(), { directoryExclusions: new Set(['root']) }))))
+  kase('subfolder', () => scan(async () => describe(await scanner.scanRootFolder(r('b')))))
   kase('missing folder', () => scan(() => scanner.scanRootFolder(r('nope'))))
   kase('file as root', () => scan(() => scanner.scanRootFolder(r('root.cbz'))))
-  kase('series name of root', () => scan(() => describe(scanner.scanRootFolder(r('a')))))
+  kase('series name of root', () => scan(async () => describe(await scanner.scanRootFolder(r('a')))))
 })
 func('preVisitDirectory', () => {
-  kase('hidden and excluded directories skipped', () => scan(() => describe(scanner.scanRootFolder(root(), { directoryExclusions: new Set(['ünï']) }))[0]))
+  kase('hidden and excluded directories skipped', () => scan(async () => describe(await scanner.scanRootFolder(root(), { directoryExclusions: new Set(['ünï']) }))[0]))
 })
 func('visitFile', () => {
-  kase('extensions, hidden files and sidecars', () => scan(() => describe(scanner.scanRootFolder(r('a')))))
-  kase('symbolic links', () => scan(() => describe(scanner.scanRootFolder(r('links')))))
+  kase('extensions, hidden files and sidecars', () => scan(async () => describe(await scanner.scanRootFolder(r('a')))))
+  kase('symbolic links', () => scan(async () => describe(await scanner.scanRootFolder(r('links')))))
 })
 func('postVisitDirectory', () => {
-  kase('series with books only', () => scan(() => describe(scanner.scanRootFolder(r('empty')))))
-  kase('oneshots sidecars', () => scan(() => describe(scanner.scanRootFolder(r('_oneshots'), { oneshotsDir: 'oneshots' }))))
+  kase('series with books only', () => scan(async () => describe(await scanner.scanRootFolder(r('empty')))))
+  kase('oneshots sidecars', () => scan(async () => describe(await scanner.scanRootFolder(r('_oneshots'), { oneshotsDir: 'oneshots' }))))
 })
 func('visitFileFailed', () => {
   kase('unreadable directory', async () => {
@@ -144,8 +144,8 @@ func('visitFileFailed', () => {
     writeFileSync(join(locked, 'l.cbz'), oracleBytes(1))
     chmodSync(locked, 0o000)
     try {
-      return await scan(() =>
-        describe(scanner.scanRootFolder(root(), { directoryExclusions: new Set(['a', 'b', '_', 'ü', 'links', 'empty', 'Recycle', '@']) })),
+      return await scan(async () =>
+        describe(await scanner.scanRootFolder(root(), { directoryExclusions: new Set(['a', 'b', '_', 'ü', 'links', 'empty', 'Recycle', '@']) })),
       )
     } finally {
       chmodSync(locked, 0o755)

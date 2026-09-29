@@ -226,7 +226,8 @@ export class CommonBookController {
     }
   }
 
-  getBookEpubResource(request: HttpServletRequest, principal: KomgaPrincipal | null, bookId: string, resource: string): ResponseEntity<Uint8Array> {
+  // PORT: async (BookAnalyzer.getFileContent)
+  async getBookEpubResource(request: HttpServletRequest, principal: KomgaPrincipal | null, bookId: string, resource: string): Promise<ResponseEntity<Uint8Array>> {
     const resourceName = resource.startsWith('/') ? resource.substring(1) : resource
     const isFont = FONT_EXTENSIONS.includes(FilenameUtils.getExtension(resourceName).toLowerCase())
 
@@ -245,7 +246,7 @@ export class CommonBookController {
     const res = media.files.find((it) => it.fileName === resourceName) ?? (() => { throw new ResponseStatusException(HttpStatus.NOT_FOUND) })()
     let bytes: Uint8Array
     try {
-      bytes = this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), resourceName)
+      bytes = await this.bookAnalyzer.getFileContent(new BookWithMedia({ book: book, media: media }), resourceName)
     } catch (e) {
       if (e instanceof EntryNotFoundException) throw new ResponseStatusException(HttpStatus.NOT_FOUND)
       throw e

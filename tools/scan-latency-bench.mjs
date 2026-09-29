@@ -134,14 +134,20 @@ if (process.env.BENCH_PHASES !== '1') {
 clearInterval(rssSampler)
 const hwm = mb('VmHWM')
 const afterRss = mb('VmRSS')
-// BENCH_IDLE_WAIT_S : RSS après une période d'inactivité (arrêt du worker des tâches inactif)
+// BENCH_IDLE_WAIT_S : RSS après une période d'inactivité (arrêt du worker des tâches inactif, ou des threads du pool
+// de tâches) ; relevé toutes les 5 s (idleMin : le plus bas)
 let idleAfter = null
+let idleMin = null
 if (process.env.BENCH_IDLE_WAIT_S) {
-  await sleep(Number(process.env.BENCH_IDLE_WAIT_S) * 1000)
-  idleAfter = mb('VmRSS')
+  const end = Date.now() + Number(process.env.BENCH_IDLE_WAIT_S) * 1000
+  while (Date.now() < end) {
+    await sleep(Math.min(5000, end - Date.now()))
+    idleAfter = mb('VmRSS')
+    idleMin = Math.min(idleMin ?? idleAfter, idleAfter)
+  }
 }
 
-console.log(JSON.stringify({ books, rssMb: { idle, peak: Math.max(peakRss, hwm), after: afterRss, idleAfter }, newLibrary: first, rescanModified: rescan }))
+console.log(JSON.stringify({ books, rssMb: { idle, peak: Math.max(peakRss, hwm), after: afterRss, idleAfter, idleMin }, newLibrary: first, rescanModified: rescan }))
 if (process.env.BENCH_LOG) console.log(log)
 child.kill('SIGTERM')
 await sleep(3000)

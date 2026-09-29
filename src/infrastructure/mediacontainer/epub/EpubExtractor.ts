@@ -17,9 +17,9 @@ import { component } from '../../../port/spring.js'
 import { KomgaProperties } from '../../configuration/KomgaProperties.js'
 import { ImageAnalyzer } from '../../image/ImageAnalyzer.js'
 import { KepubConverter } from '../../kobo/KepubConverter.js'
-import { getEntryBytes, getEntryInputStream, getZipEntryBytes } from '../../util/ZipFileUtils.js'
+import { getEntryBytes, getEntryBytesAsync, getEntryInputStream, getZipEntryBytes, getZipEntryBytesBlocking } from '../../util/ZipFileUtils.js'
 import { ContentDetector } from '../ContentDetector.js'
-import { type EpubPackage, epub } from './Epub.js'
+import { type EpubPackage, epub, epubAsync } from './Epub.js'
 import { Epub2Nav } from './Epub2Nav.js'
 import { Epub3Nav } from './Epub3Nav.js'
 import { getNavResource, processNav } from './Nav.js'
@@ -54,13 +54,15 @@ export class EpubExtractor {
   /**
    * Retrieves a specific entry by name from the zip archive
    */
-  getEntryStream(path: string, entryName: string): Uint8Array {
+  // PORT: async (getZipEntryBytes)
+  getEntryStream(path: string, entryName: string): Promise<Uint8Array> {
     return getZipEntryBytes(path, entryName)
   }
 
-  isEpub(path: string): boolean {
+  // PORT: async (getEntryStream)
+  async isEpub(path: string): Promise<boolean> {
     try {
-      return new TextDecoder().decode(this.getEntryStream(path, 'mimetype')).trim() === 'application/epub+zip'
+      return new TextDecoder().decode(await this.getEntryStream(path, 'mimetype')).trim() === 'application/epub+zip'
     } catch {
       return false
     }
@@ -69,8 +71,9 @@ export class EpubExtractor {
   /**
    * Retrieves the book cover along with its mediaType from the epub 2/3 manifest
    */
-  getCover(path: string): TypedBytes | null {
-    return epub(path, ({ zip, opfDoc, opfDir, manifest }) => {
+  // PORT: async (archive ouverte et image lue sur le pool de libuv : epubAsync, getEntryBytesAsync)
+  async getCover(path: string): Promise<TypedBytes | null> {
+    return await epubAsync(path, async ({ zip, opfDoc, opfDir, manifest }) => {
       const coverManifestItem =
         // EPUB 3 - try to get cover from manifest properties 'cover-image'
         firstOrNull(manifest.values(), (it) => it.properties.has('cover-image')) ??
@@ -86,7 +89,7 @@ export class EpubExtractor {
         const href = urlDecode(coverManifestItem.href)
         const mediaType = coverManifestItem.mediaType
         const coverPath = normalizeHref(opfDir, href)
-        const coverBytes = getEntryBytes(zip, coverPath)
+        const coverBytes = await getEntryBytesAsync(zip, coverPath)
         return coverBytes !== null ? new TypedBytes({ bytes: coverBytes, mediaType: mediaType }) : null
       } else {
         return null
@@ -245,7 +248,8 @@ export class EpubExtractor {
     )
   }
 
-  computePositions(epub: EpubPackage, book: Book, resources: MediaFile[], isFixedLayout: boolean, isKepub: boolean): R2Locator[] {
+  // PORT: async (KepubConverter.convertEpubToKepubWithoutChecks : processus kepubify attendu sans bloquer le thread)
+  async computePositions(epub: EpubPackage, book: Book, resources: MediaFile[], isFixedLayout: boolean, isKepub: boolean): Promise<R2Locator[]> {
     const readingOrder = resources.filter((it) => it.subType === MediaFile.SubType.EPUB_PAGE)
 
     let startPosition = 1
@@ -259,11 +263,12 @@ export class EpubExtractor {
       })
     else if (this.kepubConverter.isAvailable) {
       try {
-        const kepub = this.kepubConverter.convertEpubToKepubWithoutChecks(book)
+        const kepub = await this.kepubConverter.convertEpubToKepubWithoutChecks(book)
         if (kepub !== null) deleteOnExit(kepub)
         // if the conversion failed, throw an exception that will be caught in the catch block
         if (kepub === null) throw new IllegalStateException()
-        const positions = this.computePositionsFromKoboSpan(readingOrder, (filename) => new TextDecoder().decode(getZipEntryBytes(kepub, filename)))
+        // PORT: getZipEntryBytesBlocking (fournisseur synchrone)
+        const positions = this.computePositionsFromKoboSpan(readingOrder, (filename) => new TextDecoder().decode(getZipEntryBytesBlocking(kepub, filename)))
         deleteIfExists(kepub)
         koboPositions = positions
       } catch {

@@ -48,11 +48,11 @@ describe('zip oracle', () => {
     }
   })
 
-  it('getZipEntryBytes matches Komga', () => {
+  it('getZipEntryBytes matches Komga', async () => {
     for (const o of oracle.getZipEntryBytes) {
       let actual: string | Err
       try {
-        actual = hasher.computeHash(new ByteArrayInputStream(getZipEntryBytes(join(resources, o.file), o.name)))
+        actual = hasher.computeHash(new ByteArrayInputStream(await getZipEntryBytes(join(resources, o.file), o.name)))
       } catch (x) {
         actual = err(x)
       }

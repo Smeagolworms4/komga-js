@@ -54,7 +54,7 @@ export class TaskHandler {
       if (task instanceof Task.ScanLibrary) {
         const library = this.libraryRepository.findByIdOrNull(task.libraryId)
         if (library !== null) {
-          this.libraryContentLifecycle.scanRootFolder(library, { scanDeep: task.scanDeep })
+          await this.libraryContentLifecycle.scanRootFolder(library, { scanDeep: task.scanDeep })
           this.taskEmitter.analyzeUnknownAndOutdatedBooks(library)
           this.taskEmitter.repairExtensions(library, { priority: LOW_PRIORITY })
           this.taskEmitter.findBooksToConvert(library, { priority: LOWEST_PRIORITY })
@@ -160,7 +160,7 @@ export class TaskHandler {
         if (book !== null) {
           await this.bookLifecycle.hashPagesAndPersist(book)
         } else logger.warn(() => `Cannot execute task ${task}: Book does not exist`)
-      } else if (task instanceof Task.RebuildIndex) this.searchIndexLifecycle.rebuildIndex(task.entities)
+      } else if (task instanceof Task.RebuildIndex) await this.searchIndexLifecycle.rebuildIndex(task.entities)
       else if (task instanceof Task.UpgradeIndex) this.searchIndexLifecycle.upgradeIndex()
       else if (task instanceof Task.DeleteBook) {
         const book = this.bookRepository.findByIdOrNull(task.bookId)

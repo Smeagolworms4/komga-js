@@ -61,12 +61,12 @@ func('getComicInfo', () => {
 // privée : appelée par getBookMetadataFromBook
 func('splitWithRole', () => {
   for (const v of ['', ' ', 'A', 'A,B', ' A , B ,, ', ',', 'A;B', 'A, ,B', 'Doe, John', '  ,  ,  ']) {
-    kase(`'${v}'`, () =>
-      provider(
+    kase(`'${v}'`, async () =>
+      (await provider(
         xml(
           `<Writer>${v}</Writer><Penciller>${v}</Penciller><Inker>${v}</Inker><Colorist>${v}</Colorist><Letterer>${v}</Letterer><CoverArtist>${v}</CoverArtist><Editor>${v}</Editor><Translator>${v}</Translator>`,
         ),
-      ).getBookMetadataFromBook(withComicInfo)?.authors ?? null,
+      ).getBookMetadataFromBook(withComicInfo))?.authors ?? null,
     )
   }
 })

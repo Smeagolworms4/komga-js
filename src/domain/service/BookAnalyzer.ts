@@ -22,7 +22,7 @@ import { ImageType } from '../../infrastructure/image/ImageType.js'
 import { ContentDetector } from '../../infrastructure/mediacontainer/ContentDetector.js'
 import { DivinaExtractor } from '../../infrastructure/mediacontainer/divina/DivinaExtractor.js'
 import { EpubExtractor } from '../../infrastructure/mediacontainer/epub/EpubExtractor.js'
-import { epub } from '../../infrastructure/mediacontainer/epub/Epub.js'
+import { epubAsync } from '../../infrastructure/mediacontainer/epub/Epub.js'
 import { PdfExtractor } from '../../infrastructure/mediacontainer/pdf/PdfExtractor.js'
 import { ByteArrayOutputStream, ImageIO } from '../../port/imageio-codecs.js'
 import { ByteArrayInputStream } from '../../port/java-io.js'
@@ -54,7 +54,8 @@ export class BookAnalyzer {
     this.divinaExtractors = new Map(extractors.flatMap((e) => e.mediaTypes().map((it) => [it, e] as [string, DivinaExtractor])))
   }
 
-  analyze(book: Book, analyzeDimensions: boolean): Media {
+  // PORT: async (lecture des archives sur le pool de libuv, kepubify : voir PORTING.md « Architecture d'exécution »)
+  async analyze(book: Book, analyzeDimensions: boolean): Promise<Media> {
     logger.info(() => `Trying to analyze book: ${book}`)
     let result: Media
     try {
@@ -64,7 +65,7 @@ export class BookAnalyzer {
       if (mediaType === null) return new Media({ mediaType: detected, status: Media.Status.UNSUPPORTED, comment: 'ERR_1001', bookId: book.id })
 
       if (extension(book.path).toLowerCase() === 'epub' && mediaType !== MediaType.EPUB) {
-        if (this.epubExtractor.isEpub(book.path)) {
+        if (await this.epubExtractor.isEpub(book.path)) {
           mediaType = MediaType.EPUB
         } else {
           logger.warn(() => `Epub file is malformed, file is probably broken: ${book.path}`)
@@ -75,13 +76,13 @@ export class BookAnalyzer {
       let media: Media
       switch (mediaType.profile) {
         case MediaProfile.DIVINA:
-          media = this.analyzeDivina(book, mediaType, analyzeDimensions)
+          media = await this.analyzeDivina(book, mediaType, analyzeDimensions)
           break
         case MediaProfile.PDF:
           media = this.analyzePdf(book, analyzeDimensions)
           break
         case MediaProfile.EPUB:
-          media = this.analyzeEpub(book, analyzeDimensions)
+          media = await this.analyzeEpub(book, analyzeDimensions)
           break
         default:
           throw new NoWhenBranchMatchedException()
@@ -105,12 +106,13 @@ export class BookAnalyzer {
     return result.copy({ bookId: book.id })
   }
 
-  private analyzeDivina(book: Book, mediaType: MediaType, analyzeDimensions: boolean): Media {
+  // PORT: async (DivinaExtractor.getEntries)
+  private async analyzeDivina(book: Book, mediaType: MediaType, analyzeDimensions: boolean): Promise<Media> {
     let entries
     try {
       const extractor = this.divinaExtractors.get(mediaType.type)
       if (extractor === undefined) return new Media({ status: Media.Status.UNSUPPORTED })
-      entries = extractor.getEntries(book.path, analyzeDimensions)
+      entries = await extractor.getEntries(book.path, analyzeDimensions)
     } catch (ex) {
       if (ex instanceof MediaUnsupportedException) return new Media({ status: Media.Status.UNSUPPORTED, comment: ex.code })
       logger.error(ex as Error, () => `Error while analyzing book: ${book}`)
@@ -134,8 +136,9 @@ export class BookAnalyzer {
     return new Media({ status: Media.Status.READY, pages: pages, pageCount: pages.length, files: files, comment: entriesErrorSummary })
   }
 
-  private analyzeEpub(book: Book, analyzeDimensions: boolean): Media {
-    return epub(book.path, (epub) => {
+  // PORT: async (epubAsync, EpubExtractor.computePositions)
+  private async analyzeEpub(book: Book, analyzeDimensions: boolean): Promise<Media> {
+    return await epubAsync(book.path, async (epub) => {
       const [resources, missingResources] = partition(this.epubExtractor.getResources(epub), (it) => it.fileSize !== null)
       const isKepub = this.epubExtractor.isKepub(epub, resources)
 
@@ -181,7 +184,7 @@ export class BookAnalyzer {
 
       let positions: R2Locator[]
       try {
-        positions = this.epubExtractor.computePositions(epub, book, resources, isFixedLayout, isKepub)
+        positions = await this.epubExtractor.computePositions(epub, book, resources, isFixedLayout, isKepub)
       } catch (e) {
         logger.error(e as Error, () => 'Error while getting EPUB positions')
         errors.push('ERR_1039')
@@ -228,7 +231,7 @@ export class BookAnalyzer {
       throw new MediaNotReadyException()
     }
 
-    const cover = this.getPoster(book)
+    const cover = await this.getPoster(book)
     const thumbnail = cover !== null ? await this.imageConverter.resizeImageToByteArray(cover.bytes, this.thumbnailType, this.komgaSettingsProvider.thumbnailSize.maxEdge) : null
     if (thumbnail === null) throw new NoThumbnailFoundException()
 
@@ -242,20 +245,21 @@ export class BookAnalyzer {
     })
   }
 
-  getPoster(book: BookWithMedia): TypedBytes | null {
+  // PORT: async (lecture de l'image sur le pool de libuv)
+  async getPoster(book: BookWithMedia): Promise<TypedBytes | null> {
     switch (book.media.profile) {
       case MediaProfile.DIVINA: {
         const extractor = this.divinaExtractors.get(nn(book.media.mediaType))
-        return extractor !== undefined ? this.divinaGetPoster(extractor, book) : null
+        return extractor !== undefined ? await this.divinaGetPoster(extractor, book) : null
       }
       case MediaProfile.PDF:
         return this.pdfExtractor.getPageContentAsImage(book.book.path, 1)
       case MediaProfile.EPUB: {
-        const cover = this.epubExtractor.getCover(book.book.path)
+        const cover = await this.epubExtractor.getCover(book.book.path)
         if (cover !== null) return cover
         if (book.media.epubDivinaCompatible) {
           const extractor = this.divinaExtractors.get(MediaType.ZIP.type)
-          return extractor !== undefined ? this.divinaGetPoster(extractor, book) : null
+          return extractor !== undefined ? await this.divinaGetPoster(extractor, book) : null
         }
         return null
       }
@@ -266,8 +270,9 @@ export class BookAnalyzer {
   }
 
   // PORT: fonction d'extension privée DivinaExtractor.getPoster(book) -> méthode privée (nom distinct de getPoster(book))
-  private divinaGetPoster(self: DivinaExtractor, book: BookWithMedia): TypedBytes {
-    const it = self.getEntryStream(book.book.path, first(book.media.pages).fileName)
+  // PORT: async (DivinaExtractor.getEntryStream)
+  private async divinaGetPoster(self: DivinaExtractor, book: BookWithMedia): Promise<TypedBytes> {
+    const it = await self.getEntryStream(book.book.path, first(book.media.pages).fileName)
     return new TypedBytes({
       bytes: it,
       mediaType: first(book.media.pages).mediaType,
@@ -275,7 +280,8 @@ export class BookAnalyzer {
   }
 
   // @Throws(MediaNotReadyException::class, IndexOutOfBoundsException::class)
-  getPageContent(book: BookWithMedia, number: number): Uint8Array {
+  // PORT: async (lecture de l'entrée sur le pool de libuv)
+  async getPageContent(book: BookWithMedia, number: number): Promise<Uint8Array> {
     logger.debug(() => `Get page #${number} for book: ${book}`)
 
     if (book.media.status !== Media.Status.READY) {
@@ -290,11 +296,11 @@ export class BookAnalyzer {
 
     switch (book.media.profile) {
       case MediaProfile.DIVINA:
-        return getValue(this.divinaExtractors, nn(book.media.mediaType)).getEntryStream(book.book.path, nn(book.media.pages[number - 1]).fileName)
+        return await getValue(this.divinaExtractors, nn(book.media.mediaType)).getEntryStream(book.book.path, nn(book.media.pages[number - 1]).fileName)
       case MediaProfile.PDF:
         return this.pdfExtractor.getPageContentAsImage(book.book.path, number).bytes
       case MediaProfile.EPUB:
-        if (book.media.epubDivinaCompatible) return this.epubExtractor.getEntryStream(book.book.path, nn(book.media.pages[number - 1]).fileName)
+        if (book.media.epubDivinaCompatible) return await this.epubExtractor.getEntryStream(book.book.path, nn(book.media.pages[number - 1]).fileName)
         else throw new MediaUnsupportedException('Epub profile does not support getting page content')
 
       case null:
@@ -322,7 +328,8 @@ export class BookAnalyzer {
   }
 
   // @Throws(MediaNotReadyException::class)
-  getFileContent(book: BookWithMedia, fileName: string): Uint8Array {
+  // PORT: async (lecture de l'entrée sur le pool de libuv)
+  async getFileContent(book: BookWithMedia, fileName: string): Promise<Uint8Array> {
     logger.debug(() => `Get file ${fileName} for book: ${book}`)
 
     if (book.media.status !== Media.Status.READY) {
@@ -332,9 +339,9 @@ export class BookAnalyzer {
 
     switch (book.media.profile) {
       case MediaProfile.DIVINA:
-        return getValue(this.divinaExtractors, nn(book.media.mediaType)).getEntryStream(book.book.path, fileName)
+        return await getValue(this.divinaExtractors, nn(book.media.mediaType)).getEntryStream(book.book.path, fileName)
       case MediaProfile.EPUB:
-        return this.epubExtractor.getEntryStream(book.book.path, fileName)
+        return await this.epubExtractor.getEntryStream(book.book.path, fileName)
       case MediaProfile.PDF:
       case null:
         throw new MediaUnsupportedException('Extractor does not support extraction of files')
@@ -353,7 +360,7 @@ export class BookAnalyzer {
     const hashedPages: BookPage[] = []
     for (const [index, bookPage] of book.media.pages.entries()) {
       if (isBlank(bookPage.fileHash) && (index < this.pageHashing || index >= book.media.pageCount - this.pageHashing)) {
-        const content = this.getPageContent(book, index + 1)
+        const content = await this.getPageContent(book, index + 1)
         const hash = await this.hashPage(bookPage, content)
         hashedPages.push(bookPage.copy({ fileHash: hash }))
       } else {

@@ -50,8 +50,8 @@ function withFilters(block: (f: string[] | null) => unknown): void {
 }
 
 function generic(search: string | null, block: (c: SearchContext, s: string | null, f: FilterBy | null, p: Pageable) => unknown): void {
-  kase('seeded', () => {
-    if (db.seriesDao.count() === 0) seed(db)
+  kase('seeded', async () => {
+    if (db.seriesDao.count() === 0) await seed(db)
     return attempt(() => block(admin, null, null, Pageable.unpaged()))
   })
   for (const [cn, c] of contexts) {
@@ -66,8 +66,8 @@ function generic(search: string | null, block: (c: SearchContext, s: string | nu
 
 func('findAllAuthorsByName', () => {
   kase('empty database', () => dao.findAllAuthorsByName('a', null))
-  kase('seed', () => {
-    seed(db)
+  kase('seed', async () => {
+    await seed(db)
     return dao.findAllAuthorsByName('', null)
   })
   kase('accent insensitive', () => dao.findAllAuthorsByName('emile', null))

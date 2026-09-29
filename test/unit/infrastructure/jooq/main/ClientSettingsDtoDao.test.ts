@@ -36,8 +36,8 @@ func('findAllGlobal', () => {
 })
 
 func('saveForUser', () => {
-  kase('insert', () => {
-    seed(db)
+  kase('insert', async () => {
+    await seed(db)
     dao.saveForUser('U1', 'theme', 'dark')
     dao.saveForUser('U1', 'lang', 'fr')
     dao.saveForUser('U2', 'theme', 'sepia')

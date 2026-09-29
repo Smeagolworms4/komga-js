@@ -13,8 +13,9 @@
 // - les appels aux beans `taskWorker: 'callMain'` (index de recherche Lucene, métriques) : appel synchrone, le worker
 //   attend la réponse (Atomics.wait) pendant que le thread principal exécute la méthode ;
 // - l'état des beans `taskWorker: 'mirrorMain'` (réglages du serveur), recopié après chaque modification.
-// Le worker est désactivé (tâches dans le thread principal, comportement précédent) sous le profil `test`, avec une
-// base en mémoire (non partageable entre threads) ou avec KOMGAJS_TASK_WORKER=false.
+// Le worker n'est utilisé que sur demande (KOMGAJS_TASK_WORKER=true) : par défaut les tâches s'exécutent dans le thread
+// principal, de façon asynchrone (voir PORTING.md « Architecture d'exécution »). Il reste désactivé sous le profil
+// `test` et avec une base en mémoire (non partageable entre threads).
 import { MessageChannel, type MessagePort, Worker } from 'node:worker_threads'
 import { mallocTrim } from './jpeg-jdk.js'
 import { KEnum } from './kotlin.js'
@@ -38,11 +39,15 @@ export type CallReply = { ok: true; value: unknown } | { ok: false; error: unkno
 /** Données de démarrage du worker */
 export type TaskWorkerData = { argv: string[]; signal: SharedArrayBuffer; replyPort: MessagePort }
 
-/** Les tâches s'exécutent-elles dans un worker ? */
+/**
+ * Les tâches s'exécutent-elles dans un worker ? Seulement sur demande (KOMGAJS_TASK_WORKER=true) : par défaut elles
+ * s'exécutent dans le thread principal, de façon asynchrone (voir PORTING.md « Architecture d'exécution »), ce qui
+ * économise la mémoire d'un second tas V8
+ */
 export function taskWorkerEnabled(env: Environment): boolean {
   if (env.activeProfiles.includes('test')) return false
   const flag = (process.env.KOMGAJS_TASK_WORKER ?? '').toLowerCase()
-  if (flag === 'false' || flag === '0') return false
+  if (flag !== 'true' && flag !== '1') return false
   for (const key of ['komga.database.file', 'komga.tasks-db.file']) {
     const file = env.getProperty(key) ?? ''
     if (file === '' || file.includes(':memory:') || file.includes('mode=memory')) return false

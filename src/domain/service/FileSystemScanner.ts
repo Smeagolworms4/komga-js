@@ -68,7 +68,8 @@ export class FileSystemScanner {
     this.sidecarBookPrefilter = sidecarBookConsumers.flatMap((it) => it.getSidecarBookPrefilter())
   }
 
-  scanRootFolder(
+  // PORT: async (parcours du disque sur le pool de libuv : walkFileTree)
+  async scanRootFolder(
     root: string,
     {
       forceDirectoryModifiedTime = false,
@@ -85,7 +86,7 @@ export class FileSystemScanner {
       scanEpub?: boolean
       directoryExclusions?: ReadonlySet<string>
     } = {},
-  ): ScanResult {
+  ): Promise<ScanResult> {
     const scanForExtensions: string[] = []
     if (scanCbx) scanForExtensions.push(...['cbz', 'zip', 'cbr', 'rar'])
     if (scanPdf) scanForExtensions.push('pdf')
@@ -135,7 +136,7 @@ export class FileSystemScanner {
 
       // PORT: `self` : instance englobante pour le visiteur (this implicite de Kotlin dans l'objet anonyme)
       const self = this
-      walkFileTree(
+      await walkFileTree(
         root,
         new Set([FileVisitOption.FOLLOW_LINKS]),
         2147483647,

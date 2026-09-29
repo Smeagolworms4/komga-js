@@ -114,9 +114,9 @@ describe('SeriesDtoDaoTest', () => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     seriesLifecycle.deleteMany(seriesRepository.findAll())
-    searchIndexLifecycle.rebuildIndex()
+    await searchIndexLifecycle.rebuildIndex()
   })
 
   afterAll(async () => {
@@ -161,13 +161,13 @@ describe('SeriesDtoDaoTest', () => {
   }
 
   describe('SortCriteria', () => {
-    it('given series when sorting by title sort then results are ordered', () => {
+    it('given series when sorting by title sort then results are ordered', async () => {
       // given
       seriesLifecycle.createSeries(makeSeries('Éb', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Ea', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Ec', { libraryId: library.id }))
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch(), new SearchContext(user), new UnpagedSorted(Sort.by('metadata.titleSort'))).content
@@ -363,13 +363,13 @@ describe('SeriesDtoDaoTest', () => {
   })
 
   describe('FullTextSearch', () => {
-    it('given series when searching by term then results are ordered by rank', () => {
+    it('given series when searching by term then results are ordered by rank', async () => {
       // given
       seriesLifecycle.createSeries(makeSeries('The incredible adventures of Batman, the man who is also a bat!', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'batman' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -379,7 +379,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman', 'Batman and Robin', 'The incredible adventures of Batman, the man who is also a bat!'])
     })
 
-    it('given series when searching by publisher then results are matched', () => {
+    it('given series when searching by publisher then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -389,7 +389,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ publisher: 'Vertigo' }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'publisher:vertigo' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -399,7 +399,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by status then results are matched', () => {
+    it('given series when searching by status then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -409,7 +409,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ status: SeriesMetadata.Status.HIATUS }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'status:hiatus' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -419,7 +419,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by reading direction then results are matched', () => {
+    it('given series when searching by reading direction then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -429,7 +429,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ readingDirection: SeriesMetadata.ReadingDirection.LEFT_TO_RIGHT }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(
@@ -443,7 +443,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by age rating then results are matched', () => {
+    it('given series when searching by age rating then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -453,7 +453,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ ageRating: 12 }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'age_rating:12' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -463,7 +463,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by language then results are matched', () => {
+    it('given series when searching by language then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -473,7 +473,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ language: 'en-us' }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'language:en-us' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -483,7 +483,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by tags then results are matched', () => {
+    it('given series when searching by tags then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       const book = makeBook('Batman 01', { seriesId: series.id, libraryId: library.id })
@@ -500,7 +500,7 @@ describe('SeriesDtoDaoTest', () => {
       }
 
       seriesMetadataLifecycle.aggregateMetadata(series)
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const foundByBookTag = seriesDtoDao.findAll(
@@ -553,7 +553,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(foundByTagFromSeries.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by genre then results are matched', () => {
+    it('given series when searching by genre then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -563,7 +563,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ genres: new Set(['action']) }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'genre:action' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -573,7 +573,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by total book count then results are matched', () => {
+    it('given series when searching by total book count then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
@@ -583,7 +583,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ totalBookCount: 5 }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'total_book_count:5' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -593,7 +593,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by book count then results are matched', () => {
+    it('given series when searching by book count then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       seriesLifecycle.addBooks(series, [
@@ -608,7 +608,7 @@ describe('SeriesDtoDaoTest', () => {
         seriesMetadataRepository.update(it.copy({ genres: new Set(['action']) }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'book_count:2' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -618,7 +618,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by authors then results are matched', () => {
+    it('given series when searching by authors then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       const book = makeBook('Batman 01', { seriesId: series.id, libraryId: library.id })
@@ -635,7 +635,7 @@ describe('SeriesDtoDaoTest', () => {
       }
 
       seriesMetadataLifecycle.aggregateMetadata(series)
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const foundGeneric = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'author:david' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -654,7 +654,7 @@ describe('SeriesDtoDaoTest', () => {
       expect(notFoundByRole).toHaveLength(0)
     })
 
-    it('given series when searching by release year then results are matched', () => {
+    it('given series when searching by release year then results are matched', async () => {
       // given
       const series = seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }))
       const book = makeBook('Batman 01', { seriesId: series.id, libraryId: library.id })
@@ -667,7 +667,7 @@ describe('SeriesDtoDaoTest', () => {
       }
 
       seriesMetadataLifecycle.aggregateMetadata(series)
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'release_date:1999' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -677,12 +677,12 @@ describe('SeriesDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Batman'])
     })
 
-    it('given series when searching by deleted then results are matched', () => {
+    it('given series when searching by deleted then results are matched', async () => {
       // given
       seriesLifecycle.createSeries(makeSeries('Batman', { libraryId: library.id }).copy({ deletedDate: LocalDateTime.now() }))
       seriesLifecycle.createSeries(makeSeries('Batman and Robin', { libraryId: library.id }))
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = seriesDtoDao.findAll(new SeriesSearch({ fullTextSearch: 'deleted:true' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content

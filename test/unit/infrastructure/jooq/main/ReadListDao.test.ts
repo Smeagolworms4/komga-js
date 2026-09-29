@@ -21,8 +21,8 @@ const rl = (name: string, id: string, bookIds: [number, string][] = [], extra: {
   new ReadList({ name, id, bookIds: sortedMapOf(...bookIds), ...extra })
 
 func('count', () => {
-  kase('seeded', () => {
-    seed(db, true)
+  kase('seeded', async () => {
+    await seed(db, true)
     return dao.count()
   })
 })

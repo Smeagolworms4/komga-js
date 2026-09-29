@@ -302,7 +302,7 @@ export async function readImage(reader: ImageReader): Promise<BufferedImage> {
   const bytes = reader.sourceBytes()
   try {
     if (reader instanceof JpegImageReader) {
-      const jpeg = readJpegLikeJdk(bytes)
+      const jpeg = await readJpegLikeJdk(bytes)
       if (jpeg === null) return toBufferedImage(await sharpRaw(bytes), info)
       const image = BufferedImage.of(jpeg.width, jpeg.height, jpeg.data, jpeg.channels, jpeg.hasAlpha)
       if (jpeg.iccProfile !== null) iccProfiles.set(image, jpeg.iccProfile)
@@ -372,7 +372,7 @@ async function encode(image: BufferedImage, formatName: string, param: WritePara
     // JPEGImageWriterSpi.canEncodeImage : pas d'alpha
     if (image.colorModel.hasAlpha()) return null
     if ((image.channels === 1 || image.channels === 3) && image.info.cmyk !== true)
-      return writeJpegLikeJdk(image as BufferedImage & { channels: 1 | 3 }, iccProfiles.get(image) ?? null, param.compressionQuality)
+      return await writeJpegLikeJdk(image as BufferedImage & { channels: 1 | 3 }, iccProfiles.get(image) ?? null, param.compressionQuality)
     let img = sharpOf(image)
     if (image.channels === 2 || image.channels === 4) img = img.removeAlpha()
     if (image.channels <= 2) img = img.toColourspace('b-w')

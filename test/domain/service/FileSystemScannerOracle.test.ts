@@ -176,7 +176,7 @@ function dumpScan(label: string, r: ScanResult): string[] {
   return out
 }
 
-function runTs(root: string): string[] {
+async function runTs(root: string): Promise<string[]> {
   const la = new LocalArtworkConsumer()
   const scanner = new FileSystemScanner([la], [la, new MylarConsumer()])
   const out: string[] = []
@@ -184,7 +184,7 @@ function runTs(root: string): string[] {
     out.push(
       ...dumpScan(
         s.label,
-        scanner.scanRootFolder(root, {
+        await scanner.scanRootFolder(root, {
           forceDirectoryModifiedTime: s.force,
           oneshotsDir: s.oneshots,
           scanCbx: s.cbx,
@@ -275,9 +275,9 @@ describe('FileSystemScanner oracle', () => {
 
   afterAll(() => rmSync(work, { recursive: true, force: true }))
 
-  it('scan results match Komga', { timeout: 600_000 }, () => {
+  it('scan results match Komga', { timeout: 600_000 }, async () => {
     const zone = ZoneId.systemDefault().id()
-    const ts = runTs(root)
+    const ts = await runTs(root)
     const actual = normalize(ts, work, zone)
 
     if (LIVE) {

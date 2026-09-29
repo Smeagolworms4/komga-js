@@ -38,25 +38,31 @@ export class SeriesMetadataLifecycle {
     private readonly eventPublisher: ApplicationEventPublisher,
   ) {}
 
-  refreshMetadata(series: Series): void {
+  // PORT: async (SeriesMetadataFromBookProvider.getSeriesMetadataFromBook peut être asynchrone)
+  async refreshMetadata(series: Series): Promise<void> {
     logger.info(() => `Refresh metadata for series: ${series}`)
 
     const library = this.libraryRepository.findById(series.libraryId)
     let changed = false
 
-    this.seriesMetadataFromBookProviders.forEach((provider) => {
+    // PORT: forEach -> for..of (corps asynchrone)
+    for (const provider of this.seriesMetadataFromBookProviders) {
       if (!(provider.shouldLibraryHandlePatch(library, MetadataPatchTarget.SERIES) || provider.shouldLibraryHandlePatch(library, MetadataPatchTarget.COLLECTION)))
         logger.info(() => `Library is not set to import series or collection metadata for this provider, skipping: ${provider.constructor.name}`)
       else {
         logger.debug(() => `Provider: ${provider.constructor.name}`)
-        const patches = mapNotNull(this.bookRepository.findAllBySeriesId(series.id), (book) => {
+        // PORT: mapNotNull -> boucle (appels asynchrones, dans le même ordre)
+        const patches: SeriesMetadataPatch[] = []
+        for (const book of this.bookRepository.findAllBySeriesId(series.id)) {
+          let patch: SeriesMetadataPatch | null
           try {
-            return provider.getSeriesMetadataFromBook(new BookWithMedia({ book: book, media: this.mediaRepository.findById(book.id) }), library.importComicInfoSeriesAppendVolume)
+            patch = await provider.getSeriesMetadataFromBook(new BookWithMedia({ book: book, media: this.mediaRepository.findById(book.id) }), library.importComicInfoSeriesAppendVolume)
           } catch (e) {
             logger.error(e as Error, () => `Error while getting metadata from ${provider.constructor.name} for book: ${book}`)
-            return null
+            patch = null
           }
-        })
+          if (patch !== null) patches.push(patch)
+        }
 
         if (provider.shouldLibraryHandlePatch(library, MetadataPatchTarget.SERIES)) {
           this.handlePatchForSeriesMetadataList(patches, series)
@@ -69,7 +75,7 @@ export class SeriesMetadataLifecycle {
           })
         }
       }
-    })
+    }
 
     this.seriesMetadataProviders.forEach((provider) => {
       if (!provider.shouldLibraryHandlePatch(library, MetadataPatchTarget.SERIES))

@@ -82,9 +82,26 @@ export async function runApplication(argv: string[]): Promise<ApplicationContext
   // scan des composants : l'équivalent de @SpringBootApplication + auto-configuration
   await scanComponents()
 
-  // PORT: les tâches (TaskProcessor) s'exécutent dans un worker_thread avec son propre contexte, comme les threads du
-  // pool de tâches de Komga, pour que le serveur HTTP reste disponible pendant un scan (port/task-worker.ts)
+  // PORT: par défaut les tâches (TaskProcessor) s'exécutent dans ce thread, de façon asynchrone (PORTING.md,
+  // « Architecture d'exécution ») ; avec KOMGAJS_TASK_WORKER=true, dans un worker_thread avec son propre contexte
+  // (port/task-worker.ts)
   const bridge = taskWorkerEnabled(environment) ? new TaskWorkerBridge(argv) : null
+  if (bridge === null) {
+    // PORT: quand les threads du pool de tâches ont expiré (60 s sans tâche) : caches d'instructions SQLite vidés,
+    // ramasse-miettes complet (si node est lancé avec --expose-gc, voir bin/komgajs), puis la mémoire native libérée par
+    // les tâches (instructions préparées, libvips, tampons) est rendue au système, comme à l'arrêt du worker des tâches
+    const { ThreadPoolTaskExecutor } = await import('./spring-scheduling.js')
+    const { mallocTrim } = await import('./jpeg-jdk.js')
+    const { releaseStatementCaches } = await import('./jooq/core.js')
+    ThreadPoolTaskExecutor.onPoolEmpty = () =>
+      setTimeout(() => {
+        releaseStatementCaches()
+        // « last-resort » : plusieurs passes, et V8 rend aussi les pages qu'il garde en réserve (sans cela, la mémoire
+        // retenue après l'analyse de 6 500 livres restait de ~90 Mo au-dessus de celle du démarrage)
+        ;(globalThis as { gc?: (o?: object) => void }).gc?.({ type: 'major', execution: 'sync', flavor: 'last-resort' })
+        mallocTrim()
+      }, 1_000).unref()
+  }
   const ctx = new ApplicationContext(environment, [], bridge?.threading ?? null)
   ctx.refresh()
   bridge?.start(ctx)

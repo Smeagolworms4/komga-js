@@ -143,7 +143,7 @@ describe('BookLifecycleTest', () => {
     seriesLifecycle.deleteMany(seriesRepository.findAll())
   })
 
-  it('given outdated book with different number of pages than before when analyzing then existing incomplete read progress is reset to 1', () => {
+  it('given outdated book with different number of pages than before when analyzing then existing incomplete read progress is reset to 1', async () => {
     // given
     {
       const series = makeSeries('series', { libraryId: library.id })
@@ -173,7 +173,7 @@ describe('BookLifecycleTest', () => {
     every(() => mockAnalyzer.analyze(any(), any())).returns(
       new Media({ status: Media.Status.READY, mediaType: 'application/zip', pages: [makeBookPage('1.jpg'), makeBookPage('2.jpg')], bookId: book.id }),
     )
-    bookLifecycle.analyzeAndPersist(book)
+    await bookLifecycle.analyzeAndPersist(book)
 
     // then
     {
@@ -188,7 +188,7 @@ describe('BookLifecycleTest', () => {
     }
   })
 
-  it('given outdated book with same number of pages than before when analyzing then existing read progress is kept', () => {
+  it('given outdated book with same number of pages than before when analyzing then existing read progress is kept', async () => {
     // given
     {
       const series = makeSeries('series', { libraryId: library.id })
@@ -223,7 +223,7 @@ describe('BookLifecycleTest', () => {
         bookId: book.id,
       }),
     )
-    bookLifecycle.analyzeAndPersist(book)
+    await bookLifecycle.analyzeAndPersist(book)
 
     // then
     expect(readProgressRepository.findAll()).toHaveLength(2)

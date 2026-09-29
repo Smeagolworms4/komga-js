@@ -11,7 +11,7 @@ import type { Book } from '../../../../src/domain/model/Book.js'
 import type { EpubTocEntry } from '../../../../src/domain/model/EpubTocEntry.js'
 import { ImageAnalyzer } from '../../../../src/infrastructure/image/ImageAnalyzer.js'
 import { ContentDetector } from '../../../../src/infrastructure/mediacontainer/ContentDetector.js'
-import { epub, getPackageFileContent } from '../../../../src/infrastructure/mediacontainer/epub/Epub.js'
+import { epubAsync, getPackageFileContent } from '../../../../src/infrastructure/mediacontainer/epub/Epub.js'
 import { EpubExtractor } from '../../../../src/infrastructure/mediacontainer/epub/EpubExtractor.js'
 import { setLogLevel } from '../../../../src/port/logging.js'
 import { TikaConfig } from '../../../../src/port/tika.js'
@@ -37,26 +37,34 @@ function safe(f: () => unknown): unknown {
   }
 }
 
+async function safeAsync(f: () => Promise<unknown>): Promise<unknown> {
+  try {
+    return await f()
+  } catch (t) {
+    return `EXC ${(t as Error).constructor.name}`
+  }
+}
+
 describe('EpubExtractorOracle', () => {
   setLogLevel('ERROR')
   const ex = new EpubExtractor(new ContentDetector(new TikaConfig()), new ImageAnalyzer(), { isAvailable: false } as never, 15)
   const book = {} as Book
 
-  it('gives the same results as Komga on the epub fixtures', () => {
+  it('gives the same results as Komga on the epub fixtures', async () => {
     const lines = readFileSync(`${dir}.java.jsonl`, 'utf8').trim().split('\n')
     const mismatches: string[] = []
     for (const line of lines) {
       const exp = JSON.parse(line) as { file: string }
       const p = `${dir}/${exp.file}`
       const res: Record<string, unknown> = { file: exp.file }
-      res.isEpub = ex.isEpub(p)
-      res.cover = safe(() => {
-        const c = ex.getCover(p)
+      res.isEpub = await ex.isEpub(p)
+      res.cover = await safeAsync(async () => {
+        const c = await ex.getCover(p)
         return c === null ? null : `${c.mediaType} ${c.bytes.length} ${crc32(c.bytes)}`
       })
       res.packageContentLength = safe(() => getPackageFileContent(p)?.length ?? null)
       try {
-        epub(p, (e) => {
+        await epubAsync(p, async (e) => {
           const resources = ex.getResources(e)
           res.resources = resources.map((r) => [r.fileName, r.mediaType, r.subType?.name ?? 'null', r.fileSize])
           const withSize = resources.filter((r) => r.fileSize !== null)
@@ -72,9 +80,9 @@ describe('EpubExtractorOracle', () => {
           for (let mode = 0; mode < 3; mode++) {
             const fl = mode === 1 ? true : mode === 2 ? false : fixed
             const kp = mode === 2 ? true : isKepub
-            res[`positions${mode}`] = safe(() =>
-              ex
-                .computePositions(e, book, withSize, fl, kp)
+            res[`positions${mode}`] = await safeAsync(async () =>
+              (await ex
+                .computePositions(e, book, withSize, fl, kp))
                 .map((loc) => [loc.href, loc.type, loc.koboSpan, bits(loc.locations?.progression), loc.locations?.position, bits(loc.locations?.totalProgression)]),
             )
           }

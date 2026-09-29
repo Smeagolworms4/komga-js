@@ -16,9 +16,9 @@ import { IllegalArgumentException } from '../../../src/port/kotlin.js'
 import { closeContext, springBootTest } from '../../SpringBootTest.js'
 import { makeBook } from '../../domain/model/Utils.js'
 
-function catchThrowable(block: () => unknown): unknown {
+async function catchThrowable(block: () => unknown): Promise<unknown> {
   try {
-    block()
+    await block()
     return null
   } catch (e) {
     return e
@@ -49,46 +49,46 @@ describe('KepubConverterTest', () => {
     kepubConverter.configureKepubify(it)
   })
 
-  it('given kepub book when converting then IllegalArgument is thrown', () => {
+  it('given kepub book when converting then IllegalArgument is thrown', async () => {
     const dir = tempDir()
     // given
     const book = makeBook('book', { url: pathToUrl(join(dir, 'book.epub')) })
     const media = new Media({ mediaType: MediaType.EPUB.type, epubIsKepub: true })
 
     // when
-    const thrownBy = catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
+    const thrownBy = await catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
 
     // then
     expect(thrownBy).toBeInstanceOf(IllegalArgumentException)
   })
 
-  it('given non-EPUB book when converting then IllegalArgument is thrown', () => {
+  it('given non-EPUB book when converting then IllegalArgument is thrown', async () => {
     const dir = tempDir()
     // given
     const book = makeBook('book', { url: pathToUrl(join(dir, 'book.epub')) })
     const media = new Media({ mediaType: MediaType.ZIP.type })
 
     // when
-    const thrownBy = catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
+    const thrownBy = await catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
 
     // then
     expect(thrownBy).toBeInstanceOf(IllegalArgumentException)
   })
 
-  it('given non-existent file when converting then IllegalArgument is thrown', () => {
+  it('given non-existent file when converting then IllegalArgument is thrown', async () => {
     const dir = tempDir()
     // given
     const book = makeBook('book', { url: pathToUrl(join(dir, 'book.epub')) })
     const media = new Media({ mediaType: MediaType.EPUB.type })
 
     // when
-    const thrownBy = catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
+    const thrownBy = await catchThrowable(() => kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir))
 
     // then
     expect(thrownBy).toBeInstanceOf(IllegalArgumentException)
   })
 
-  it('given existing book file and dummy kepubify when converting then conversion fails', () => {
+  it('given existing book file and dummy kepubify when converting then conversion fails', async () => {
     const dir = tempDir()
     // given
     // PORT: Files.createTempFile(dir, "book", ".epub")
@@ -99,7 +99,7 @@ describe('KepubConverterTest', () => {
     const media = new Media({ mediaType: MediaType.EPUB.type })
 
     // when
-    const result = kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir)
+    const result = await kepubConverter.convertEpubToKepub(new BookWithMedia({ book: book, media: media }), dir)
 
     // then
     expect(result).toBeNull()

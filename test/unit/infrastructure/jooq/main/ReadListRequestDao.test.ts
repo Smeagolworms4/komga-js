@@ -21,8 +21,8 @@ const req = (number: string, ...series: string[]) => new ReadListRequestBook({ s
 
 func('matchBookRequests', () => {
   kase('empty database', () => dao.matchBookRequests([req('1', 'Batman')]))
-  kase('single match', () => {
-    seed(db)
+  kase('single match', async () => {
+    await seed(db)
     return dao.matchBookRequests([req('1', 'Batman')])
   })
   kase('series title ignoring ascii case and leading zeros', () => dao.matchBookRequests([req('001', 'BATMAN'), req('1', 'Zorro'), req('01', 'zorro')]))

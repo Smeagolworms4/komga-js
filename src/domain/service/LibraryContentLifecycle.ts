@@ -29,6 +29,7 @@ import { ThumbnailSeriesRepository } from '../persistence/ThumbnailSeriesReposit
 import { KomgaSettingsProvider } from '../../infrastructure/configuration/KomgaSettingsProvider.js'
 import { Hasher } from '../../infrastructure/hash/Hasher.js'
 import { notEquals, toIndexedMap } from '../../language/LanguageUtils.js'
+import { cooperativeYield } from '../../port/async-io.js'
 import { type URL, urlToPath } from '../../port/java-net.js'
 import { contains, distinct, distinctBy, isNotBlank, LinkedHashMap, LinkedHashSet, mapNotNull, nn, str } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
@@ -74,14 +75,16 @@ export class LibraryContentLifecycle {
     private readonly thumbnailSeriesRepository: ThumbnailSeriesRepository,
   ) {}
 
-  scanRootFolder(library: Library, { scanDeep = false }: { scanDeep?: boolean } = {}): void {
+  // PORT: async (parcours du disque et empreintes asynchrones ; passages coopératifs entre les séries, hors
+  // transaction : voir PORTING.md « Architecture d'exécution »)
+  async scanRootFolder(library: Library, { scanDeep = false }: { scanDeep?: boolean } = {}): Promise<void> {
     logger.info(() => `Scan root folder for library: ${str(library)}`)
     // measureTime
     const start = performance.now()
     {
       let scanResult
       try {
-        scanResult = this.fileSystemScanner.scanRootFolder(urlToPath(library.root), {
+        scanResult = await this.fileSystemScanner.scanRootFolder(urlToPath(library.root), {
           forceDirectoryModifiedTime: library.scanForceModifiedTime,
           oneshotsDir: library.oneshotsDirectory,
           scanCbx: library.scanCbx,
@@ -143,7 +146,9 @@ export class LibraryContentLifecycle {
       // this can be used to detect changed series even if their file modified date did not change, for example because of NFS/SMB cache
       const seriesUrlWithDeletedBooks = seriesToSortAndRefresh.map((it) => it.url)
 
-      scannedSeries.forEach((newBooks, newSeries) => {
+      // PORT: forEach -> for..of (corps asynchrone)
+      for (const [newSeries, newBooks] of scannedSeries) {
+        await cooperativeYield()
         const existingSeries = this.seriesRepository.findNotDeletedByLibraryIdAndUrlOrNull(library.id, newSeries.url)
 
         // if series does not exist, save it
@@ -151,8 +156,8 @@ export class LibraryContentLifecycle {
           logger.info(() => `Adding new series: ${str(newSeries)}`)
           const createdSeries = this.seriesLifecycle.createSeries(newSeries)
           this.seriesLifecycle.addBooks(createdSeries, newBooks)
-          this.tryRestoreSeries(createdSeries, newBooks)
-          this.tryRestoreBooks(newBooks)
+          await this.tryRestoreSeries(createdSeries, newBooks)
+          await this.tryRestoreBooks(newBooks)
           seriesToSortAndRefresh.push(createdSeries)
         } else {
           // if series already exists, update it
@@ -173,13 +178,14 @@ export class LibraryContentLifecycle {
             // premier livre non supprimé de chaque url, comme find) : même résultat, sans parcours quadratique
             const existingBooksByUrl = new LinkedHashMap<URL, Book>()
             for (const it of existingBooks) if (it.deletedDate === null && !existingBooksByUrl.has(it.url)) existingBooksByUrl.set(it.url, it)
-            newBooks.forEach((newBook) => {
+            // PORT: forEach -> for..of (corps asynchrone)
+            for (const newBook of newBooks) {
               logger.debug(() => `Trying to match scanned book by url: ${str(newBook)}`)
               const existingBook = existingBooksByUrl.get(newBook.url)
               if (existingBook !== undefined) {
                 logger.debug(() => `Matched existing book: ${str(existingBook)}`)
                 if (notEquals(newBook.fileLastModified, existingBook.fileLastModified)) {
-                  const hash = existingBook.fileSize === newBook.fileSize && isNotBlank(existingBook.fileHash) ? this.hasher.computeHash(newBook.path) : null
+                  const hash = existingBook.fileSize === newBook.fileSize && isNotBlank(existingBook.fileHash) ? await this.hasher.computeHash(newBook.path) : null
                   if (hash === existingBook.fileHash) {
                     logger.info(() => `Book changed on disk, but still has the same hash, no need to reset media status: ${str(existingBook)}`)
                     const updatedBook = existingBook.copy({
@@ -203,7 +209,7 @@ export class LibraryContentLifecycle {
                   }
                 }
               }
-            })
+            }
 
             // add new books
             // PORT: existingBooksUrls.contains(..) -> LinkedHashSet (appartenance par equals, sans parcours quadratique)
@@ -211,17 +217,19 @@ export class LibraryContentLifecycle {
             const booksToAdd = newBooks.filter((newBook) => !existingBooksUrls.has(newBook.url))
             logger.info(() => `Adding new books: ${str(booksToAdd)}`)
             this.seriesLifecycle.addBooks(existingSeries, booksToAdd)
-            this.tryRestoreBooks(booksToAdd)
+            await this.tryRestoreBooks(booksToAdd)
             seriesToSortAndRefresh.push(existingSeries)
           }
         }
-      })
+      }
 
       // for all series where books have been removed or added, trigger a sort and refresh metadata
-      distinctBy(seriesToSortAndRefresh, (it) => it.id).forEach((it) => {
+      // PORT: forEach -> for..of (passages coopératifs)
+      for (const it of distinctBy(seriesToSortAndRefresh, (it) => it.id)) {
+        await cooperativeYield()
         this.seriesLifecycle.sortBooks(it)
         this.taskEmitter.refreshSeriesMetadata(it.id)
-      })
+      }
 
       const existingSidecars = this.sidecarRepository.findAll()
       // PORT: existingSidecars.firstOrNull { it.url == newSidecar.url } -> index par url (premier de chaque url)
@@ -301,7 +309,8 @@ export class LibraryContentLifecycle {
    * - Metadata. The metadata title will only be copied if locked. If not locked, the folder name is used.
    * - all books, via #tryRestoreBooks
    */
-  private tryRestoreSeries(newSeries: Series, newBooks: Book[]): void {
+  // PORT: async (Hasher.computeHash)
+  private async tryRestoreSeries(newSeries: Series, newBooks: Book[]): Promise<void> {
     logger.info(() => `Try to restore series: ${str(newSeries)}`)
     const bookSizes = newBooks.map((it) => it.fileSize)
 
@@ -325,7 +334,9 @@ export class LibraryContentLifecycle {
     logger.debug(() => `Deleted series candidates: ${str(deletedCandidates)}`)
 
     if (deletedCandidates.length > 0) {
-      const newBooksWithHash = newBooks.map((book) => nn(this.bookRepository.findByIdOrNull(book.id)).copy({ fileHash: this.hasher.computeHash(book.path) }))
+      // PORT: map -> boucle (empreintes asynchrones, dans le même ordre)
+      const newBooksWithHash: Book[] = []
+      for (const book of newBooks) newBooksWithHash.push(nn(this.bookRepository.findByIdOrNull(book.id)).copy({ fileHash: await this.hasher.computeHash(book.path) }))
       this.bookRepository.update(newBooksWithHash)
 
       const match =
@@ -372,7 +383,9 @@ export class LibraryContentLifecycle {
             )
           })
 
-          this.tryRestoreBooks(newBooksWithHash)
+          // PORT: dans la transaction (synchrone) : tryRestoreBooks exécuté de façon synchrone (tous ces livres ont une
+          // empreinte, aucune n'est calculée)
+          this.tryRestoreBooksBlocking(newBooksWithHash)
 
           // delete upgraded series
           this.seriesLifecycle.deleteMany([match[0]])
@@ -391,9 +404,33 @@ export class LibraryContentLifecycle {
    * - Read Lists
    * - Metadata. The metadata title will only be copied if locked. If not locked, the filename is used, but a refresh for Title will be requested.
    */
-  private tryRestoreBooks(newBooks: Book[]): void {
+  // PORT: async (Hasher.computeHash) : le corps est le générateur tryRestoreBooksSteps, qui demande chaque empreinte à
+  // calculer (`yield` du chemin) ; ici les empreintes sont calculées de façon asynchrone, avec un passage coopératif
+  // avant chaque livre (`yield null`, hors transaction)
+  private async tryRestoreBooks(newBooks: Book[]): Promise<void> {
+    const steps = this.tryRestoreBooksSteps(newBooks)
+    let step = steps.next()
+    while (!step.done) {
+      if (step.value === null) {
+        await cooperativeYield()
+        step = steps.next('')
+      } else step = steps.next(await this.hasher.computeHash(step.value))
+    }
+  }
+
+  // PORT: tryRestoreBooks exécuté de façon synchrone, pour l'appel dans une transaction (tryRestoreSeries)
+  private tryRestoreBooksBlocking(newBooks: Book[]): void {
+    const steps = this.tryRestoreBooksSteps(newBooks)
+    let step = steps.next()
+    while (!step.done) step = steps.next(step.value === null ? '' : this.hasher.computeHashBlocking(step.value))
+  }
+
+  // PORT: corps de tryRestoreBooks ; `yield path` rend l'empreinte du fichier, `yield null` marque un point de passage
+  private *tryRestoreBooksSteps(newBooks: Book[]): Generator<string | null, void, string> {
     logger.info(() => `Try to restore books: ${str(newBooks)}`)
-    newBooks.forEach((bookToAdd) => {
+    // PORT: forEach -> for..of (yield)
+    for (const bookToAdd of newBooks) {
+      yield null
       // try to find a deleted book that matches the file size
       const deletedCandidates = this.bookRepository.findAllDeletedByFileSize(bookToAdd.fileSize).filter((it) => isNotBlank(it.fileHash))
       logger.debug(() => `Deleted candidates: ${str(deletedCandidates)}`)
@@ -403,7 +440,9 @@ export class LibraryContentLifecycle {
         let bookWithHash: Book
         if (isNotBlank(bookToAdd.fileHash)) bookWithHash = bookToAdd
         else {
-          bookWithHash = nn(this.bookRepository.findByIdOrNull(bookToAdd.id)).copy({ fileHash: this.hasher.computeHash(bookToAdd.path) })
+          // PORT: this.hasher.computeHash(bookToAdd.path)
+          const fileHash: string = yield bookToAdd.path
+          bookWithHash = nn(this.bookRepository.findByIdOrNull(bookToAdd.id)).copy({ fileHash: fileHash })
           this.bookRepository.update(bookWithHash)
         }
 
@@ -454,7 +493,7 @@ export class LibraryContentLifecycle {
           })
         }
       }
-    })
+    }
   }
 
   emptyTrash(library: Library): void {

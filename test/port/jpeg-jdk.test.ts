@@ -96,7 +96,7 @@ describe('jpeg-jdk', () => {
     expect(checked).toBeGreaterThan(200)
   }, 120_000)
 
-  it('known differences fall back to sharp', () => {
-    for (const file of KNOWN_DIFFERENCES) expect(readJpegLikeJdk(new Uint8Array(readFileSync(join(resources, file)))), file).toBeNull()
+  it('known differences fall back to sharp', async () => {
+    for (const file of KNOWN_DIFFERENCES) expect(await readJpegLikeJdk(new Uint8Array(readFileSync(join(resources, file)))), file).toBeNull()
   })
 })

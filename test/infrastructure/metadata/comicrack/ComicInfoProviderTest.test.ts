@@ -49,7 +49,7 @@ describe('ComicInfoProviderTest', () => {
   })
 
   describe('Book', () => {
-    it('given comicInfo when getting book metadata then metadata patch is valid', () => {
+    it('given comicInfo when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         title: 'title',
         summary: 'summary',
@@ -66,7 +66,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.title).toBe('title')
       expect(patch.summary).toBe('summary')
@@ -94,19 +94,19 @@ describe('ComicInfoProviderTest', () => {
       expectExactlyInAnyOrder(patch.tags, 'dark', 'occult')
     })
 
-    it('given comicInfo with single link when getting book metadata then metadata patch is valid', () => {
+    it('given comicInfo with single link when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         web: 'https://www.comixology.com/Sandman/digital-comic/727888',
       })
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expectExactlyInAnyOrder(patch.links, new WebLink({ label: 'www.comixology.com', url: new URI('https://www.comixology.com/Sandman/digital-comic/727888') }))
     })
 
-    it('given comicInfo with StoryArcNumber when getting book metadata then metadata patch is valid', () => {
+    it('given comicInfo with StoryArcNumber when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         storyArc: 'one',
         storyArcNumber: '6',
@@ -114,13 +114,13 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(1)
       expectExactlyInAnyOrder(patch.readLists, new BookMetadataPatch.ReadListEntry({ name: 'one', number: 6 }))
     })
 
-    it('given comicInfo with multiple StoryArcNumber when getting book metadata then metadata patch is valid', () => {
+    it('given comicInfo with multiple StoryArcNumber when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         alternateSeries: 'story arc',
         alternateNumber: '5',
@@ -130,7 +130,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(4)
       expectExactlyInAnyOrder(
@@ -142,7 +142,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given comicInfo with uneven StoryArcNumber when getting book metadata then metadata patch is valid', () => {
+    it('given comicInfo with uneven StoryArcNumber when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         storyArc: 'one, two',
         storyArcNumber: '6, 7, 8',
@@ -150,7 +150,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(2)
       expectExactlyInAnyOrder(
@@ -160,7 +160,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given another comicInfo with uneven StoryArcNumber when getting book metadata then metadata patch is valid', () => {
+    it('given another comicInfo with uneven StoryArcNumber when getting book metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         storyArc: 'one, two, three',
         storyArcNumber: '6, 7',
@@ -168,7 +168,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(2)
       expectExactlyInAnyOrder(
@@ -178,7 +178,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given comicInfo with invalid StoryArcNumber when getting book metadata then invalid pairs are omitted', () => {
+    it('given comicInfo with invalid StoryArcNumber when getting book metadata then invalid pairs are omitted', async () => {
       const ci = comicInfo({
         storyArc: 'one, two, three',
         storyArcNumber: '6, x, 8',
@@ -186,7 +186,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(2)
       expectExactlyInAnyOrder(
@@ -196,7 +196,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given comicInfo with invalid StoryArc when getting book metadata then invalid pairs are omitted', () => {
+    it('given comicInfo with invalid StoryArc when getting book metadata then invalid pairs are omitted', async () => {
       const ci = comicInfo({
         storyArc: 'one, , three',
         storyArcNumber: '6, 7, 8',
@@ -204,7 +204,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.readLists).toHaveLength(2)
       expectExactlyInAnyOrder(
@@ -214,7 +214,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given comicInfo with blank values when getting series metadata then blank values are omitted', () => {
+    it('given comicInfo with blank values when getting series metadata then blank values are omitted', async () => {
       const ci = comicInfo({
         title: '',
         summary: '',
@@ -229,7 +229,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.title).toBeNull()
       expect(patch.summary).toBeNull()
@@ -241,31 +241,31 @@ describe('ComicInfoProviderTest', () => {
       expect(patch.links).toBeNull()
     })
 
-    it('given comicInfo without year when getting book metadata then release date is null', () => {
+    it('given comicInfo without year when getting book metadata then release date is null', async () => {
       const ci = comicInfo({
         month: 2,
       })
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.releaseDate).toBeNull()
     })
 
-    it('given comicInfo with year but without month when getting book metadata then release date is set', () => {
+    it('given comicInfo with year but without month when getting book metadata then release date is set', async () => {
       const ci = comicInfo({
         year: 2020,
       })
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.releaseDate).toEqual(LocalDate.of(2020, 1, 1))
     })
 
-    it('given comicInfo with authors when getting book metadata then authors are set', () => {
+    it('given comicInfo with authors when getting book metadata then authors are set', async () => {
       const ci = comicInfo({
         writer: 'writer',
         penciller: 'penciller',
@@ -279,7 +279,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.authors).toHaveLength(8)
       expectExactlyInAnyOrder(
@@ -306,7 +306,7 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given comicInfo with multiple authors when getting book metadata then authors are set', () => {
+    it('given comicInfo with multiple authors when getting book metadata then authors are set', async () => {
       const ci = comicInfo({
         writer: 'writer, writer2',
         penciller: 'penciller, penciller2',
@@ -320,7 +320,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))!
+      const patch = (await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media })))!
 
       expect(patch.authors).toHaveLength(16)
       expectExactlyInAnyOrder(
@@ -355,18 +355,18 @@ describe('ComicInfoProviderTest', () => {
       )
     })
 
-    it('given book without comicInfo file when getting book metadata then return null', () => {
+    it('given book without comicInfo file when getting book metadata then return null', async () => {
       const book = makeBook('book')
       const media = new Media({ status: Media.Status.READY })
 
-      const patch = comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))
+      const patch = await comicInfoProvider.getBookMetadataFromBook(new BookWithMedia({ book, media }))
 
       expect(patch).toBeNull()
     })
   })
 
   describe('Series', () => {
-    it('given comicInfo when getting series metadata then metadata patch is valid', () => {
+    it('given comicInfo when getting series metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         series: 'séries',
         seriesGroup: 'multiple,collections',
@@ -380,7 +380,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.title).toBe('séries')
       expect(patch.titleSort).toBe('séries')
@@ -395,7 +395,7 @@ describe('ComicInfoProviderTest', () => {
       expectExactlyInAnyOrder(patch.genres, 'Action', 'Adventure')
     })
 
-    it('given comicInfo with volume when getting series metadata then metadata patch is valid', () => {
+    it('given comicInfo with volume when getting series metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         series: 'series',
         volume: 2020,
@@ -403,16 +403,16 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.title).toBe('series (2020)')
 
-      const patchNoAppend = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), false)!
+      const patchNoAppend = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), false))!
 
       expect(patchNoAppend.title).toBe('series')
     })
 
-    it('given comicInfo with volume as 1 when getting series metadata then metadata title omits volume', () => {
+    it('given comicInfo with volume as 1 when getting series metadata then metadata title omits volume', async () => {
       const ci = comicInfo({
         series: 'series',
         volume: 1,
@@ -420,35 +420,35 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.title).toBe('series')
 
-      const patchNoAppend = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), false)!
+      const patchNoAppend = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), false))!
 
       expect(patchNoAppend.title).toBe('series')
     })
 
-    it('given comicInfo with incorrect values when getting series metadata then metadata patch is valid', () => {
+    it('given comicInfo with incorrect values when getting series metadata then metadata patch is valid', async () => {
       const ci = comicInfo({
         languageISO: 'japanese',
       })
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.language).toBeNull()
     })
 
-    it.each(languagesSource())('given comicInfo with malformed BCP-47 language when getting series metadata then patch language is normalized', (source, expected) => {
+    it.each(languagesSource())('given comicInfo with malformed BCP-47 language when getting series metadata then patch language is normalized', async (source, expected) => {
       const ci = comicInfo({
         languageISO: source,
       })
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.language).toBe(expected)
     })
@@ -462,7 +462,7 @@ describe('ComicInfoProviderTest', () => {
       ]
     }
 
-    it('given comicInfo with blank values when getting series metadata then blank values are omitted', () => {
+    it('given comicInfo with blank values when getting series metadata then blank values are omitted', async () => {
       const ci = comicInfo({
         title: '',
         storyArc: '',
@@ -474,7 +474,7 @@ describe('ComicInfoProviderTest', () => {
 
       mockMapper.readValue.mockReturnValue(ci)
 
-      const patch = comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true)!
+      const patch = (await comicInfoProvider.getSeriesMetadataFromBook(new BookWithMedia({ book, media }), true))!
 
       expect(patch.title).toBeNull()
       expect(patch.titleSort).toBeNull()

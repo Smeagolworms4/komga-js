@@ -115,9 +115,9 @@ describe('BookDtoDaoTest', () => {
     mockEventPublisher.publishEvent.mockImplementation(() => {})
   })
 
-  afterEach(() => {
+  afterEach(async () => {
     bookLifecycle.deleteMany(bookRepository.findAll())
-    searchIndexLifecycle.rebuildIndex()
+    await searchIndexLifecycle.rebuildIndex()
   })
 
   afterAll(async () => {
@@ -418,7 +418,7 @@ describe('BookDtoDaoTest', () => {
   })
 
   describe('FullTextSearch', () => {
-    it('given books when searching by term then results are ordered by rank', () => {
+    it('given books when searching by term then results are ordered by rank', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('The incredible adventures of Batman, the man who is also a bat!', { seriesId: series.id, libraryId: library.id }),
@@ -427,7 +427,7 @@ describe('BookDtoDaoTest', () => {
         makeBook('Batman', { seriesId: series.id, libraryId: library.id }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'batman' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -437,7 +437,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.name)).toEqual(['Batman', 'Batman and Robin', 'The incredible adventures of Batman, the man who is also a bat!'])
     })
 
-    it('given books when searching by term and sort order then results are ordered by sort order', () => {
+    it('given books when searching by term and sort order then results are ordered by sort order', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('Book 3', { seriesId: series.id, libraryId: library.id }),
@@ -445,7 +445,7 @@ describe('BookDtoDaoTest', () => {
         makeBook('Book 2', { seriesId: series.id, libraryId: library.id }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'book' }), new SearchContext(user), new UnpagedSorted(Sort.by('name'))).content
@@ -471,7 +471,7 @@ describe('BookDtoDaoTest', () => {
       expect(page1.content.map((it) => it.name)).toEqual(['Book 3'])
     })
 
-    it('given books when searching by term with accent then results are matched accent insensitive', () => {
+    it('given books when searching by term with accent then results are matched accent insensitive', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [
@@ -486,7 +486,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ title: 'Éric le bleu' }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'eric' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -496,7 +496,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le bleu'])
     })
 
-    it('given books when searching by ISBN then results are matched', () => {
+    it('given books when searching by ISBN then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [
@@ -511,7 +511,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ isbn: '9782413016878' }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: '9782413016878' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -521,7 +521,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
     })
 
-    it('given books when searching by tags then results are matched', () => {
+    it('given books when searching by tags then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [book1])
@@ -531,7 +531,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ tags: new Set(['tag1']) }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'tag:tag1' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -541,7 +541,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
     })
 
-    it('given books when searching by authors then results are matched', () => {
+    it('given books when searching by authors then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [book1])
@@ -551,7 +551,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'bob', role: 'writer' })] }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const foundGeneric = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'author:bob' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -566,7 +566,7 @@ describe('BookDtoDaoTest', () => {
       expect(notFound).toHaveLength(0)
     })
 
-    it('given books when searching by release year then results are matched', () => {
+    it('given books when searching by release year then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [book1])
@@ -576,7 +576,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ releaseDate: LocalDate.of(1999, 5, 12) }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'release_date:1999' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -586,7 +586,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
     })
 
-    it('given books when searching by release year range then results are matched', () => {
+    it('given books when searching by release year range then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       const book2 = makeBook('Éric le bleu', { seriesId: series.id, libraryId: library.id })
@@ -601,7 +601,7 @@ describe('BookDtoDaoTest', () => {
         bookMetadataRepository.update(it.copy({ releaseDate: LocalDate.of(2005, 5, 12) }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(
@@ -615,7 +615,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge', 'Éric le bleu'])
     })
 
-    it('given books when searching by media status then results are matched', () => {
+    it('given books when searching by media status then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
       seriesLifecycle.addBooks(series, [book1])
@@ -625,7 +625,7 @@ describe('BookDtoDaoTest', () => {
         mediaRepository.update(it.copy({ status: Media.Status.ERROR }))
       }
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'status:error' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -635,12 +635,12 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
     })
 
-    it('given books when searching by deleted then results are matched', () => {
+    it('given books when searching by deleted then results are matched', async () => {
       // given
       const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id }).copy({ deletedDate: LocalDateTime.now() })
       seriesLifecycle.addBooks(series, [book1, makeBook('Batman', { seriesId: series.id, libraryId: library.id })])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'deleted:true' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -650,14 +650,14 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
     })
 
-    it('given books with dots in title when searching by title then results are matched', () => {
+    it('given books with dots in title when searching by title then results are matched', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('S.W.O.R.D.', { seriesId: series.id, libraryId: library.id }),
         makeBook('Batman', { seriesId: series.id, libraryId: library.id }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 's.w.o.r.d' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -667,7 +667,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title)).toEqual(['S.W.O.R.D.'])
     })
 
-    it('given books when searching with multiple words then results are matched', () => {
+    it('given books when searching with multiple words then results are matched', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id }),
@@ -676,7 +676,7 @@ describe('BookDtoDaoTest', () => {
         makeBook('Batman', { seriesId: series.id, libraryId: library.id }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'batman robin' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -686,7 +686,7 @@ describe('BookDtoDaoTest', () => {
       expect(found.map((it) => it.metadata.title).sort()).toEqual(['Batman and Robin', 'Robin and Batman'].sort())
     })
 
-    it('given books when searching by term containing hyphens then results are ordered by rank', () => {
+    it('given books when searching by term containing hyphens then results are ordered by rank', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('Batman', { seriesId: series.id, libraryId: library.id }),
@@ -694,7 +694,7 @@ describe('BookDtoDaoTest', () => {
         makeBook('X-Men', { seriesId: series.id, libraryId: library.id }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: 'x-men' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content
@@ -718,13 +718,13 @@ describe('BookDtoDaoTest', () => {
       }).not.toThrow()
     })
 
-    it('given books in CJK when searching by CJK term then results are ordered by rank', () => {
+    it('given books in CJK when searching by CJK term then results are ordered by rank', async () => {
       // given
       seriesLifecycle.addBooks(series, [
         makeBook('[不道德公會][河添太一 ][東立]Vol.04-搬运', { seriesId: series.id, libraryId: library.id, url: new URL('file:/file.cbz') }),
       ])
 
-      searchIndexLifecycle.rebuildIndex()
+      await searchIndexLifecycle.rebuildIndex()
 
       // when
       const found = bookDtoDao.findAll(new BookSearch({ fullTextSearch: '不道德' }), new SearchContext(user), new UnpagedSorted(Sort.by('relevance'))).content

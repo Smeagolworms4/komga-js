@@ -70,9 +70,10 @@ export class BookLifecycle {
     private readonly pdfImageType: ImageType,
   ) {}
 
-  analyzeAndPersist(book: Book): Set<BookAction> {
+  // PORT: async (BookAnalyzer.analyze)
+  async analyzeAndPersist(book: Book): Promise<Set<BookAction>> {
     logger.info(() => `Analyze and persist book: ${book}`)
-    const media = this.bookAnalyzer.analyze(book, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
+    const media = await this.bookAnalyzer.analyze(book, this.libraryRepository.findById(book.libraryId).analyzeDimensions)
 
     this.transactionTemplate.executeWithoutResult(() => {
       // if the number of pages has changed, delete all read progress for that book
@@ -95,26 +96,28 @@ export class BookLifecycle {
     return media.status === Media.Status.READY ? new Set([BookAction.GENERATE_THUMBNAIL, BookAction.REFRESH_METADATA]) : new Set()
   }
 
-  hashAndPersist(book: Book): void {
+  // PORT: async (Hasher.computeHash)
+  async hashAndPersist(book: Book): Promise<void> {
     if (!this.libraryRepository.findById(book.libraryId).hashFiles)
       return logger.info(() => 'File hashing is disabled for the library, it may have changed since the task was submitted, skipping')
 
     logger.info(() => `Hash and persist book: ${book}`)
     if (isBlank(book.fileHash)) {
-      const hash = this.hasher.computeHash(book.path)
+      const hash = await this.hasher.computeHash(book.path)
       this.bookRepository.update(book.copy({ fileHash: hash }))
     } else {
       logger.info(() => 'Book already has a hash, skipping')
     }
   }
 
-  hashKoreaderAndPersist(book: Book): void {
+  // PORT: async (KoreaderHasher.computeHash)
+  async hashKoreaderAndPersist(book: Book): Promise<void> {
     if (!this.libraryRepository.findById(book.libraryId).hashKoreader)
       return logger.info(() => 'File hashing for Koreader is disabled for the library, it may have changed since the task was submitted, skipping')
 
     logger.info(() => `Hash Koreader and persist book: ${book}`)
     if (isBlank(book.fileHashKoreader)) {
-      const hash = this.hasherKoreader.computeHash(book.path)
+      const hash = await this.hasherKoreader.computeHash(book.path)
       this.bookRepository.update(book.copy({ fileHashKoreader: hash }))
     } else {
       logger.info(() => 'Book already has a Koreader hash, skipping')
@@ -250,7 +253,7 @@ export class BookLifecycle {
       const book = this.bookRepository.findByIdOrNull(bookId)
       if (book === null) return null
       const media = this.mediaRepository.findById(book.id)
-      return this.bookAnalyzer.getPoster(new BookWithMedia({ book: book, media: media }))
+      return await this.bookAnalyzer.getPoster(new BookWithMedia({ book: book, media: media }))
     } else {
       return await this.getThumbnailBytes(bookId)
     }
@@ -309,7 +312,7 @@ export class BookLifecycle {
     { convertTo = null, resizeTo = null }: { convertTo?: ImageType | null; resizeTo?: number | null } = {},
   ): Promise<TypedBytes> {
     const media = this.mediaRepository.findById(book.id)
-    const pageContent = this.bookAnalyzer.getPageContent(new BookWithMedia({ book: book, media: media }), number)
+    const pageContent = await this.bookAnalyzer.getPageContent(new BookWithMedia({ book: book, media: media }), number)
     const pageMediaType = media.profile === MediaProfile.PDF ? this.pdfImageType.mediaType : nn(media.pages[number - 1]).mediaType
 
     if (resizeTo !== null) {

@@ -11,8 +11,8 @@ const db = new OracleDb()
 const dao = db.readProgressDtoDao
 
 func('findProgressV2BySeries', () => {
-  kase('series without books', () => {
-    seed(db)
+  kase('series without books', async () => {
+    await seed(db)
     db.dsl.execute("insert into SERIES (ID, NAME, URL, FILE_LAST_MODIFIED, LIBRARY_ID) values ('S9', 'empty', 'file:/lib1/empty', '2020-01-01 00:00:00', 'L1')")
     return exceptionType(() => dao.findProgressV2BySeries('S9', 'U1'))
   })

@@ -48,7 +48,7 @@ async function addBook(id: string, path: string): Promise<Book> {
   const scanned = nn(graph.fileSystemScanner.scanFile(path)).copy({ id, seriesId: 'S1', libraryId: 'L1', createdDate: date, lastModifiedDate: date })
   db.bookDao.insert(scanned)
   db.bookMetadataDao.insert(metadata(scanned))
-  const media = graph.bookAnalyzer.analyze(scanned, true)
+  const media = await graph.bookAnalyzer.analyze(scanned, true)
   db.mediaDao.insert((await graph.bookAnalyzer.hashPages(new BookWithMedia({ book: scanned, media }))).copy({ createdDate: date }))
   return scanned
 }

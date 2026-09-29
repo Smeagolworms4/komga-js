@@ -29,9 +29,10 @@ export class TransientBooksController {
     private readonly bookAnalyzer: BookAnalyzer,
   ) {}
 
-  scanTransientBooks(request: ScanRequestDto): TransientBookDto[] {
+  // PORT: async (TransientBookLifecycle.scanAndPersist)
+  async scanTransientBooks(request: ScanRequestDto): Promise<TransientBookDto[]> {
     try {
-      return sortedBy(this.transientBookLifecycle.scanAndPersist(request.path), (it) => it.book.path).map((it) => this.toDto(it))
+      return sortedBy(await this.transientBookLifecycle.scanAndPersist(request.path), (it) => it.book.path).map((it) => this.toDto(it))
     } catch (e) {
       if (e instanceof CodedException) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.code)
       throw e
@@ -45,7 +46,8 @@ export class TransientBooksController {
     return this.toDto(await this.transientBookLifecycle.analyzeAndPersist(it))
   }
 
-  getPageByTransientBookId(id: string, pageNumber: number, request: ServletWebRequest): ResponseEntity<Uint8Array> {
+  // PORT: async (TransientBookLifecycle.getBookPage)
+  async getPageByTransientBookId(id: string, pageNumber: number, request: ServletWebRequest): Promise<ResponseEntity<Uint8Array>> {
     const it = this.transientBookRepository.findByIdOrNull(id)
     if (it === null) throw new ResponseStatusException(HttpStatus.NOT_FOUND)
     if (request.checkNotModified(getBookLastModified(it.media))) {
@@ -53,7 +55,7 @@ export class TransientBooksController {
     }
 
     try {
-      const pageContent = this.transientBookLifecycle.getBookPage(it, pageNumber)
+      const pageContent = await this.transientBookLifecycle.getBookPage(it, pageNumber)
 
       return setNotModified(ResponseEntity.ok().contentType(getMediaTypeOrDefault(pageContent.mediaType)), it.media).body(pageContent.bytes)
     } catch (ex) {

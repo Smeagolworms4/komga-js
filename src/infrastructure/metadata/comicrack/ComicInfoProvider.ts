@@ -49,8 +49,9 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
     BookMetadataPatchCapability.LINKS,
   ])
 
-  getBookMetadataFromBook(book: BookWithMedia): BookMetadataPatch | null {
-    const comicInfo = this.getComicInfo(book)
+  // PORT: async (getComicInfo)
+  async getBookMetadataFromBook(book: BookWithMedia): Promise<BookMetadataPatch | null> {
+    const comicInfo = await this.getComicInfo(book)
     if (comicInfo !== null) {
       const releaseDate = comicInfo.year !== null ? localDateOf(nn(comicInfo.year), comicInfo.month ?? 1, comicInfo.day ?? 1) : null
 
@@ -133,8 +134,9 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
 
   readonly supportsAppendVolume = true
 
-  getSeriesMetadataFromBook(book: BookWithMedia, appendVolumeToTitle: boolean): SeriesMetadataPatch | null {
-    const comicInfo = this.getComicInfo(book)
+  // PORT: async (getComicInfo)
+  async getSeriesMetadataFromBook(book: BookWithMedia, appendVolumeToTitle: boolean): Promise<SeriesMetadataPatch | null> {
+    const comicInfo = await this.getComicInfo(book)
     if (comicInfo !== null) {
       let readingDirection: SeriesMetadata.ReadingDirection | null
       switch (comicInfo.manga) {
@@ -185,14 +187,15 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
     throw new NoWhenBranchMatchedException()
   }
 
-  private getComicInfo(book: BookWithMedia): ComicInfo | null {
+  // PORT: async (BookAnalyzer.getFileContent)
+  private async getComicInfo(book: BookWithMedia): Promise<ComicInfo | null> {
     try {
       if (!book.media.files.some((it) => it.fileName === COMIC_INFO)) {
         logger.debug(() => `Book does not contain any ${COMIC_INFO} file: ${str(book)}`)
         return null
       }
 
-      const fileContent = this.bookAnalyzer.getFileContent(book, COMIC_INFO)
+      const fileContent = await this.bookAnalyzer.getFileContent(book, COMIC_INFO)
       return this.mapper.readValue<ComicInfo | null>(fileContent, { class: ComicInfo })
     } catch (e) {
       logger.error(e as Error, () => `Error while retrieving metadata from ${COMIC_INFO}`)

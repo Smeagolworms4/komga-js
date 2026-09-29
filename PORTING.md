@@ -184,6 +184,7 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | Collations ICU | ICU4C du système (74) au lieu d'ICU4J 78 | ordre identique sur les jeux de test ; différences possibles sur des caractères très rares |
 | Exceptions js-joda | `DateTimeException` là où java.time lève sa sous-classe `UnsupportedTemporalTypeException` (même message) | aucun : Komga n'intercepte pas ces exceptions |
 | Casse Unicode | Node suit Unicode 17, le JDK 21 Unicode 15 : `Character.toUpperCase`/`toLowerCase` (`charToUpperCase`...) diffèrent sur 110 caractères ajoutés depuis | négligeable |
+| Base des tâches (`tasks.sqlite`) | `synchronous = NORMAL` en WAL au lieu de FULL, et chaque lot de `TasksDao.save` validé dans une transaction (sqlite-jdbc valide chaque insertion) : pas de synchronisation du disque par tâche sur le thread unique (voir « Architecture d'exécution ») ; réglable par `komga.tasks-db.pragmas` | après une coupure de courant (pas un arrêt du processus), les dernières tâches émises peuvent manquer ; un lot en échec est annulé en entier |
 
 ## Stockage SQLite (jOOQ 3.19 + sqlite-jdbc), relevé sur les vraies bibliothèques
 
@@ -245,13 +246,77 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
 
 ## Architecture d'exécution (bloquant Kotlin → Node)
 
-- Accès base et transactions **synchrones** (better-sqlite3), comme le code Kotlin bloquant ; `transactional()` refuse une fonction asynchrone.
-  Vérifié : les blocs `@Transactional` / `transactionTemplate` de Komga ne font que des accès base (et des suppressions de fichiers, faites en synchrone).
-- Système de fichiers : API synchrones de `node:fs` quand le Kotlin est bloquant.
-- `async`/`await` uniquement quand une bibliothèque l'impose (traitement d'image, flux HTTP) ; la fonction Kotlin garde son nom, devient `async`, et ses appelants font `await` (`// PORT: async`).
-- Les tâches (scan, analyse, empreintes, miniatures, index…), exécutées par Komga dans le pool de threads de
-  `TaskProcessor`, s'exécutent dans un `worker_thread` dédié (`src/port/task-worker.ts`, `task-worker-thread.ts`) :
-  le serveur HTTP reste disponible pendant un scan, comme les threads web de Komga.
+Komga exécute ses tâches (pool de threads de `TaskProcessor`, réglage « Task threads ») et ses requêtes HTTP dans des
+threads Java qui attendent le disque sans gêner les autres. KomgaJS n'a **qu'un thread JS** (un seul tas V8, pour la
+mémoire) : tâches et requêtes s'y partagent le temps, et les attentes (disque, décompression, images, processus externes)
+sont asynchrones (`await`), exécutées par le pool de threads de libuv (`UV_THREADPOOL_SIZE`, 4 par défaut) ou par
+libvips.
+
+- Accès base et transactions **synchrones** (better-sqlite3, requêtes courtes), comme le code Kotlin bloquant ;
+  `transactional()` refuse une fonction asynchrone. Vérifié : les blocs `@Transactional` / `transactionTemplate` de Komga
+  ne font que des accès base (et des suppressions de fichiers, faites en synchrone). **Invariant : aucun `await` dans une
+  transaction.** Chaque portion synchrone entre deux `await` s'exécute donc d'un bloc, sans qu'une autre tâche ou une
+  requête s'intercale : c'est ce qui rend l'entrelacement sûr, sans verrou (la connexion n'est jamais partagée par deux
+  transactions en cours ; même granularité que les transactions de Komga).
+  Chaque validation synchronise le disque (WAL, `synchronous = FULL` de sqlite-jdbc) et bloque le thread pendant ce
+  temps : la base des tâches (une file, réémise par le scan suivant) est en `synchronous = NORMAL`, et ses insertions en
+  lot sont validées une fois par lot (`TasksDao.save`) ; sans cela, émettre les tâches d'analyse et d'empreinte d'une
+  bibliothèque de 6 500 livres bloquait le serveur plus de 45 s (une synchronisation par tâche). Voir « Écarts connus ».
+- **Convention `async`** : la fonction Kotlin garde son nom et sa place, devient `async`, et ses appelants font `await`
+  (`// PORT: async (<cause>)`) ; l'asynchronisme se propage ainsi le long de la chaîne d'appels, sans autre changement
+  de logique. Écarts de forme, marqués `// PORT:` :
+  - `forEach` / `map` / `mapNotNull` dont le corps attend → boucle `for..of` dans le même ordre (jamais d'exécution
+    parallèle là où Kotlin est séquentiel) ;
+  - interface Kotlin dont une implémentation attend (`BookMetadataProvider`, `SeriesMetadataFromBookProvider`) :
+    résultat `T | Promise<T>`, les appelants font `await` ;
+  - appelant qui doit rester synchrone (fonction appelée dans une transaction) : variante `...Blocking`, l'ancienne forme
+    synchrone (`Hasher.computeHashBlocking`, `getZipEntryBytesBlocking`) ; `LibraryContentLifecycle.tryRestoreBooks`
+    (appelée hors transaction par le scan, et dans la transaction de `tryRestoreSeries`) a son corps en générateur
+    (`tryRestoreBooksSteps`, `yield` du chemin dont il faut l'empreinte), exécuté de façon asynchrone ou synchrone ;
+  - tests jumeaux : mêmes cas, `await` ajouté ; les fixtures ne changent pas.
+- **Ce qui est asynchrone** (lectures sur le pool de libuv, `src/port/async-io.ts`) :
+  - empreintes des fichiers : `Hasher.computeHash(path)` (lecture par blocs de 1 Mio, même XXH3-128) et
+    `KoreaderHasher.computeHash` ;
+  - parcours de la bibliothèque : `walkFileTree` (`opendir` / `stat` asynchrones, attributs des entrées d'un
+    répertoire demandés ensemble, mêmes événements dans le même ordre) ;
+  - archives ZIP (`src/port/zip.ts`) : `ZipFileBuilder.getAsync()` lit d'avance la fin du fichier, le répertoire
+    central, les en-têtes locaux et le début des données de chaque entrée (16 Kio pour l'analyse : type et dimensions)
+    avant le décodage synchrone d'origine (une lecture hors des zones préchargées se fait par `readSync`, même
+    résultat) ; `ZipFile.readEntryBytesAsync` lit une entrée entière et la décompresse (DEFLATED) avec le zlib de Node
+    sur le pool (`getZipEntryBytes` : pages, couvertures, ComicInfo.xml, ressources EPUB) ;
+  - analyse (`BookAnalyzer.analyze`, `getPoster`, `getPageContent`, `getFileContent`, extracteurs ZIP/RAR/EPUB),
+    donc service des pages et des miniatures à la volée, conversion CBZ et suppression de pages ;
+  - JPEG de la JVM (`src/port/jpeg-jdk.ts`) : décodage et encodage libjpeg 6b sur le pool (`jpegDecodeAsync`,
+    `jpegEncodeAsync` de `native/komga_jpeg.c`, mêmes appels, mêmes octets) : empreintes de pages, conversions ;
+  - sharp / libvips (déjà asynchrone), `KOMGAJS_IMAGE_THREADS` threads natifs par opération ;
+  - kepubify (`KepubConverter.convertEpubToKepub*`) : processus attendu sans bloquer (`spawnAsync`, même délai de 10 s) ;
+  - réponses HTTP en flux (téléchargement d'un livre, d'une série ou d'une liste en ZIP), clients HTTP.
+- **Pool de tâches** : `ThreadPoolTaskExecutor` (`src/port/spring-scheduling.ts`) garde la comptabilité d'un
+  `ThreadPoolExecutor` Java ; chaque « thread » est logique et attend la fin de sa tâche avant la suivante, donc
+  `taskPoolSize` tâches progressent ensemble, entrelacées à leurs `await`, comme les threads de Komga ;
+  `Thread.currentThread().name` suit la tâche à travers ses `await` (AsyncLocalStorage, colonne OWNER de TASK).
+- **Passages coopératifs** : une longue portion de JS synchrone retarde tout le reste. `cooperativeYield()`
+  (`src/port/async-io.ts`) rend la main à la boucle d'événements (`setImmediate`) si le code tourne depuis plus de 10 ms,
+  sinon ne coûte rien ; appelé hors transaction, à des endroits où Komga n'en a pas d'ouverte : entre deux séries du scan
+  (`LibraryContentLifecycle.scanRootFolder`), entre deux séries triées après le scan, entre deux entrées d'une archive
+  analysée (ZIP, RAR). Les événements (`applicationTaskExecutor`, diffusion asynchrone d'`AsynchronousSpringEventsConfig`)
+  sont traités dans l'ordre par tranches de 5 ms (un scan publie des milliers de `BookAdded`, chacun met à jour l'index
+  de recherche).
+- **Mémoire rendue après les tâches** : un seul tas V8 sert aux tâches et aux requêtes ; après l'analyse d'une grosse
+  bibliothèque, V8 garde en réserve les pages libérées et glibc les blocs libérés. Quand les threads du pool de tâches
+  expirent (60 s sans tâche, comme l'arrêt du worker), `src/port/spring-boot-application.ts` vide les caches
+  d'instructions SQLite (`releaseStatementCaches`, `shrink_memory`), lance un ramasse-miettes complet « last-resort »
+  (`bin/komgajs` démarre node avec `--expose-gc`), qui rend aussi les pages en réserve, puis `malloc_trim`. Mesuré après
+  le scan et l'analyse de 6 500 livres : 262 Mo avant, 173 Mo après (164 Mo au démarrage).
+- **Restent synchrones** (bloquent le thread pendant leur durée) : requêtes SQLite, rendu PDF (mupdf wasm, lecture du
+  fichier à la demande par `readSync`), décompression RAR (JS), analyse EPUB (lecture de l'OPF, de la table des matières
+  et des positions : fichiers courts), écriture d'un CBZ (conversion, suppression de pages), Deflate64 / bzip2, mise à
+  jour et reconstruction de l'index de recherche, conversions en DTO, vérification du chemin de kepubify au démarrage
+  (3 s au plus).
+- **Worker des tâches (optionnel)** : `KOMGAJS_TASK_WORKER=true` exécute `TaskProcessor` dans un `worker_thread`
+  dédié (`src/port/task-worker.ts`, `task-worker-thread.ts`, `thread-codec.ts`), l'ancienne architecture : second tas
+  V8 et seconds modules (60 à 100 Mo tant qu'il tourne), mais une tâche longue et synchrone (PDF, RAR) n'y retarde pas
+  les requêtes HTTP.
   - Le worker a **son propre contexte** : mêmes définitions de beans et même environnement, ses propres connexions
     SQLite ; seul `TaskProcessor` y est créé au démarrage (avec ses dépendances). Même base, même schéma que Komga.
   - Place des beans (`component(X, { taskWorker })`, marqué `// PORT:` dans le jumeau) : `run` = n'existe que dans le
@@ -259,27 +324,17 @@ des déclarations en fin de fichier jumeau, pour toute classe qui passe par Jack
     synchrone (`Atomics.wait`, le worker attend la réponse) : `LuceneHelper`, `SearchIndexLifecycle` (index de recherche
     en mémoire), `SimpleMeterRegistry` (métriques de l'actuator) ; `mirrorMain` = une instance par thread, l'état du thread
     principal est recopié dans le worker après chaque modification (`KomgaSettingsProvider`). Par défaut, chaque thread a
-    son instance (services sans état, DAO).
+    son instance (services sans état, DAO). Sans worker, ces rôles n'ont aucun effet.
   - Événements : ceux publiés dans le worker sans listener créé dans le worker (tous les `DomainEvent`) sont publiés dans
     le thread principal (SSE, métriques, index) ; ceux du thread principal écoutés par un bean du worker (`TaskAddedEvent`,
-    `ApplicationReadyEvent`, `SettingChangedEvent`) lui sont transmis. Komga diffuse déjà ses événements de façon
-    asynchrone (`AsynchronousSpringEventsConfig`) : même sémantique.
-  - Valeurs passées entre threads : `src/port/thread-codec.ts` (data class, enum, `data object` et classes retrouvés par
-    leur chemin d'export, dates js-joda, URL, collections ; objets non copiables par poignée).
-  - SQLite (WAL) : lectures concurrentes, un écrivain à la fois. Dans Komga les threads se partagent la connexion
-    d'écriture (pool Hikari de taille 1, attente jusqu'à 30 s) ; ici chaque thread a la sienne : les transactions
-    d'écriture commencent par `BEGIN IMMEDIATE` et `busy_timeout` vaut au moins 30 s.
-  - Désactivé (tâches dans le thread principal) sous le profil `test`, avec une base en mémoire, ou avec
-    `KOMGAJS_TASK_WORKER=false`. Un worker arrêté anormalement est relancé (ses tâches sont reprises par `disown`).
-  - Cycle de vie : les threads du pool de `TaskProcessor` expirent après 60 s sans tâche (`allowCoreThreadTimeout` de
-    Spring Boot) ; quand il n'en reste aucun, le worker s'arrête et rend sa mémoire (60 à 100 Mo), puis il est relancé
-    au prochain événement qu'il écoute (`TaskAddedEvent`…). Arrêt du serveur (SIGTERM) : le worker ferme son contexte,
-    ou est interrompu au bout de 5 s, même au milieu d'une tâche synchrone (comme les threads de la JVM à l'arrêt).
-  - Le thread principal traite les événements du worker par tranches de 5 ms (un scan en publie des milliers, chacun
-    met à jour l'index de recherche) : les requêtes HTTP passent entre deux tranches.
-  - Journaux du worker écrits directement sur la sortie du processus (sinon retenus jusqu'à la fin d'une tâche).
-  - Mesure : `node tools/scan-latency-bench.mjs <port> <config> <bibliothèque>` (bibliothèques de test :
-    `tools/gen-big-library.mjs`, gros CBZ ; `tools/gen-many-library.mjs`, 6 500 petits livres).
+    `ApplicationReadyEvent`, `SettingChangedEvent`) lui sont transmis, traités par tranches de 5 ms.
+  - SQLite (WAL) : chaque thread a sa connexion d'écriture ; les transactions d'écriture commencent par
+    `BEGIN IMMEDIATE` et `busy_timeout` vaut au moins 30 s.
+  - Jamais sous le profil `test` ni avec une base en mémoire. Un worker arrêté anormalement est relancé ; il s'arrête
+    et rend sa mémoire quand les threads du pool ont expiré (60 s sans tâche), et est relancé au prochain événement.
+- Mesure : `node tools/scan-latency-bench.mjs <port> <config> <bibliothèque>` (latence HTTP pendant un scan, RSS au
+  repos et en pointe ; bibliothèques de test : `tools/gen-big-library.mjs`, gros CBZ ; `tools/gen-many-library.mjs`,
+  6 500 petits livres).
 - Instructions préparées (better-sqlite3) : une instruction n'est libérée qu'au ramasse-miettes de son objet JS, après un
   retour à la boucle d'événements. Pendant une longue tâche synchrone, préparer une instruction par requête (comme jOOQ)
   accumulait des centaines de Mo de mémoire native : les instructions sont réutilisées par connexion

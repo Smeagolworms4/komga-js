@@ -9,7 +9,8 @@ import { BookDtoRepository } from '../../interfaces/api/persistence/BookDtoRepos
 import { SeriesDtoRepository } from '../../interfaces/api/persistence/SeriesDtoRepository.js'
 import type { BookDto } from '../../interfaces/api/rest/dto/BookDto.js'
 import type { SeriesDto } from '../../interfaces/api/rest/dto/SeriesDto.js'
-import { mapNotNull, nn } from '../../port/kotlin.js'
+import { cooperativeYield } from '../../port/async-io.js'
+import { nn } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
 import type { Document } from '../../port/lucene/document.js'
 import { Term } from '../../port/lucene/document.js'
@@ -35,49 +36,52 @@ export class SearchIndexLifecycle {
     this.luceneHelper.setIndexVersion(INDEX_VERSION)
   }
 
-  rebuildIndex(entities: ReadonlySet<LuceneEntity> | null = null): void {
+  // PORT: async (passages coopératifs pendant la reconstruction, voir rebuildIndexEntity)
+  async rebuildIndex(entities: ReadonlySet<LuceneEntity> | null = null): Promise<void> {
     const targetEntities = entities ?? new Set(LuceneEntity.entries())
 
     logger.info(() => `Rebuild index for: [${[...targetEntities].map((it) => it.type).join(', ')}]`)
 
-    targetEntities.forEach((it) => {
+    // PORT: forEach -> for..of (corps asynchrone)
+    for (const it of targetEntities) {
       switch (it) {
         case LuceneEntity.Book:
-          this.rebuildIndexEntity(
+          await this.rebuildIndexEntity(
             it,
             (p: Pageable) => this.bookDtoRepository.findAll(p),
             (e: BookDto) => this.bookToDocument(e),
           )
           break
         case LuceneEntity.Series:
-          this.rebuildIndexEntity(
+          await this.rebuildIndexEntity(
             it,
             (p: Pageable) => this.seriesDtoRepository.findAll(p),
             (e: SeriesDto) => toDocument(e),
           )
           break
         case LuceneEntity.Collection:
-          this.rebuildIndexEntity(
+          await this.rebuildIndexEntity(
             it,
             (p: Pageable) => this.collectionRepository.findAll(SearchContext.empty(), p),
             (e: SeriesCollection) => toDocument(e),
           )
           break
         case LuceneEntity.ReadList:
-          this.rebuildIndexEntity(
+          await this.rebuildIndexEntity(
             it,
             (p: Pageable) => this.readListRepository.findAll(SearchContext.empty(), p),
             (e: ReadList) => toDocument(e),
           )
           break
       }
-    })
+    }
 
     this.luceneHelper.setIndexVersion(INDEX_VERSION)
   }
 
-  // PORT: surcharge privée rebuildIndex(entity, provider, toDoc) -> rebuildIndexEntity
-  private rebuildIndexEntity<T>(entity: LuceneEntity, provider: (p: Pageable) => Page<T>, toDoc: (t: T) => Document | null): void {
+  // PORT: surcharge privée rebuildIndex(entity, provider, toDoc) -> rebuildIndexEntity ; async : passage coopératif
+  // (thread unique) avant chaque page et pendant la conversion des entités en documents, hors transaction
+  private async rebuildIndexEntity<T>(entity: LuceneEntity, provider: (p: Pageable) => Page<T>, toDoc: (t: T) => Document | null): Promise<void> {
     logger.info(() => `Rebuilding index for ${entity.name}`)
 
     const count = provider(Pageable.ofSize(1)).totalElements
@@ -90,8 +94,15 @@ export class SearchIndexLifecycle {
     this.luceneHelper.deleteDocuments(new Term(LuceneEntity.TYPE, entity.type))
 
     for (let page = 0; page < pages; page++) {
+      await cooperativeYield()
       logger.info(() => `Processing page ${page + 1} of ${pages} (${batchSize} elements)`)
-      const entityDocs = mapNotNull(provider(PageRequest.of(page, batchSize)).content, (it) => toDoc(it))
+      // PORT: mapNotNull -> boucle (passages coopératifs)
+      const entityDocs: Document[] = []
+      for (const it of provider(PageRequest.of(page, batchSize)).content) {
+        await cooperativeYield()
+        const doc = toDoc(it)
+        if (doc !== null) entityDocs.push(doc)
+      }
       this.luceneHelper.addDocuments(entityDocs)
     }
     const duration = performance.now() - start

@@ -361,7 +361,7 @@ export const thumbnails = [
 ]
 
 /** Insère tout le jeu de données, fixe les dates de la base et indexe tout dans Lucene */
-export function seed(db: OracleDb, lucene = false): void {
+export async function seed(db: OracleDb, lucene = false): Promise<void> {
   db.libraryDao.insert(new Library({ name: 'Comics', root: new URL('file:/lib1'), id: 'L1' }))
   db.libraryDao.insert(new Library({ name: 'Mangas', root: new URL('file:/lib2'), id: 'L2' }))
   for (const u of [u1, u2, u3, u4]) db.komgaUserDao.insert(u)
@@ -380,7 +380,7 @@ export function seed(db: OracleDb, lucene = false): void {
   for (const t of thumbnails) db.thumbnailBookDao.insert(t)
   fixDates(db)
   if (lucene) {
-    new SearchIndexLifecycle(db.seriesCollectionDao, db.readListDao, db.bookDtoDao, db.seriesDtoDao, db.lucene).rebuildIndex()
+    await new SearchIndexLifecycle(db.seriesCollectionDao, db.readListDao, db.bookDtoDao, db.seriesDtoDao, db.lucene).rebuildIndex()
   }
 }
 

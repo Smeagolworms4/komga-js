@@ -44,9 +44,9 @@ const getEntries = (path: string, analyze: boolean) => pathless(path, () => extr
 
 const getEntryStreams = (path: string) =>
   pathless(path, async () => {
-    const names = [...extractor.getEntries(path, false).map((it) => it.name), 'missing.png', '']
+    const names = [...(await extractor.getEntries(path, false)).map((it) => it.name), 'missing.png', '']
     const out: unknown[] = []
-    for (const name of names) out.push([name, await pathless(path, () => digest(extractor.getEntryStream(path, name)))])
+    for (const name of names) out.push([name, await pathless(path, async () => digest(await extractor.getEntryStream(path, name)))])
     return out
   })
 
@@ -87,7 +87,7 @@ func('getEntryStream', () => {
   kase('directory entry', async () => {
     const p = writeZip(join(tempDir(), 'dir-entry.cbz'), [['dir/', null], t('dir/a.txt', 'a')])
     const out: unknown[] = []
-    for (const it of ['dir/', 'dir', 'dir/a.txt', 'DIR/A.TXT', '/dir/a.txt']) out.push([it, await pathless(p, () => digest(extractor.getEntryStream(p, it)))])
+    for (const it of ['dir/', 'dir', 'dir/a.txt', 'DIR/A.TXT', '/dir/a.txt']) out.push([it, await pathless(p, async () => digest(await extractor.getEntryStream(p, it)))])
     return out
   })
   kase('missing file', () => exceptionType(() => extractor.getEntryStream(join(tempDir(), 'missing.cbz'), 'a')))

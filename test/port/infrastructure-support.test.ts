@@ -12,7 +12,7 @@ import { checkTempDirectory } from '../../src/infrastructure/util/TempDirectoryC
 import { NamespaceXmlFactory } from '../../src/infrastructure/xml/NamespaceXmlFactory.js'
 import { URL } from '../../src/port/java-net.js'
 import { type HttpExchange, InMemoryHttpExchangeRepository } from '../../src/port/spring-actuate.js'
-import { SimpleApplicationEventMulticaster } from '../../src/port/spring-events.js'
+import { ApplicationTaskExecutor, SimpleApplicationEventMulticaster } from '../../src/port/spring-events.js'
 import { JdbcTransactionManager, TransactionTemplate } from '../../src/port/spring-tx.js'
 import type { HikariDataSource } from '../../src/port/sqlite.js'
 
@@ -40,6 +40,37 @@ describe('TransactionTemplate', () => {
 
   it('returns the result of execute', () => {
     expect(template.execute(() => 42)).toBe(42)
+  })
+})
+
+describe('ApplicationTaskExecutor', () => {
+  it('runs tasks after the caller returns, in order, by slices of 5 ms between which the event loop runs', async () => {
+    const executor = new ApplicationTaskExecutor()
+    const done: number[] = []
+    let ioTurns = 0
+    const io = setInterval(() => ioTurns++, 0)
+    for (let i = 0; i < 40; i++)
+      executor.execute(() => {
+        const t = performance.now()
+        while (performance.now() - t < 1);
+        done.push(i)
+      })
+    expect(done).toEqual([])
+    while (done.length < 40) await new Promise((r) => setTimeout(r, 5))
+    clearInterval(io)
+    expect(done).toEqual(Array.from({ length: 40 }, (_, i) => i))
+    // 40 ms de travail : la boucle d'événements a repris la main entre les tranches
+    expect(ioTurns).toBeGreaterThan(3)
+  })
+
+  it('drops pending tasks when stopped', async () => {
+    const executor = new ApplicationTaskExecutor()
+    const done: number[] = []
+    executor.execute(() => done.push(1))
+    executor.stop()
+    await new Promise((r) => setTimeout(r, 10))
+    expect(done).toEqual([])
+    expect(() => executor.execute(() => done.push(2))).toThrow('did not accept task')
   })
 })
 

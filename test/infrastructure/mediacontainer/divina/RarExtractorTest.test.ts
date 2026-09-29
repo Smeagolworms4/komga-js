@@ -12,10 +12,10 @@ describe('RarExtractorTest', () => {
   const imageAnalyzer = new ImageAnalyzer()
   const rarExtractor = new RarExtractor(contentDetector, imageAnalyzer)
 
-  it('given rar file when parsing for entries then returns all images', () => {
+  it('given rar file when parsing for entries then returns all images', async () => {
     const fileResource = fileURLToPath(new URL('../../../resources/archives/rar4.rar', import.meta.url))
 
-    const entries = rarExtractor.getEntries(fileResource, true)
+    const entries = await rarExtractor.getEntries(fileResource, true)
 
     expect(entries).toHaveLength(3)
     {
@@ -27,10 +27,10 @@ describe('RarExtractorTest', () => {
     }
   })
 
-  it('given rar file when parsing for entries without analyzing dimensions then returns all images without dimensions', () => {
+  it('given rar file when parsing for entries without analyzing dimensions then returns all images without dimensions', async () => {
     const fileResource = fileURLToPath(new URL('../../../resources/archives/rar4.rar', import.meta.url))
 
-    const entries = rarExtractor.getEntries(fileResource, false)
+    const entries = await rarExtractor.getEntries(fileResource, false)
 
     expect(entries).toHaveLength(3)
     {

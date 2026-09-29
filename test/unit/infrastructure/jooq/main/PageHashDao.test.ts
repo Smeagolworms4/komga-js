@@ -17,8 +17,8 @@ const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 const sortedMap = <V>(m: Map<string, V>) => new Map([...m].sort((a, b) => cmp(a[0], b[0])))
 
 func('insert', () => {
-  kase('with thumbnail', () => {
-    seed(db)
+  kase('with thumbnail', async () => {
+    await seed(db)
     dao.insert(known('PH1', 101, PageHashKnown.Action.DELETE_AUTO), oracleBytes(16))
     return stable(dao.findKnown('PH1'))
   })

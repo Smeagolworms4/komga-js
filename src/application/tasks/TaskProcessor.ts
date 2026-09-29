@@ -11,8 +11,9 @@ import { TasksRepository } from './TasksRepository.js'
 const logger = KotlinLogging.logger('org.gotson.komga.application.tasks.TaskProcessor')
 
 // PORT: le ThreadPoolTaskExecutor est celui de port/spring-scheduling.ts : threads logiques `taskProcessor-<n>` (tâches
-// lancées sur la boucle d'événements, corps asynchrones attendus), voir l'en-tête de ce fichier. Le TaskProcessor et ses
-// threads logiques vivent dans un worker_thread dédié (port/task-worker.ts) : le serveur HTTP reste disponible.
+// lancées sur la boucle d'événements, corps asynchrones attendus et entrelacés à leurs `await`, comme les threads de
+// Komga), voir l'en-tête de ce fichier et PORTING.md « Architecture d'exécution ». Avec KOMGAJS_TASK_WORKER=true, le
+// TaskProcessor et ses threads logiques vivent dans un worker_thread dédié (port/task-worker.ts).
 export class TaskProcessor {
   readonly executor: ThreadPoolTaskExecutor
 
@@ -79,6 +80,6 @@ component(TaskProcessor, {
     // @EventListener(TaskAddedEvent::class, ApplicationReadyEvent::class)
     { method: 'processAvailableTask', events: [TaskAddedEvent.constructor as Token, ApplicationReadyEvent] },
   ],
-  // PORT: les tâches s'exécutent dans un worker_thread (port/task-worker.ts), comme dans les threads du pool de Komga
+  // PORT: avec KOMGAJS_TASK_WORKER=true, les tâches s'exécutent dans un worker_thread (port/task-worker.ts)
   taskWorker: 'run',
 })

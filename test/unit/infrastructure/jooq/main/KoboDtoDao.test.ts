@@ -14,8 +14,8 @@ const find = (...ids: string[]) => dao.findBookMetadataByIds(ids).sort((a, b) =>
 
 func('findBookMetadataByIds', () => {
   kase('empty database', () => dao.findBookMetadataByIds(['B1']))
-  kase('series book with thumbnail and authors', () => {
-    seed(db)
+  kase('series book with thumbnail and authors', async () => {
+    await seed(db)
     return find('B1')
   })
   kase('several books', () => find('B6', 'B2', 'B4', 'NOPE'))

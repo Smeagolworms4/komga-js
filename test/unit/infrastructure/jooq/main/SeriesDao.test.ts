@@ -25,8 +25,8 @@ func('count', () => {
 })
 
 func('insert', () => {
-  kase('seed', () => {
-    seed(db)
+  kase('seed', async () => {
+    await seed(db)
     return dao.count()
   })
   kase('stored values', () => db.rawQuery('select ID, NAME, URL, FILE_LAST_MODIFIED, LIBRARY_ID, BOOK_COUNT, DELETED_DATE, ONESHOT from SERIES order by ID'))

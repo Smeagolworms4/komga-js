@@ -77,7 +77,7 @@ func('upgradeIndex', () => {
   kase('empty index', () => env((e) => exceptionType(() => e.lifecycle.upgradeIndex())))
   kase('after rebuild', () =>
     env(async (e) => {
-      e.lifecycle.rebuildIndex()
+      await e.lifecycle.rebuildIndex()
       return [await exceptionType(() => e.lifecycle.upgradeIndex()), e.state()]
     }),
   )
@@ -85,39 +85,39 @@ func('upgradeIndex', () => {
 
 func('rebuildIndex@40', () => {
   kase('all entities', () =>
-    env((e) => {
-      e.lifecycle.rebuildIndex()
+    env(async (e) => {
+      await e.lifecycle.rebuildIndex()
       return e.state()
     }),
   )
   for (const entity of LuceneEntity.entries()) {
     kase(`only ${entity}`, () =>
-      env((e) => {
-        e.lifecycle.rebuildIndex(new Set([entity]))
+      env(async (e) => {
+        await e.lifecycle.rebuildIndex(new Set([entity]))
         return e.state()
       }),
     )
   }
   kase('no entity', () =>
-    env((e) => {
-      e.lifecycle.rebuildIndex(new Set())
+    env(async (e) => {
+      await e.lifecycle.rebuildIndex(new Set())
       return e.state()
     }),
   )
   kase('twice', () =>
-    env((e) => {
-      e.lifecycle.rebuildIndex()
-      e.lifecycle.rebuildIndex()
+    env(async (e) => {
+      await e.lifecycle.rebuildIndex()
+      await e.lifecycle.rebuildIndex()
       return e.stateSorted()
     }),
   )
   kase('empty repositories', () =>
-    env((e) => {
+    env(async (e) => {
       e.books = []
       e.series = []
       e.collections = []
       e.readLists = []
-      e.lifecycle.rebuildIndex()
+      await e.lifecycle.rebuildIndex()
       return e.state()
     }),
   )
@@ -126,9 +126,9 @@ func('rebuildIndex@40', () => {
 // privée : reconstruction d'une entité, sur plus d'une page de 5000 entités
 func('rebuildIndex@57', () => {
   kase('5001 collections', () =>
-    env((e) => {
+    env(async (e) => {
       e.collections = Array.from({ length: 5001 }, (_, i) => new SeriesCollection({ name: `collection ${i + 1}`, id: `C${i + 1}`, createdDate: date }))
-      e.lifecycle.rebuildIndex(new Set([LuceneEntity.Collection]))
+      await e.lifecycle.rebuildIndex(new Set([LuceneEntity.Collection]))
       return [
         e.index.helper.searchEntitiesIds('collection', LuceneEntity.Collection)?.length ?? null,
         e.index.helper.searchEntitiesIds('5001', LuceneEntity.Collection),
@@ -137,11 +137,11 @@ func('rebuildIndex@57', () => {
     }),
   )
   kase('previous documents of the entity are deleted', () =>
-    env((e) => {
-      e.lifecycle.rebuildIndex()
+    env(async (e) => {
+      await e.lifecycle.rebuildIndex()
       e.readLists.splice(0, 1)
       e.books.splice(0, 1)
-      e.lifecycle.rebuildIndex(new Set([LuceneEntity.ReadList]))
+      await e.lifecycle.rebuildIndex(new Set([LuceneEntity.ReadList]))
       return e.stateSorted()
     }),
   )
@@ -177,8 +177,8 @@ func('consumeEvents', () => {
       }),
     )
     kase(`${label} on rebuilt index, entities renamed`, () =>
-      env((e) => {
-        e.lifecycle.rebuildIndex()
+      env(async (e) => {
+        await e.lifecycle.rebuildIndex()
         e.books = e.books.map(renamedBook)
         e.series = e.series.map(renamedSeries)
         e.collections = e.collections.map((c) => c.copy({ name: `Renamed ${c.name}` }))
@@ -234,8 +234,8 @@ func('updateEntity', () => {
 
 func('deleteEntity', () => {
   kase('delete of every entity type', () =>
-    env((e) => {
-      e.lifecycle.rebuildIndex()
+    env(async (e) => {
+      await e.lifecycle.rebuildIndex()
       e.lifecycle.consumeEvents(new DomainEvent.BookDeleted({ book: book('B2') }))
       e.lifecycle.consumeEvents(new DomainEvent.SeriesDeleted({ series: series('S2') }))
       e.lifecycle.consumeEvents(new DomainEvent.CollectionDeleted({ collection: collection('C2') }))

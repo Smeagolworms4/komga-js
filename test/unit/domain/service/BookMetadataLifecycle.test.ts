@@ -37,12 +37,12 @@ const full =
   '<Web>https://example.org/a not-a-uri https://komga.org</Web>'
 const all = () => new Set(BookMetadataPatchCapability.entries())
 
-function addBook(id: string, url: URL) {
+async function addBook(id: string, url: URL) {
   const bk = book(id, 'S1', 'L1', undefined, url)
   db.bookDao.insert(bk)
   db.mediaDao.insert(new Media({ bookId: id, createdDate: date }))
   db.bookMetadataDao.insert(metadata(bk))
-  graph.bookLifecycle.analyzeAndPersist(bk)
+  await graph.bookLifecycle.analyzeAndPersist(bk)
 }
 const b = (id: string) => nn(db.bookDao.findByIdOrNull(id))
 
@@ -58,15 +58,15 @@ const state = (id: string) =>
 const lib = (block: (l: Library) => Library) => db.libraryDao.update(block(db.libraryDao.findById('L1')))
 
 func('refreshMetadata', () => {
-  kase('setup', () => {
+  kase('setup', async () => {
     db.libraryDao.insert(library('L1', new URL(`file:${dir()}`)))
     db.seriesDao.insert(series('S1', 'L1'))
-    addBook('B1', zipFile(dir(), 'b1.cbz', [['p1.png', png], comicInfo(full)]))
-    addBook('B2', zipFile(dir(), 'b2.cbz', [['p1.png', png], comicInfo('<Title>  </Title><Number>1.5</Number><StoryArc>Arc A</StoryArc>')]))
-    addBook('B3', zipFile(dir(), 'b3.cbz', [['p1.png', png]]))
+    await addBook('B1', zipFile(dir(), 'b1.cbz', [['p1.png', png], comicInfo(full)]))
+    await addBook('B2', zipFile(dir(), 'b2.cbz', [['p1.png', png], comicInfo('<Title>  </Title><Number>1.5</Number><StoryArc>Arc A</StoryArc>')]))
+    await addBook('B3', zipFile(dir(), 'b3.cbz', [['p1.png', png]]))
     copyFileSync(fixture('epub/reflow.epub'), join(dir(), 'reflow.epub'))
-    addBook('B4', new URL(`file:${join(dir(), 'reflow.epub')}`))
-    addBook('B5', zipFile(dir(), 'b5.cbz', [['p1.png', png], t('ComicInfo.xml', '<not xml')]))
+    await addBook('B4', new URL(`file:${join(dir(), 'reflow.epub')}`))
+    await addBook('B5', zipFile(dir(), 'b5.cbz', [['p1.png', png], t('ComicInfo.xml', '<not xml')]))
     graph.takeEvents()
     return db.mediaDao.findById('B1').files
   })

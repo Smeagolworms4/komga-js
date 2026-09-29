@@ -19,8 +19,8 @@ const sorted = (l: string[]) => [...l].sort()
 const col = (name: string, id: string, seriesIds: string[] = [], ordered = false) => new SeriesCollection({ name, ordered, seriesIds, id })
 
 func('count', () => {
-  kase('seeded', () => {
-    seed(db, true)
+  kase('seeded', async () => {
+    await seed(db, true)
     return dao.count()
   })
 })

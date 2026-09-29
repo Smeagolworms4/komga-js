@@ -18,9 +18,9 @@ const fixtures = ['not-a-rar.rar', 'r4-badcrc.rar', 'r4-bad-file-crc.rar', 'r4-b
 
 const getEntryStreams = (path: string) =>
   pathless(path, async () => {
-    const names = [...extractor.getEntries(path, false).map((it) => it.name), 'missing.png', '']
+    const names = [...(await extractor.getEntries(path, false)).map((it) => it.name), 'missing.png', '']
     const out: unknown[] = []
-    for (const name of names) out.push([name, await pathless(path, () => digest(extractor.getEntryStream(path, name)))])
+    for (const name of names) out.push([name, await pathless(path, async () => digest(await extractor.getEntryStream(path, name)))])
     return out
   })
 
@@ -64,7 +64,7 @@ func('getEntryStream', () => {
   kase('rar4 entry names', async () => {
     const p = komgaRes('archives/rar4.rar')
     const out: unknown[] = []
-    for (const it of ['komga.png', 'KOMGA.PNG', '/komga.png', 'komga']) out.push([it, await pathless(p, () => digest(extractor.getEntryStream(p, it)))])
+    for (const it of ['komga.png', 'KOMGA.PNG', '/komga.png', 'komga']) out.push([it, await pathless(p, async () => digest(await extractor.getEntryStream(p, it)))])
     return out
   })
   kase('missing file', () => exceptionType(() => extractor.getEntryStream(join(tempDir(), 'missing.cbr'), 'a')))

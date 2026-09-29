@@ -12,10 +12,10 @@ describe('ZipExtractorTest', () => {
   const imageAnalyzer = new ImageAnalyzer()
   const zipExtractor = new ZipExtractor(contentDetector, imageAnalyzer)
 
-  it('given zip file when parsing for entries then returns all images', () => {
+  it('given zip file when parsing for entries then returns all images', async () => {
     const fileResource = fileURLToPath(new URL('../../../resources/archives/zip.zip', import.meta.url))
 
-    const entries = zipExtractor.getEntries(fileResource, true)
+    const entries = await zipExtractor.getEntries(fileResource, true)
 
     expect(entries).toHaveLength(1)
     {
@@ -27,10 +27,10 @@ describe('ZipExtractorTest', () => {
     }
   })
 
-  it('given zip file when parsing for entries without analyzing dimensions then returns all images without dimensions', () => {
+  it('given zip file when parsing for entries without analyzing dimensions then returns all images without dimensions', async () => {
     const fileResource = fileURLToPath(new URL('../../../resources/archives/zip.zip', import.meta.url))
 
-    const entries = zipExtractor.getEntries(fileResource, false)
+    const entries = await zipExtractor.getEntries(fileResource, false)
 
     expect(entries).toHaveLength(1)
     {

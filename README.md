@@ -40,16 +40,24 @@ the idle memory after rebuilding the index went from 797 MB to about 300 MB, and
 fits in a 256 MB heap up to at least 48,000 books (x86-64 bench). The Raspberry Pi figures will
 be re-measured with this version.
 
-The scan is slower: image processing runs on a single thread to keep memory low. Background
-tasks (scan, analysis, hashing, thumbnails) run in a worker thread, like Komga's task pool, so
-the web server keeps answering during a scan (10 ms median, 45 ms at the 99th percentile,
-measured during a scan); the worker adds about 60–100 MB while it runs and stops after 60 s
-without tasks. The benchmarks are `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`;
-run them on your own library. In a container, each thread's V8 heap is capped at a quarter of
-the memory limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_IMAGE_THREADS` sets the number of native
-libvips threads per image operation (default 1, the lowest memory; 2–4 make thumbnails and
-conversions faster; 0 lets libvips use every core);
-`KOMGAJS_TASK_WORKER=false` runs the tasks on the main thread.
+The scan is slower: image processing uses one native thread by default to keep memory low.
+Everything runs on a single JavaScript thread, with a single V8 heap: background tasks (scan,
+analysis, hashing, thumbnails) and web requests share it. Every wait (file reads, hashing,
+decompression, image and JPEG coding, kepubify) runs on libuv's thread pool, and long loops
+hand the thread back every 10 ms, so several tasks progress together, like Komga's task
+threads, while the web server keeps answering: 11 ms median, 29 ms at the 99th percentile,
+measured during the scan and analysis of 6,500 generated books (the previous architecture,
+with the tasks in a separate worker thread, used 80 MB more at start-up and 170 MB more at the
+peak of the scan; 60 s after the last task, both give their memory back, about 175 MB). The benchmarks are `tools/mem-bench.mjs` and `tools/scan-latency-bench.mjs`;
+run them on your own library. In a container, the V8 heap is capped at a quarter of the memory
+limit (at least 256 MB) (`KOMGAJS_MAX_HEAP_MB` sets it explicitly); `KOMGAJS_IMAGE_THREADS`
+sets the number of native libvips threads per image operation (default 1, the lowest memory;
+2 made thumbnails about 20 % faster on large pages, 4 no faster; 0 lets libvips use every core); `UV_THREADPOOL_SIZE`
+(Node, default 4) bounds how many of those waits run at once, keep it above the number of task
+threads. What still runs on the JavaScript thread and can delay requests while it lasts: SQLite
+queries, PDF rendering, RAR decompression, EPUB parsing, search index updates.
+`KOMGAJS_TASK_WORKER=true` runs the tasks in a separate worker thread instead (a second V8 heap,
+60–100 MB more while tasks run, stopped after 60 s without tasks).
 
 ## Features
 

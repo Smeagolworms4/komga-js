@@ -1141,7 +1141,7 @@ describe('SeriesControllerTest', () => {
           toScanResult(new Map([[makeSeries('series'), [makeBook('book1').copy({ fileSize: 1 })]]])),
           toScanResult(new Map([[makeSeries('series'), [makeBook('book1').copy({ fileSize: 2 })]]])),
         )
-        libraryContentLifecycle.scanRootFolder(library)
+        await libraryContentLifecycle.scanRootFolder(library)
 
         await mockMvc.get('/api/v1/series/updated').andExpect((m: MockMvcResultMatchersDsl) => {
           m.status((s) => s.isOk())

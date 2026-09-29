@@ -1,7 +1,8 @@
 // Support de portage : java.nio.file (Files, Path, BasicFileAttributes, FileTime, walkFileTree) et les fonctions
 // d'extension kotlin.io.path utilisées par Komga. Ce fichier n'a pas de jumeau Kotlin.
 // Un `Path` est une chaîne (chemin du système de fichiers par défaut, Unix).
-// Toutes les opérations sont synchrones (node:fs), comme les API bloquantes de la JVM.
+// Les opérations sont synchrones (node:fs), comme les API bloquantes de la JVM, sauf le parcours `walkFileTree`
+// (asynchrone, voir FileTreeWalker) et ses variantes `...Async`.
 //
 // Comportements reproduits (JDK, sun.nio.fs.UnixPath / UnixFileAttributes / FileTreeWalker) :
 // - ordre des entrées de répertoire : ordre brut de readdir(3) (DirectoryStream), sans tri.
@@ -26,6 +27,7 @@ import {
   statSync,
   unlinkSync,
 } from 'node:fs'
+import { lstat as lstatAsync, opendir as opendirAsync, stat as statAsync } from 'node:fs/promises'
 import { Instant } from '@js-joda/core'
 import { IOException } from './java-io.js'
 import { type Equatable, KEnum } from './kotlin.js'
@@ -341,6 +343,38 @@ export function newDirectoryStream(dir: string): string[] {
   return out
 }
 
+/**
+ * PORT: `newDirectoryStream` asynchrone (pool de libuv), même ordre brut de readdir(3), mêmes exceptions ; pour
+ * `walkFileTree` (thread unique, voir PORTING.md « Architecture d'exécution »)
+ */
+export async function newDirectoryStreamAsync(dir: string): Promise<string[]> {
+  let d
+  try {
+    d = await opendirAsync(dir)
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code === 'ENOTDIR') throw new NotDirectoryException(dir)
+    throw translateError(e, dir)
+  }
+  const out: string[] = []
+  try {
+    let e
+    while ((e = await d.read()) !== null) out.push(pathResolve(dir, e.name))
+  } finally {
+    await d.close()
+  }
+  return out
+}
+
+/** PORT: `readAttributes` asynchrone (pool de libuv), mêmes exceptions */
+export async function readAttributesAsync(path: string, followLinks: boolean = true): Promise<BasicFileAttributes> {
+  try {
+    const st = followLinks ? await statAsync(path, { bigint: true }) : await lstatAsync(path, { bigint: true })
+    return new BasicFileAttributes(st)
+  } catch (e) {
+    throw translateError(e, path)
+  }
+}
+
 /** `path.listDirectoryEntries()` */
 export function listDirectoryEntries(dir: string): string[] {
   return newDirectoryStream(dir)
@@ -457,22 +491,43 @@ type Event =
   | { type: 'START_DIRECTORY'; file: string; attrs: BasicFileAttributes }
   | { type: 'END_DIRECTORY'; file: string; ioe: IOException | null }
 
+// PORT: parcours asynchrone (lectures de répertoires et `stat` sur le pool de libuv, thread unique : voir PORTING.md
+// « Architecture d'exécution ») ; les attributs des entrées d'un répertoire sont demandés ensemble à son ouverture
+// (même résultat, mêmes événements dans le même ordre), le visiteur reste synchrone.
 class FileTreeWalker {
   private readonly stack: DirectoryNode[] = []
+  /** attributs demandés d'avance (entrées du répertoire ouvert) */
+  private readonly prefetched = new Map<string, Promise<BasicFileAttributes>>()
 
   constructor(
     private readonly followLinks: boolean,
     private readonly maxDepth: number,
   ) {}
 
-  private getAttributes(file: string): BasicFileAttributes {
+  private async getAttributes(file: string): Promise<BasicFileAttributes> {
     // attempt to get attributes of file. If fails and we are following
     // links then a link target might not exist so get attributes of link
     try {
-      return readAttributes(file, this.followLinks)
+      return await readAttributesAsync(file, this.followLinks)
     } catch (ioe) {
       if (!this.followLinks) throw ioe
-      return readAttributes(file, false)
+      return await readAttributesAsync(file, false)
+    }
+  }
+
+  private attributes(file: string): Promise<BasicFileAttributes> {
+    const p = this.prefetched.get(file)
+    if (p === undefined) return this.getAttributes(file)
+    this.prefetched.delete(file)
+    return p
+  }
+
+  private prefetch(entries: string[]): void {
+    for (const entry of entries) {
+      const p = this.getAttributes(entry)
+      // rejet traité à la visite de l'entrée (ou ignoré si elle n'est pas visitée)
+      p.catch(() => undefined)
+      this.prefetched.set(entry, p)
     }
   }
 
@@ -482,10 +537,10 @@ class FileTreeWalker {
     return this.stack.some((n) => n.key === key)
   }
 
-  private visit(entry: string): Event {
+  private async visit(entry: string): Promise<Event> {
     let attrs: BasicFileAttributes
     try {
-      attrs = this.getAttributes(entry)
+      attrs = await this.attributes(entry)
     } catch (ioe) {
       return { type: 'ENTRY', file: entry, attrs: null, ioe: ioe as IOException }
     }
@@ -501,21 +556,22 @@ class FileTreeWalker {
     // file is a directory, attempt to open it
     let entries: string[]
     try {
-      entries = newDirectoryStream(entry)
+      entries = await newDirectoryStreamAsync(entry)
     } catch (ioe) {
       return { type: 'ENTRY', file: entry, attrs: null, ioe: ioe as IOException }
     }
 
     // push a directory node to the stack and return an event
     this.stack.push({ dir: entry, key: attrs.fileKey(), entries, index: 0, skipped: false })
+    this.prefetch(entries)
     return { type: 'START_DIRECTORY', file: entry, attrs }
   }
 
-  walk(file: string): Event {
+  walk(file: string): Promise<Event> {
     return this.visit(file)
   }
 
-  next(): Event | null {
+  async next(): Promise<Event | null> {
     const top = this.stack[this.stack.length - 1]
     if (top === undefined) return null // stack is empty, we are done
 
@@ -525,7 +581,7 @@ class FileTreeWalker {
 
     // no next entry so close and pop directory, creating corresponding event
     if (entry === null) {
-      this.stack.pop()
+      this.pop()
       return { type: 'END_DIRECTORY', file: top.dir, ioe: null }
     }
 
@@ -534,19 +590,28 @@ class FileTreeWalker {
   }
 
   pop(): void {
-    this.stack.pop()
+    const top = this.stack.pop()
+    if (top !== undefined) this.forget(top)
   }
 
   skipRemainingSiblings(): void {
     const top = this.stack[this.stack.length - 1]
-    if (top !== undefined) top.skipped = true
+    if (top !== undefined) {
+      top.skipped = true
+      this.forget(top)
+    }
+  }
+
+  /** attributs demandés d'avance des entrées non visitées d'un répertoire quitté ou sauté */
+  private forget(node: DirectoryNode): void {
+    for (let i = node.index; i < node.entries.length; i++) this.prefetched.delete(node.entries[i] as string)
   }
 }
 
-/** `Files.walkFileTree(start, options, maxDepth, visitor)` */
-export function walkFileTree(start: string, options: ReadonlySet<FileVisitOption>, maxDepth: number, visitor: FileVisitor): string {
+/** `Files.walkFileTree(start, options, maxDepth, visitor)` (PORT: async, voir FileTreeWalker) */
+export async function walkFileTree(start: string, options: ReadonlySet<FileVisitOption>, maxDepth: number, visitor: FileVisitor): Promise<string> {
   const walker = new FileTreeWalker(options.has(FileVisitOption.FOLLOW_LINKS), maxDepth)
-  let ev: Event | null = walker.walk(start)
+  let ev: Event | null = await walker.walk(start)
   do {
     let result: FileVisitResult
     switch (ev.type) {
@@ -576,7 +641,7 @@ export function walkFileTree(start: string, options: ReadonlySet<FileVisitOption
       if (result === FileVisitResult.TERMINATE) break
       else if (result === FileVisitResult.SKIP_SIBLINGS) walker.skipRemainingSiblings()
     }
-    ev = walker.next()
+    ev = await walker.next()
   } while (ev !== null)
   return start
 }
