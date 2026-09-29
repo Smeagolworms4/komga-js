@@ -211,7 +211,8 @@ this project is theirs. If you use KomgaJS, please support the original:
 
 Questions about Komga itself belong on [Komga's Discord](https://discord.gg/TdRpkDu) and
 [website](https://komga.org); issues specific to this port belong
-[here](https://github.com/Smeagolworms4/komga-js/issues).
+[here](https://github.com/Smeagolworms4/komga-js/issues), and you can talk about the port on
+[SmeagolWorms4's Discord](https://discord.gg/xMBc5SQ).
 
 The TypeScript port is by [SmeagolWorms4](https://github.com/Smeagolworms4), also the author
 of [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Komga, its ideas and

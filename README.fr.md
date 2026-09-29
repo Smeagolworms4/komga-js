@@ -221,7 +221,8 @@ l'interface web de ce projet sont les leurs. Si vous utilisez KomgaJS, soutenez 
 
 Les questions sur Komga lui-même ont leur place sur [le Discord](https://discord.gg/TdRpkDu)
 et [le site](https://komga.org) de Komga ; les problèmes propres à ce portage,
-[ici](https://github.com/Smeagolworms4/komga-js/issues).
+[ici](https://github.com/Smeagolworms4/komga-js/issues), et on peut parler du portage sur
+[le Discord de SmeagolWorms4](https://discord.gg/xMBc5SQ).
 
 Le portage TypeScript est l'œuvre de [SmeagolWorms4](https://github.com/Smeagolworms4),
 auteur aussi de [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Komga,
