@@ -119,7 +119,7 @@ describe('TokenBasedRememberMeServices', () => {
     const good = services.encode(['admin@example.org', String(expiry), 'SHA256', sig])
     const auth = services.autoLogin(fakeRequest('/api/v1/series', { cookie: `remember-me=${good}` }), fakeResponse())
     expect(auth?.principal).toBe(principal)
-    const bad = services.encode(['admin@example.org', String(expiry), 'SHA256', sig.replace(/^./, '0')])
+    const bad = services.encode(['admin@example.org', String(expiry), 'SHA256', sig.replace(/^./, (c) => (c === '0' ? '1' : '0'))])
     const res = fakeResponse()
     expect(services.autoLogin(fakeRequest('/api/v1/series', { cookie: `remember-me=${bad}` }), res)).toBeNull()
     expect(res.getHeaders('Set-Cookie')).toEqual(['remember-me=; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:10 GMT; Path=/'])
