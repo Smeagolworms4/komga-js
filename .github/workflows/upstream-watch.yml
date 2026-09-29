@@ -71,7 +71,8 @@ jobs:
         if: steps.check.outputs.newer == 'true'
         env:
           TAG: ${{ steps.check.outputs.tag }}
-          UPSTREAM_BASE: ${{ steps.check.outputs.base }}
+          # test run only: otherwise both tools read UPSTREAM_REF
+          UPSTREAM_BASE: ${{ env.BASE_REF_INPUT && steps.check.outputs.base || '' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           node tools/upstream-diff.mjs "$TAG" > upstream-diff.txt

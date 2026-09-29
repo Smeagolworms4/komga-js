@@ -89,7 +89,10 @@ const out = []
 const MAX_BODY = 60_000
 const push = (s = '') => out.push(s)
 
-push(`Komga **${target}** is out${release?.published_at ? ` (${release.published_at.slice(0, 10)})` : ''}. KomgaJS ports \`${baseName}\` (\`UPSTREAM_REF\` = \`${BASE.slice(0, 12)}\`).`)
+const baseText = process.env.UPSTREAM_BASE
+  ? `Compared from \`${baseName}\` (\`${BASE.slice(0, 12)}\`, \`UPSTREAM_BASE\`), not from \`UPSTREAM_REF\`.`
+  : `KomgaJS ports \`${baseName}\` (\`UPSTREAM_REF\` = \`${BASE.slice(0, 12)}\`).`
+push(`Komga **${target}** is out${release?.published_at ? ` (${release.published_at.slice(0, 10)})` : ''}. ${baseText}`)
 if (release?.html_url) push(`Release: ${release.html_url}`)
 push()
 push(`${commits} upstream commits, ${files.length} files changed in \`komga/\`, \`komga-webui/\` and \`next-ui/\`.`)
