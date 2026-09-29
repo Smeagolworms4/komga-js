@@ -1,0 +1,33 @@
+version: 2
+
+# Weekly updates. Minor and patch npm updates come as one grouped pull request; majors one by one (the port's
+# behaviour must be re-checked against the fixtures, CI runs the whole suite on each pull request).
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # the version embedded by springdoc 2.8.9 in Komga (src/port/springdoc.ts): identical Swagger UI files
+      - dependency-name: swagger-ui-dist
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    ignore:
+      # Node majors follow Komga (.nvmrc of komga-webui and next-ui) and the pinned runtime: a deliberate change
+      - dependency-name: node
+        update-types: [version-update:semver-major]
