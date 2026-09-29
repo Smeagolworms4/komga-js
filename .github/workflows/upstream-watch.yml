@@ -1,0 +1,114 @@
+name: Upstream watch
+
+# Watches Komga releases: when the latest gotson/komga release is newer than the ported commit (UPSTREAM_REF),
+# opens (or updates) one issue "Komga <tag> released — port the diff" with the report of tools/upstream-report.mjs
+# (changed Kotlin files and their TypeScript twins, lines, tests, migrations, web UI changes). The full Kotlin diff
+# (tools/upstream-diff.mjs) is attached to the run as an artifact.
+#
+# Manual run: `base_ref` compares from another Komga ref instead of UPSTREAM_REF (to try the workflow when no newer
+# release exists); the issue title then gets a "[test from <ref>]" suffix, so it never stands for the real one.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: 'Komga ref to compare from instead of UPSTREAM_REF (test run)'
+        required: false
+        default: ''
+
+concurrency:
+  group: upstream-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    name: Latest Komga release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BASE_REF_INPUT: ${{ inputs.base_ref }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.20.0
+
+      - name: Latest release and ported commit
+        id: check
+        run: |
+          gh api repos/gotson/komga/releases/latest > release.json
+          tag="$(jq -r .tag_name release.json)"
+          base="${BASE_REF_INPUT:-$(cat UPSTREAM_REF)}"
+          # same clone as build.yml (history and tags, file contents fetched on demand)
+          git clone --filter=blob:none --no-checkout https://github.com/gotson/komga.git ../komga-src
+          ln -sfn ../komga-src upstream
+          tag_commit="$(git -C upstream rev-parse "$tag^{commit}")"
+          base_commit="$(git -C upstream rev-parse "$base^{commit}")"
+          if git -C upstream merge-base --is-ancestor "$tag_commit" "$base_commit"; then
+            echo "Komga $tag ($tag_commit) is already contained in $base ($base_commit): nothing to port." | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          title="Komga $tag released — port the diff"
+          if [ -n "$BASE_REF_INPUT" ]; then title="$title [test from $BASE_REF_INPUT]"; fi
+          {
+            echo "newer=true"
+            echo "tag=$tag"
+            echo "base=$base_commit"
+            echo "title=$title"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Report
+        if: steps.check.outputs.newer == 'true'
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+          UPSTREAM_BASE: ${{ steps.check.outputs.base }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node tools/upstream-diff.mjs "$TAG" > upstream-diff.txt
+          node tools/upstream-report.mjs "$TAG" --release-json release.json > report.md
+          {
+            echo
+            echo "Full Kotlin diff (\`node tools/upstream-diff.mjs $TAG\`): artifact \`upstream-diff\` of $RUN_URL"
+          } >> report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        if: steps.check.outputs.newer == 'true'
+        with:
+          name: upstream-diff
+          path: |
+            upstream-diff.txt
+            report.md
+          retention-days: 90
+
+      - name: Open or update the issue
+        if: steps.check.outputs.newer == 'true'
+        env:
+          TITLE: ${{ steps.check.outputs.title }}
+        run: |
+          gh label create upstream --color 5319e7 --description 'New Komga release to port' 2>/dev/null || true
+          # exact title match among all issues (open or closed): never a duplicate
+          existing="$(gh issue list --state all --search "\"$TITLE\" in:title" --limit 50 --json number,title,state \
+            --jq '[.[] | select(.title == env.TITLE)][0] // empty | "\(.number) \(.state)"')"
+          if [ -z "$existing" ]; then
+            url="$(gh issue create --title "$TITLE" --label upstream --body-file report.md)"
+            echo "Opened $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            read -r number state <<< "$existing"
+            if [ "$state" = "OPEN" ]; then
+              gh issue edit "$number" --body-file report.md --add-label upstream
+              echo "Updated issue #$number" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "Issue #$number is $state: left as is." | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+          fi

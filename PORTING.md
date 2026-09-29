@@ -122,10 +122,15 @@ et vérifie que les fixtures produites sont identiques à celles de la branche `
 git -C upstream fetch --tags origin
 node tools/upstream-diff.mjs 1.28.0 --stat   # liste des fichiers touchés et de leurs jumeaux
 node tools/upstream-diff.mjs 1.28.0          # diffs complets à reporter
+node tools/upstream-report.mjs 1.28.0        # résumé Markdown (jumeaux, lignes, tests, migrations, interfaces web)
 # reporter chaque diff dans le jumeau, puis passer son en-tête @port-of au nouveau sha
 echo <sha> > UPSTREAM_REF
 node tools/port-status.mjs                   # doit indiquer 0 fichier périmé
 ```
+
+Le workflow `.github/workflows/upstream-watch.yml` (chaque jour, ou à la main) compare la dernière version publiée de
+Komga à `UPSTREAM_REF` et ouvre ou met à jour une issue « Komga <tag> released — port the diff » (étiquette `upstream`)
+avec ce résumé ; le diff complet est joint au run.
 
 ## Conventions de traduction Kotlin → TypeScript
 

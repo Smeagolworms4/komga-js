@@ -6,13 +6,15 @@
 // Usage : node tools/upstream-diff.mjs <nouvelle-ref> [--stat]
 //   (faire d'abord `git -C upstream fetch --tags origin`)
 // Une fois reporté : mettre à jour les en-têtes @port-of puis UPSTREAM_REF.
+// Base : UPSTREAM_REF, ou la variable d'environnement UPSTREAM_BASE (essai contre une révision plus ancienne).
+// Résumé pour une issue (jumeaux, lignes, tests, migrations, interfaces web) : tools/upstream-report.mjs.
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const UPSTREAM = join(ROOT, 'upstream')
-const REF = readFileSync(join(ROOT, 'UPSTREAM_REF'), 'utf8').trim()
+const REF = (process.env.UPSTREAM_BASE || readFileSync(join(ROOT, 'UPSTREAM_REF'), 'utf8')).trim()
 const [target, flag] = process.argv.slice(2)
 if (!target) {
   console.error('usage: upstream-diff.mjs <nouvelle-ref> [--stat]')
