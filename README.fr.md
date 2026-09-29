@@ -102,6 +102,9 @@ et les mêmes réglages `application.yml` et variables d'environnement `KOMGA_*`
 `:main` est un tag mobile, republié à chaque push sur `main` : l'image pour essayer la
 dernière version. Ce qui doit rester stable doit pointer vers un tag de version.
 
+Plateformes : `linux/amd64` et `linux/arm64` (Node 24), `linux/arm/v7` (Raspberry Pi 32 bits,
+Node 22 : Node 24 n'existe pas en armv7 ; la suite de tests tourne aussi sous Node 22 en CI).
+
 ### Depuis les sources
 
 Node.js 24, un compilateur C, les fichiers de développement d'ICU et `zip` (pour les tests) :

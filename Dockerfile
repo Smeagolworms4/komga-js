@@ -1,6 +1,11 @@
 # KomgaJS : le backend porté de Komga, avec les interfaces web de Komga (komga-webui et next-ui)
 # construites depuis le même commit que celui porté (UPSTREAM_REF).
 # Même usage que l'image de Komga : volume /config, port 25600, bibliothèques montées où l'on veut.
+#
+# Plateformes : linux/amd64 et linux/arm64 sur Node 24 (celle des tests), linux/arm/v7 sur Node 22 LTS : Node 24 n'a
+# plus de binaire armv7 (ni officiel, ni non officiel, pas d'image node:24 arm/v7). Node 22 est testé en CI
+# (build.yml, job « Node 22 ») ; fin de support de Node 22 : avril 2027.
+ARG TARGETARCH
 
 # --- Sources de Komga, au commit porté -------------------------------------------------------
 FROM --platform=$BUILDPLATFORM alpine/git:2.47.2 AS komga-src
@@ -21,12 +26,28 @@ COPY --from=komga-src /komga/next-ui /nextui
 WORKDIR /nextui
 RUN npm ci --no-audit --no-fund && npm run build
 
-# --- KomgaJS : modules natifs (ICU, libjpeg 6b + LittleCMS) et compilation TypeScript ---------
-FROM node:24-bookworm AS build
+# --- Node par architecture (voir en tête) ------------------------------------------------------
+FROM node:24-bookworm AS node-build-amd64
+FROM node:24-bookworm AS node-build-arm64
+FROM node:22-bookworm AS node-build-arm
+FROM node:24-bookworm-slim AS node-runner-amd64
+FROM node:24-bookworm-slim AS node-runner-arm64
+FROM node:22-bookworm-slim AS node-runner-arm
+
+# --- KomgaJS : modules natifs (ICU, libjpeg 6b + LittleCMS, bcrypt) et compilation TypeScript -
+FROM node-build-${TARGETARCH} AS build
 RUN apt-get update && apt-get install -y --no-install-recommends libicu-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# better-sqlite3 n'a de binaire précompilé que pour x64 et arm64 : ailleurs (armv7), compilé depuis ses sources
+# (SQLite inclus dans le paquet) avec le node-gyp de npm et les en-têtes de l'image.
+RUN npm ci --no-audit --no-fund && \
+    if ! node -e "require('better-sqlite3')(':memory:').close()" 2>/dev/null; then \
+      cd node_modules/better-sqlite3 && \
+      node "$(npm root -g)/npm/node_modules/node-gyp/bin/node-gyp.js" rebuild --release --nodedir=/usr/local --jobs=max && \
+      rm -rf build/Release/obj.target build/Release/.deps && \
+      node -e "require('better-sqlite3')(':memory:').close()"; \
+    fi
 COPY . .
 COPY --from=webui /webui/dist /tmp/webui
 COPY --from=nextui /nextui/dist /tmp/nextui
@@ -40,7 +61,7 @@ RUN npm run build:native && \
     npm prune --omit=dev
 
 # --- Image finale ------------------------------------------------------------------------------
-FROM node:24-bookworm-slim AS runner
+FROM node-runner-${TARGETARCH} AS runner
 ARG TARGETARCH
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libicu72 ca-certificates locales wget && \
