@@ -2,6 +2,7 @@
 // Ce fichier n'a pas de jumeau Kotlin.
 import type Database from 'better-sqlite3'
 import { IllegalArgumentException } from '../kotlin.js'
+import { inWriteBatch, isWriteBatchOpen } from '../sqlite-write-batch.js'
 import {
   AggregateFunction,
   Batch,
@@ -249,16 +250,31 @@ export const DSL = {
 const txDepth = new WeakMap<Database.Database, number>()
 const txReadOnly = new WeakMap<Database.Database, boolean>()
 
+// PORT: écart — un lot d'écritures des tâches ouvert (port/sqlite-write-batch.ts) vaut transaction en lecture-écriture :
+// les lectures des DAO passent par la connexion d'écriture, qui voit le lot (y compris dans une transaction en lecture
+// seule, qui s'y ouvre comme point de sauvegarde)
 export function isActualTransactionActive(db: Database.Database): boolean {
-  return (txDepth.get(db) ?? 0) > 0
+  return (txDepth.get(db) ?? 0) > 0 || isWriteBatchOpen(db)
 }
 export function isCurrentTransactionReadOnly(db: Database.Database): boolean {
-  return txReadOnly.get(db) ?? false
+  return (txReadOnly.get(db) ?? false) && !isWriteBatchOpen(db)
 }
 
 export function transactional<T>(db: Database.Database, fn: () => T, { readOnly = false }: { readOnly?: boolean } = {}): T {
   const depth = txDepth.get(db) ?? 0
   if (depth > 0) return fn()
+  // PORT: écart — pendant un lot d'écritures des tâches (port/sqlite-write-batch.ts), la transaction est un point de
+  // sauvegarde du lot (même atomicité, validée avec le lot) ; sinon comme dans Komga
+  if (isWriteBatchOpen(db)) {
+    txDepth.set(db, 1)
+    txReadOnly.set(db, readOnly)
+    try {
+      return (inWriteBatch(db, fn) as { result: T }).result
+    } finally {
+      txDepth.set(db, 0)
+      txReadOnly.set(db, false)
+    }
+  }
   txDepth.set(db, 1)
   txReadOnly.set(db, readOnly)
   // PORT: sqlite-jdbc ouvre les transactions en mode DEFERRED, et dans Komga une seule connexion écrit (pool RW de

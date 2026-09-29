@@ -1,5 +1,4 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/barcode/IsbnBarcodeProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import zxing from '@zxing/library'
 import { BookMetadataPatch, BookMetadataPatchCapability } from '../../../domain/model/BookMetadataPatch.js'
 import type { BookWithMedia } from '../../../domain/model/BookWithMedia.js'
 import type { Library } from '../../../domain/model/Library.js'
@@ -7,64 +6,29 @@ import { MediaProfile } from '../../../domain/model/MediaProfile.js'
 import { MetadataPatchTarget } from '../../../domain/model/MetadataPatchTarget.js'
 import { BookAnalyzer } from '../../../domain/service/BookAnalyzer.js'
 import { ISBNValidator } from '../../../port/commons-validator.js'
-import { type BufferedImage, ImageIO } from '../../../port/imageio-codecs.js'
+import { ImageIO } from '../../../port/imageio-codecs.js'
 import { distinct, str } from '../../../port/kotlin.js'
 import { KotlinLogging } from '../../../port/logging.js'
 import { component } from '../../../port/spring.js'
-// PORT: com.google.zxing -> @zxing/library ; RGBLuminanceSource de ZXing 3.5.4 (rotation) portée dans port/zxing.ts
-import { quietly, RGBLuminanceSource } from '../../../port/zxing.js'
+// PORT: com.google.zxing -> build/komgazxing.node, ou @zxing/library chargé à la demande (port/zxing-reader.ts)
+import { type BarcodeHints, decodeBarcode } from '../../../port/zxing-reader.js'
 import { BookMetadataProvider } from '../BookMetadataProvider.js'
-
-// PORT: exports lus sur l'export par défaut du module CommonJS (Node 22, runtime de l'image linux/arm/v7, ne voit pas
-// ses exports nommés)
-const { BarcodeFormat, BinaryBitmap, DecodeHintType, HybridBinarizer, MultiFormatReader } = zxing
-type DecodeHintType = import('@zxing/library').DecodeHintType
 
 const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.metadata.barcode.IsbnBarcodeProvider')
 
 const PAGES_LAST = 3
 const PAGES_FIRST = 3
 
-/**
- * `image.getRGB(0, 0, width, height, null, 0, width)` : pixels ARGB empaquetés à partir des pixels 8 bits entrelacés
- * du BufferedImage de port/imageio.ts (1 gris, 2 gris+alpha, 3 RGB, 4 RGBA).
- * PORT: raster CMYK (TIFF CMYK) converti sans profil ICC (Java passe par l'espace colorimétrique de l'image).
- */
-function getRGB(image: BufferedImage): Int32Array {
-  const { width, height, data, channels } = image
-  const pixels = new Int32Array(width * height)
-  const n = pixels.length
-  // invariants sortis de la boucle (un appel de hasAlpha() par pixel coûtait autant que la conversion)
-  const alpha = (channels === 2 || channels === 4) && image.colorModel.hasAlpha()
-  const cmyk = image.info.cmyk === true && channels === 4
-  if (channels <= 2) {
-    for (let i = 0, p = 0; i < n; i++, p += channels) {
-      const v = data[p] as number
-      const a = alpha ? (data[p + 1] as number) : 255
-      pixels[i] = (a << 24) | (v << 16) | (v << 8) | v
-    }
-  } else if (cmyk) {
-    for (let i = 0, p = 0; i < n; i++, p += channels) {
-      const k = data[p + 3] as number
-      const r = 255 - Math.min(255, (data[p] as number) + k)
-      const g = 255 - Math.min(255, (data[p + 1] as number) + k)
-      const b = 255 - Math.min(255, (data[p + 2] as number) + k)
-      pixels[i] = (255 << 24) | (r << 16) | (g << 8) | b
-    }
-  } else {
-    for (let i = 0, p = 0; i < n; i++, p += channels) {
-      const a = alpha ? (data[p + 3] as number) : 255
-      pixels[i] = (a << 24) | ((data[p] as number) << 16) | ((data[p + 1] as number) << 8) | (data[p + 2] as number)
-    }
-  }
-  return pixels
-}
-
 export class IsbnBarcodeProvider implements BookMetadataProvider {
-  private readonly hints = new Map<DecodeHintType, unknown>([
-    [DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.EAN_13]],
-    [DecodeHintType.TRY_HARDER, true],
-  ])
+  // PORT: écart — indications sans les énumérations de @zxing/library, qui n'est plus chargé qu'à la demande (voir
+  // decodeBarcode) ; mêmes valeurs, traduites par port/zxing-reader.ts. Impact : aucun.
+  // Kotlin :
+  // private val hints =
+  //   mapOf(
+  //     DecodeHintType.POSSIBLE_FORMATS to EnumSet.of(BarcodeFormat.EAN_13),
+  //     DecodeHintType.TRY_HARDER to true,
+  //   )
+  private readonly hints: BarcodeHints = { possibleFormats: ['EAN_13'], tryHarder: true }
 
   constructor(
     private readonly bookAnalyzer: BookAnalyzer,
@@ -86,17 +50,22 @@ export class IsbnBarcodeProvider implements BookMetadataProvider {
         // PORT: async (ImageIO.read décode avec sharp)
         const image = await ImageIO.read(imageBytes)
         if (image !== null) {
-          const pixels = getRGB(image)
-          const source = new RGBLuminanceSource(image.getWidth(), image.getHeight(), pixels)
-          const bitmap = new BinaryBitmap(new HybridBinarizer(source))
-
-          let result
-          try {
-            // PORT: décodage sans piles d'exception ni sortie console de @zxing/library (voir port/zxing.ts)
-            result = quietly(() => new MultiFormatReader().decode(bitmap, this.hints))
-          } catch (e) {
-            result = null
-          }
+          // PORT: écart — lecture du code-barres par build/komgazxing.node (portage en C du chemin de ZXing parcouru)
+          // sur le pool de threads de libuv, au lieu de @zxing/library sur le thread JS : ~6 ms par page au lieu de
+          // ~60 ms, sans bloquer les autres tâches ni les requêtes. Impact : aucun (mêmes résultats que ZXing Java,
+          // voir port/zxing-reader.ts) ; KOMGAJS_NATIVE_BARCODE=false rétablit le code d'origine.
+          // Kotlin :
+          // val pixels = image.getRGB(0, 0, image.width, image.height, null, 0, image.width)
+          // val source = RGBLuminanceSource(image.width, image.height, pixels)
+          // val bitmap = BinaryBitmap(HybridBinarizer(source))
+          //
+          // val result =
+          //   try {
+          //     MultiFormatReader().decode(bitmap, hints)
+          //   } catch (e: Exception) {
+          //     null
+          //   }
+          const result = await decodeBarcode(image, this.hints)
 
           if (result === null || result.getText() === null) {
             logger.debug(() => `Book page ${p} does not contain a barcode: ${str(book)}`)

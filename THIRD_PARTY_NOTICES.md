@@ -18,7 +18,7 @@ files.
 | `src/port/validation-messages.ts`, `src/port/validation-engine.ts` | Hibernate Validator 8.0.3 (default messages, validator behaviour) | Apache License 2.0 |
 | `src/port/commons-validator.ts` | Apache Commons Validator 1.11.0 | Apache License 2.0 |
 | `src/port/natsort.ts` | natural-comparator 1.1 (net.grey-panther) | Apache License 2.0 |
-| `src/port/zxing.ts` | ZXing 3.5.4 | Apache License 2.0 |
+| `src/port/zxing.ts`, `native/komga_zxing.c` | ZXing 3.5.4 (EAN-13 reading path: GlobalHistogramBinarizer, OneDReader, UPCEANReader, EAN13Reader) | Apache License 2.0 |
 | `src/port/jsoup-parser.ts` | jsoup 1.23.1, © Jonathan Hedley | MIT |
 | `src/port/thumbnailator.ts` | Thumbnailator 0.4.21, © Chris Kroells | MIT |
 | `src/port/extra-metadata.ts` (ULocale) | ICU4J 78.3 | Unicode License v3 |

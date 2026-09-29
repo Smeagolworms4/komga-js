@@ -17,10 +17,11 @@
     "coverage": "vitest run --coverage",
     "port:status": "node tools/port-status.mjs",
     "port:diff": "node tools/upstream-diff.mjs",
-    "build:native": "npm run build:native:sqlite && npm run build:native:jpeg && npm run build:native:bcrypt",
+    "build:native": "npm run build:native:sqlite && npm run build:native:jpeg && npm run build:native:bcrypt && npm run build:native:zxing",
     "build:native:sqlite": "mkdir -p build && gcc -O2 -shared -fPIC -o build/komgasqlite.so native/komga_sqlite.c -I node_modules/better-sqlite3/deps/sqlite3 -licui18n -licuuc",
     "build:native:jpeg": "mkdir -p build && gcc -O3 -shared -fPIC -fvisibility=hidden -fno-strict-aliasing -ffp-contract=off -DNDEBUG -DCMS_DONT_USE_FAST_FLOOR -DCMS_NO_HALF_SUPPORT -I\"$(node -p \"require('path').resolve(process.execPath, '../../include/node')\")\" -o build/komgajpeg.node native/komga_jpeg.c native/libjpeg6b/*.c native/lcms2/*.c -lm -Wl,-Bsymbolic",
-    "build:native:bcrypt": "mkdir -p build && gcc -O2 -shared -fPIC -fvisibility=hidden -Wall -Wextra -I\"$(node -p \"require('path').resolve(process.execPath, '../../include/node')\")\" -o build/komgabcrypt.node native/komga_bcrypt.c -Wl,-Bsymbolic"
+    "build:native:bcrypt": "mkdir -p build && gcc -O2 -shared -fPIC -fvisibility=hidden -Wall -Wextra -I\"$(node -p \"require('path').resolve(process.execPath, '../../include/node')\")\" -o build/komgabcrypt.node native/komga_bcrypt.c -Wl,-Bsymbolic",
+    "build:native:zxing": "mkdir -p build && gcc -O2 -shared -fPIC -fvisibility=hidden -Wall -Wextra -ffp-contract=off -I\"$(node -p \"require('path').resolve(process.execPath, '../../include/node')\")\" -o build/komgazxing.node native/komga_zxing.c -Wl,-Bsymbolic"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

@@ -67,6 +67,7 @@ insertMetadataBatch(this.bookMetadataRepository, books)
 | jsoup | `src/port/jsoup-parser.ts` : portage à plat de l'analyseur de jsoup 1.23.1 (tokeniseur, arbres HTML/XML, positions, sélecteurs utilisés, détection du jeu de caractères) |
 | Jackson (JSON/XML) | JSON natif, fast-xml-parser |
 | Caffeine | lru-cache |
+| ZXing 3.5.4 (lecture EAN-13 d'`IsbnBarcodeProvider`) | `native/komga_zxing.c` (`build/komgazxing.node`) : portage en C du seul chemin de ZXing parcouru ; à défaut `@zxing/library` + `src/port/zxing.ts`, chargés à la demande |
 | icu4j | Intl, plus `icu` si nécessaire |
 | JUnit 5, AssertJ, MockK, MockMvc | Vitest, `expect`, `vi.mock`, `fastify.inject` |
 
@@ -210,6 +211,8 @@ MockK → `vi.fn()` / objets factices ; `Thread.sleep` → `threadSleep`.
 | Collations ICU | ICU4C du système (74) au lieu d'ICU4J 78 | ordre identique sur les jeux de test ; différences possibles sur des caractères très rares |
 | Exceptions js-joda | `DateTimeException` là où java.time lève sa sous-classe `UnsupportedTemporalTypeException` (même message) | aucun : Komga n'intercepte pas ces exceptions |
 | Casse Unicode | Node suit Unicode 17, le JDK 21 Unicode 15 : `Character.toUpperCase`/`toLowerCase` (`charToUpperCase`...) diffèrent sur 110 caractères ajoutés depuis | négligeable |
+| Codes-barres ISBN (`IsbnBarcodeProvider`) | lecture EAN-13 par `native/komga_zxing.c` (portage en C du chemin de ZXing 3.5.4 parcouru avec EAN_13 + TRY_HARDER, `float` de Java compris) sur le pool de libuv, au lieu de `@zxing/library` sur le thread JS (qui calcule `patternMatchVariance` en double : il diffère de ZXing Java sur de rares pages, pas le C) ; `@zxing/library` n'est chargé qu'à défaut (extension absente, `KOMGAJS_NATIVE_BARCODE=false`). Vérifié : fixtures Java (`barcode-oracle.json`, oracle unitaire), `test/port/zxing-reader.test.ts`, `tools/barcode-diff.mjs` (12 374 pages : identique à `@zxing/library` en double ; en float, 4 écarts, où ZXing Java donne le résultat du C : `test/port/fixtures/zxing-float`) | aucun sur les résultats ; ~6 ms par page (1000x1500) au lieu de ~60 ms, hors du thread JS ; pic de RSS de l'analyse plus bas |
+| Écritures des tâches (base principale) | regroupées dans une transaction de lot validée au plus tard `KOMGAJS_WRITE_BATCH_MS` ms (1 000) après son ouverture (`src/port/sqlite-write-batch.ts`, `TaskProcessor.takeAndProcess`) au lieu d'une validation (fsync) par écriture ; transactions de Komga en points de sauvegarde ; la base reste en `synchronous = FULL` ; `KOMGAJS_WRITE_BATCH_MS=0` rétablit Komga. Mesuré (scan + analyse de 60 livres neufs) : 20 validations durables au lieu de 355 ; sans effet sur la durée avec un SSD, gain attendu sur carte SD (~6 synchronisations du disque évitées par livre) | mêmes données et mêmes lectures ; après une coupure de courant ou un arrêt brutal (pas un arrêt normal), les écritures des tâches de la dernière seconde peuvent manquer alors que ces tâches ont quitté la file (livres réanalysés et empreintes recalculées au scan suivant, miniature ou métadonnées à régénérer) ; une erreur qui annule la transaction (disque plein) perd le lot |
 | Base des tâches (`tasks.sqlite`) | `synchronous = NORMAL` en WAL au lieu de FULL, et chaque lot de `TasksDao.save` validé dans une transaction (sqlite-jdbc valide chaque insertion) : pas de synchronisation du disque par tâche sur le thread unique (voir « Architecture d'exécution ») ; réglable par `komga.tasks-db.pragmas` | après une coupure de courant (pas un arrêt du processus), les dernières tâches émises peuvent manquer ; un lot en échec est annulé en entier |
 
 ## Stockage SQLite (jOOQ 3.19 + sqlite-jdbc), relevé sur les vraies bibliothèques
@@ -288,6 +291,14 @@ libvips.
   temps : la base des tâches (une file, réémise par le scan suivant) est en `synchronous = NORMAL`, et ses insertions en
   lot sont validées une fois par lot (`TasksDao.save`) ; sans cela, émettre les tâches d'analyse et d'empreinte d'une
   bibliothèque de 6 500 livres bloquait le serveur plus de 45 s (une synchronisation par tâche). Voir « Écarts connus ».
+  Sur la base principale (qui reste en FULL), les écritures des tâches sont regroupées par lots
+  (`src/port/sqlite-write-batch.ts`, appelé par `TaskProcessor.takeAndProcess`) : une transaction de lot ouverte en début
+  de tâche sur la connexion d'écriture, validée au plus tard `KOMGAJS_WRITE_BATCH_MS` ms (1 000 par défaut, 0 : comme
+  Komga) après son ouverture, rouverte si des tâches tournent encore ; chaque transaction de Komga y devient un point de
+  sauvegarde (même atomicité), et pendant un lot les lectures des DAO passent par la connexion d'écriture (comme dans une
+  transaction de Komga, `SplitDslDaoBase`). La connexion ne change qu'en début de tâche et à la validation (hors de toute
+  portion synchrone). Une écriture hors tâche (requête HTTP) valide le lot au tour suivant de la boucle d'événements.
+  Désactivé pour une base en mémoire et avec le worker des tâches.
 - **Convention `async`** : la fonction Kotlin garde son nom et sa place, devient `async`, et ses appelants font `await`
   (`// PORT: async (<cause>)`) ; l'asynchronisme se propage ainsi le long de la chaîne d'appels, sans autre changement
   de logique. Écarts de forme, marqués `// PORT:` :
@@ -315,6 +326,8 @@ libvips.
   - JPEG de la JVM (`src/port/jpeg-jdk.ts`) : décodage et encodage libjpeg 6b sur le pool (`jpegDecodeAsync`,
     `jpegEncodeAsync` de `native/komga_jpeg.c`, mêmes appels, mêmes octets) : empreintes de pages, conversions ;
   - sharp / libvips (déjà asynchrone), `KOMGAJS_IMAGE_THREADS` threads natifs par opération ;
+  - lecture des codes-barres ISBN (`IsbnBarcodeProvider`, 6 pages par livre) : `native/komga_zxing.c`
+    (`build/komgazxing.node`) sur le pool (`src/port/zxing-reader.ts`), au lieu de `@zxing/library` sur le thread JS ;
   - vérification des mots de passe (`BCryptPasswordEncoder.matches`, à chaque requête HTTP Basic sans cookie de
     session — clients OPDS, scripts — et à chaque connexion ; ~70 ms en x86, bien plus sur un Raspberry Pi) : cœur de
     bcrypt dans `native/komga_bcrypt.c` (`build/komgabcrypt.node`) sur le pool, préparation et format de bcryptjs
