@@ -45,7 +45,7 @@ même base et les mêmes fichiers, chaque serveur tournant seul :
 |---|---|---|---|
 | Au repos | 583–658 Mo | **153–159 Mo** | ÷ 4 |
 | Pic (démarrage, scan des 4 bibliothèques) | — | 249 Mo | |
-| Démarrage | 20 s | **4,5 s** | |
+| Démarrage | 36 s | **4,5 s** | ÷ 8 |
 | Temps de réponse de l'API (`/actuator/health`) | — | 3–5 ms | |
 
 **Fonctionnement.** Un seul thread JavaScript sert les requêtes web et exécute les tâches de

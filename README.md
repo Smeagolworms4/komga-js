@@ -43,7 +43,7 @@ database and the same files, each server running alone:
 |---|---|---|---|
 | Idle | 583–658 MB | **153–159 MB** | ÷ 4 |
 | Peak (start-up, scan of the 4 libraries) | — | 249 MB | |
-| Start-up | 20 s | **4.5 s** | |
+| Start-up | 36 s | **4.5 s** | ÷ 8 |
 | API response time (`/actuator/health`) | — | 3–5 ms | |
 
 **How it runs.** A single JavaScript thread serves the web requests and runs the background
