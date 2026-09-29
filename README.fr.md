@@ -227,7 +227,7 @@ Le portage TypeScript est l'œuvre de [SmeagolWorms4](https://github.com/Smeagol
 auteur aussi de [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Komga,
 ses idées et sa conception sont l'œuvre de Gauthier Roebroeck et des contributeurs de Komga :
 si vous donnez, donnez d'abord à Komga. Le portage peut aussi être soutenu, en bonus :
-[GitHub Sponsors](https://github.com/sponsors/crossedy) · [Buy me a coffee](https://www.buymeacoffee.com/smeagolworms4) · [PayPal](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0).
+[Buy me a coffee](https://www.buymeacoffee.com/smeagolworms4) · [PayPal](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0).
 
 ## Licence
 
