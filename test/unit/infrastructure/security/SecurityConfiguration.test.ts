@@ -84,14 +84,14 @@ func('restAuthenticationFilter', () => {
 })
 
 func('apiKeyAuthenticationProvider', () => {
-  kase('authenticate', () => {
+  kase('authenticate', async () => {
     const m = config().apiKeyAuthenticationProvider()
-    const auth = m.authenticate(ApiKeyAuthenticationToken.unauthenticated(hasher.computeHashOfString('key-one'), tokenEncoder.encode('key-one')))
+    const auth = await m.authenticate(ApiKeyAuthenticationToken.unauthenticated(hasher.computeHashOfString('key-one'), tokenEncoder.encode('key-one')))
     return [m.constructor.name, describeAuthentication(auth), events.splice(0)]
   })
-  kase('failure', () => {
+  kase('failure', async () => {
     try {
-      return config().apiKeyAuthenticationProvider().authenticate(ApiKeyAuthenticationToken.unauthenticated('x', 'y'))
+      return await config().apiKeyAuthenticationProvider().authenticate(ApiKeyAuthenticationToken.unauthenticated('x', 'y'))
     } catch (e) {
       return [(e as Error).name, (e as Error).message, events.splice(0)]
     }

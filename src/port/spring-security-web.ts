@@ -990,7 +990,7 @@ export class BasicAuthenticationFilter extends OncePerRequestFilter {
       }
       const username = authRequest.name
       if (this.authenticationIsRequired(username)) {
-        const authResult = this.authenticationManager.authenticate(authRequest) as Authentication
+        const authResult = (await this.authenticationManager.authenticate(authRequest)) as Authentication
         const context = SecurityContextHolder.createEmptyContext()
         context.authentication = authResult
         SecurityContextHolder.setContext(context)
@@ -1041,7 +1041,7 @@ export class RememberMeAuthenticationFilter implements Filter {
     let rememberMeAuth = this.rememberMeServices.autoLogin(request, response)
     if (rememberMeAuth !== null) {
       try {
-        rememberMeAuth = this.authenticationManager.authenticate(rememberMeAuth) as Authentication
+        rememberMeAuth = (await this.authenticationManager.authenticate(rememberMeAuth)) as Authentication
         const context = SecurityContextHolder.createEmptyContext()
         context.authentication = rememberMeAuth
         SecurityContextHolder.setContext(context)

@@ -43,7 +43,8 @@ export class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
         return
       }
       if (this.authenticationIsRequired(authRequest.name)) {
-        const authResult = this.authenticationManager.authenticate(authRequest)
+        // PORT: async (AuthenticationManager.authenticate)
+        const authResult = await this.authenticationManager.authenticate(authRequest)
         if (authResult === null) {
           await filterChain.doFilter(request, response)
           return

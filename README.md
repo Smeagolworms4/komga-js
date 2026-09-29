@@ -106,7 +106,7 @@ Node.js 24, a C compiler, the ICU development files and `zip` (for the tests):
 ```sh
 sudo apt install build-essential libicu-dev zip
 npm ci
-npm run build:native   # SQLite ICU collations, JDK-identical JPEG codec
+npm run build:native   # SQLite ICU collations, JDK-identical JPEG codec, bcrypt off the JS thread
 npm run build
 bin/komgajs --server.port=25600 --komga.config-dir=$HOME/.komga
 ```

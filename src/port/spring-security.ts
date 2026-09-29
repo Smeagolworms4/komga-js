@@ -8,9 +8,9 @@
 // - sécurité des méthodes : checkPreAuthorize("hasRole('X')") (voir la documentation de la fonction)
 // Le web (HttpSecurity, filtres) est dans spring-security-web.ts, les sessions dans spring-session.ts,
 // OAuth2 dans spring-security-oauth2.ts. Ce fichier n'a pas de jumeau Kotlin.
-import bcrypt from 'bcryptjs'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import * as bcrypt from './bcrypt.js'
 import { KotlinLogging } from './logging.js'
 import { Exception, IllegalArgumentException, RuntimeException } from './kotlin.js'
 import type { HttpServletRequest } from './servlet.js'
@@ -432,7 +432,9 @@ export const SecurityContextHolder = {
 /** `PasswordEncoder` (classe abstraite : jeton d'injection) */
 export abstract class PasswordEncoder {
   abstract encode(rawPassword: string): string
-  abstract matches(rawPassword: string, encodedPassword: string | null): boolean
+  // PORT: async (BCryptPasswordEncoder vérifie sur le pool de threads de libuv, port/bcrypt.ts) ; une implémentation
+  // synchrone reste possible, les appelants font `await`
+  abstract matches(rawPassword: string, encodedPassword: string | null): boolean | Promise<boolean>
   upgradeEncoding(_encodedPassword: string | null): boolean {
     return false
   }
@@ -440,35 +442,6 @@ export abstract class PasswordEncoder {
 
 const passwordEncoderLogger = KotlinLogging.logger('org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder')
 const BCRYPT_PATTERN = /^\$2(a|y|b)?\$(\d\d)\$[./0-9A-Za-z]{53}/
-const BCRYPT_ALPHABET = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-
-/** Encodage base64 de bcrypt (alphabet ./A-Za-z0-9, sans remplissage) */
-function bcryptBase64(bytes: Uint8Array, len: number): string {
-  let off = 0
-  let out = ''
-  while (off < len) {
-    let c1 = (bytes[off++] as number) & 0xff
-    out += BCRYPT_ALPHABET[(c1 >> 2) & 0x3f]
-    c1 = (c1 & 0x03) << 4
-    if (off >= len) {
-      out += BCRYPT_ALPHABET[c1 & 0x3f]
-      break
-    }
-    let c2 = (bytes[off++] as number) & 0xff
-    c1 |= (c2 >> 4) & 0x0f
-    out += BCRYPT_ALPHABET[c1 & 0x3f]
-    c1 = (c2 & 0x0f) << 2
-    if (off >= len) {
-      out += BCRYPT_ALPHABET[c1 & 0x3f]
-      break
-    }
-    c2 = (bytes[off++] as number) & 0xff
-    c1 |= (c2 >> 6) & 0x03
-    out += BCRYPT_ALPHABET[c1 & 0x3f]
-    out += BCRYPT_ALPHABET[c2 & 0x3f]
-  }
-  return out
-}
 
 /**
  * `BCryptPasswordEncoder` (version $2a, force 10 par défaut), empreintes interchangeables avec celles de Spring :
@@ -485,17 +458,20 @@ export class BCryptPasswordEncoder extends PasswordEncoder {
 
   private gensalt(): string {
     const rounds = this.strength === -1 ? 10 : this.strength
-    return `${this.version}$${rounds < 10 ? '0' : ''}${rounds}$${bcryptBase64(randomBytes(16), 16)}`
+    return `${this.version}$${rounds < 10 ? '0' : ''}${rounds}$${bcrypt.bcryptBase64Encode(randomBytes(16), 16)}`
   }
 
   encode(rawPassword: string): string {
     if (rawPassword === null || rawPassword === undefined) throw new IllegalArgumentException('rawPassword cannot be null')
     // BCrypt.hashpw (Spring Security 6.3+) : au-delà de 72 octets, refus
     if (Buffer.byteLength(rawPassword, 'utf8') > 72) throw new IllegalArgumentException('password cannot be more than 72 bytes')
+    // PORT: reste synchrone (création d'utilisateur, changement de mot de passe : actions d'administration ponctuelles,
+    // appelées dans des chaînes synchrones) ; calcul natif, ~70 ms sur le thread JS
     return bcrypt.hashSync(rawPassword, this.gensalt())
   }
 
-  matches(rawPassword: string, encodedPassword: string | null): boolean {
+  // PORT: async (BCrypt.checkpw calculé sur le pool de threads de libuv : ne bloque pas le thread JS)
+  async matches(rawPassword: string, encodedPassword: string | null): Promise<boolean> {
     if (rawPassword === null || rawPassword === undefined) throw new IllegalArgumentException('rawPassword cannot be null')
     if (encodedPassword === null || encodedPassword.length === 0) {
       passwordEncoderLogger.warn(() => 'Empty encoded password')
@@ -506,7 +482,7 @@ export class BCryptPasswordEncoder extends PasswordEncoder {
       return false
     }
     // BCrypt.checkpw ne limite pas la longueur : les octets au-delà de 72 sont ignorés (bcryptjs aussi)
-    return bcrypt.compareSync(rawPassword, encodedPassword)
+    return bcrypt.compare(rawPassword, encodedPassword)
   }
 
   override upgradeEncoding(encodedPassword: string | null): boolean {
@@ -624,12 +600,14 @@ class NullEventPublisher extends AuthenticationEventPublisher {
 // ---------------------------------------------------------------------------
 
 export interface AuthenticationManager {
-  authenticate(authentication: Authentication): Authentication | null
+  // PORT: async (DaoAuthenticationProvider vérifie le mot de passe sur le pool de threads de libuv) : T | Promise<T>
+  authenticate(authentication: Authentication): Authentication | null | Promise<Authentication | null>
 }
 
 /** `AuthenticationProvider` (classe abstraite : jeton d'injection) */
 export abstract class AuthenticationProvider {
-  abstract authenticate(authentication: Authentication): Authentication | null
+  // PORT: async (voir AuthenticationManager) : T | Promise<T>
+  abstract authenticate(authentication: Authentication): Authentication | null | Promise<Authentication | null>
   /** PORT: `supports(Class<?>)` : reçoit la classe (constructeur) du jeton */
   abstract supports(authentication: AnyClass): boolean
 }
@@ -657,7 +635,8 @@ export class ProviderManager implements AuthenticationManager {
     return this.providers
   }
 
-  authenticate(authentication: Authentication): Authentication {
+  // PORT: async (les fournisseurs peuvent attendre)
+  async authenticate(authentication: Authentication): Promise<Authentication> {
     const toTest = authentication.constructor as AnyClass
     let lastException: AuthenticationException | null = null
     let parentException: AuthenticationException | null = null
@@ -666,7 +645,7 @@ export class ProviderManager implements AuthenticationManager {
     for (const provider of this.providers) {
       if (!provider.supports(toTest)) continue
       try {
-        result = provider.authenticate(authentication)
+        result = await provider.authenticate(authentication)
         if (result !== null) {
           this.copyDetails(authentication, result)
           break
@@ -685,7 +664,7 @@ export class ProviderManager implements AuthenticationManager {
     }
     if (result === null && this.parent !== null) {
       try {
-        parentResult = this.parent.authenticate(authentication)
+        parentResult = await this.parent.authenticate(authentication)
         result = parentResult
       } catch (ex) {
         if (ex instanceof ProviderNotFoundException) {
@@ -738,17 +717,20 @@ export abstract class AbstractUserDetailsAuthenticationProvider extends Authenti
   hideUserNotFoundExceptions = true
   forcePrincipalAsString = false
 
-  protected abstract additionalAuthenticationChecks(userDetails: UserDetails | null, authentication: UsernamePasswordAuthenticationToken | null): void
+  // PORT: async (DaoAuthenticationProvider : PasswordEncoder.matches) : void | Promise<void>
+  protected abstract additionalAuthenticationChecks(userDetails: UserDetails | null, authentication: UsernamePasswordAuthenticationToken | null): void | Promise<void>
 
-  protected abstract retrieveUser(username: string, authentication: UsernamePasswordAuthenticationToken): UserDetails
+  // PORT: async (DaoAuthenticationProvider : mitigateAgainstTimingAttack) : T | Promise<T>
+  protected abstract retrieveUser(username: string, authentication: UsernamePasswordAuthenticationToken): UserDetails | Promise<UserDetails>
 
-  authenticate(authentication: Authentication): Authentication | null {
+  // PORT: async (additionalAuthenticationChecks)
+  async authenticate(authentication: Authentication): Promise<Authentication | null> {
     if (!(authentication instanceof UsernamePasswordAuthenticationToken))
       throw new IllegalArgumentException('Only UsernamePasswordAuthenticationToken is supported')
     const username = authentication.principal === null ? 'NONE_PROVIDED' : authentication.name
     let user: UserDetails
     try {
-      user = this.retrieveUser(username, authentication)
+      user = await this.retrieveUser(username, authentication)
     } catch (ex) {
       if (ex instanceof UsernameNotFoundException) {
         this.logger.debug(() => `Failed to find user '${username}'`)
@@ -761,7 +743,7 @@ export abstract class AbstractUserDetailsAuthenticationProvider extends Authenti
     if (!user.isAccountNonLocked()) throw new LockedException('User account is locked')
     if (!user.isEnabled()) throw new DisabledException('User is disabled')
     if (!user.isAccountNonExpired()) throw new AccountExpiredException('User account has expired')
-    this.additionalAuthenticationChecks(user, authentication)
+    await this.additionalAuthenticationChecks(user, authentication)
     // postAuthenticationChecks
     if (!user.isCredentialsNonExpired()) throw new CredentialsExpiredException('User credentials have expired')
     const principalToReturn: unknown = this.forcePrincipalAsString ? user.getUsername() : user
@@ -793,19 +775,21 @@ export class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
     super()
   }
 
-  protected additionalAuthenticationChecks(userDetails: UserDetails | null, authentication: UsernamePasswordAuthenticationToken | null): void {
+  // PORT: async (PasswordEncoder.matches)
+  protected async additionalAuthenticationChecks(userDetails: UserDetails | null, authentication: UsernamePasswordAuthenticationToken | null): Promise<void> {
     if (authentication?.credentials === null || authentication?.credentials === undefined) {
       this.logger.debug(() => 'Failed to authenticate since no credentials provided')
       throw new BadCredentialsException('Bad credentials')
     }
     const presentedPassword = String(authentication.credentials)
-    if (!this.passwordEncoder.matches(presentedPassword, userDetails?.getPassword() ?? null)) {
+    if (!(await this.passwordEncoder.matches(presentedPassword, userDetails?.getPassword() ?? null))) {
       this.logger.debug(() => 'Failed to authenticate since password does not match stored value')
       throw new BadCredentialsException('Bad credentials')
     }
   }
 
-  protected retrieveUser(username: string, authentication: UsernamePasswordAuthenticationToken): UserDetails {
+  // PORT: async (mitigateAgainstTimingAttack)
+  protected async retrieveUser(username: string, authentication: UsernamePasswordAuthenticationToken): Promise<UserDetails> {
     this.prepareTimingAttackProtection()
     try {
       const loadedUser = this.userDetailsService.loadUserByUsername(username)
@@ -814,7 +798,7 @@ export class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
       return loadedUser
     } catch (ex) {
       if (ex instanceof UsernameNotFoundException) {
-        this.mitigateAgainstTimingAttack(authentication)
+        await this.mitigateAgainstTimingAttack(authentication)
         throw ex
       }
       if (ex instanceof InternalAuthenticationServiceException) throw ex
@@ -831,9 +815,10 @@ export class DaoAuthenticationProvider extends AbstractUserDetailsAuthentication
     if (this.userNotFoundEncodedPassword === null) this.userNotFoundEncodedPassword = this.passwordEncoder.encode(USER_NOT_FOUND_PASSWORD)
   }
 
-  private mitigateAgainstTimingAttack(authentication: UsernamePasswordAuthenticationToken): void {
+  // PORT: async (PasswordEncoder.matches)
+  private async mitigateAgainstTimingAttack(authentication: UsernamePasswordAuthenticationToken): Promise<void> {
     if (authentication.credentials !== null && authentication.credentials !== undefined)
-      this.passwordEncoder.matches(String(authentication.credentials), this.userNotFoundEncodedPassword)
+      await this.passwordEncoder.matches(String(authentication.credentials), this.userNotFoundEncodedPassword)
   }
 }
 

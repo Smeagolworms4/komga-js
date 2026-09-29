@@ -14,9 +14,9 @@ func('getPasswordEncoder', () => {
   kase('2y prefix', () => encoder.matches('password', '$2y$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG'))
   kase('not a bcrypt hash', () => encoder.matches('password', 'password'))
   kase('empty hash', () => encoder.matches('password', ''))
-  kase('encode format', () => {
+  kase('encode format', async () => {
     const h = encoder.encode('secret')
-    return [h.length, h.substring(0, 7), encoder.matches('secret', h), encoder.matches('Secret', h)]
+    return [h.length, h.substring(0, 7), await encoder.matches('secret', h), await encoder.matches('Secret', h)]
   })
   kase('encode is salted', () => encoder.encode('secret') !== encoder.encode('secret'))
   kase('unicode password', () => encoder.matches('mötörhead 漫画', encoder.encode('mötörhead 漫画')))

@@ -68,8 +68,8 @@ func('supports', () => {
 })
 
 func('createSuccessAuthentication', () => {
-  kase('authenticate known key', () => describe(provider.authenticate(token('key-one'))))
-  kase('authenticate admin key', () => describe(provider.authenticate(token('admin-key', 'Mozilla'))))
+  kase('authenticate known key', async () => describe(await provider.authenticate(token('key-one'))))
+  kase('authenticate admin key', async () => describe(await provider.authenticate(token('admin-key', 'Mozilla'))))
   kase('authenticate unknown key', () => provider.authenticate(token('unknown')))
   kase('authenticate empty key', () => provider.authenticate(token('')))
 })

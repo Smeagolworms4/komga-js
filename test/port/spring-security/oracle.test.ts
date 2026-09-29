@@ -53,32 +53,32 @@ describe('BCryptPasswordEncoder', () => {
     ['a'.repeat(72), '$2a$10$NdyyABe1b5guOuvhdjzu6.4xTNUI/kVjO9qGu6Ilehl4kr5Iu5b1u'],
   ]
 
-  it('matches hashes produced by Spring', () => {
+  it('matches hashes produced by Spring', async () => {
     for (const [raw, hash] of spring) {
-      expect(encoder.matches(raw, hash), raw).toBe(true)
-      expect(encoder.matches(`${raw}x`, hash), raw).toBe(raw.length === 72)
+      expect(await encoder.matches(raw, hash), raw).toBe(true)
+      expect(await encoder.matches(`${raw}x`, hash), raw).toBe(raw.length === 72)
     }
   })
 
-  it('ignores bytes beyond 72 like BCrypt.checkpw', () => {
-    expect(encoder.matches('a'.repeat(73), spring[4]?.[1] as string)).toBe(true)
+  it('ignores bytes beyond 72 like BCrypt.checkpw', async () => {
+    expect(await encoder.matches('a'.repeat(73), spring[4]?.[1] as string)).toBe(true)
   })
 
-  it('encodes as $2a$10$ and verifies its own hashes', () => {
+  it('encodes as $2a$10$ and verifies its own hashes', async () => {
     const h = encoder.encode('secret')
     expect(h).toMatch(/^\$2a\$10\$[./A-Za-z0-9]{53}$/)
-    expect(encoder.matches('secret', h)).toBe(true)
-    expect(encoder.matches('Secret', h)).toBe(false)
+    expect(await encoder.matches('secret', h)).toBe(true)
+    expect(await encoder.matches('Secret', h)).toBe(false)
   })
 
   it('refuses passwords longer than 72 bytes', () => {
     expect(() => encoder.encode('a'.repeat(73))).toThrow('password cannot be more than 72 bytes')
   })
 
-  it('does not match non BCrypt hashes', () => {
-    expect(encoder.matches('x', 'notbcrypt')).toBe(false)
-    expect(encoder.matches('x', '')).toBe(false)
-    expect(encoder.matches('x', null)).toBe(false)
+  it('does not match non BCrypt hashes', async () => {
+    expect(await encoder.matches('x', 'notbcrypt')).toBe(false)
+    expect(await encoder.matches('x', '')).toBe(false)
+    expect(await encoder.matches('x', null)).toBe(false)
   })
 })
 

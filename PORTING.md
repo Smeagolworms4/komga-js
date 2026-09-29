@@ -289,6 +289,12 @@ libvips.
   - JPEG de la JVM (`src/port/jpeg-jdk.ts`) : décodage et encodage libjpeg 6b sur le pool (`jpegDecodeAsync`,
     `jpegEncodeAsync` de `native/komga_jpeg.c`, mêmes appels, mêmes octets) : empreintes de pages, conversions ;
   - sharp / libvips (déjà asynchrone), `KOMGAJS_IMAGE_THREADS` threads natifs par opération ;
+  - vérification des mots de passe (`BCryptPasswordEncoder.matches`, à chaque requête HTTP Basic sans cookie de
+    session — clients OPDS, scripts — et à chaque connexion ; ~70 ms en x86, bien plus sur un Raspberry Pi) : cœur de
+    bcrypt dans `native/komga_bcrypt.c` (`build/komgabcrypt.node`) sur le pool, préparation et format de bcryptjs
+    repris dans `src/port/bcrypt.ts` (mêmes empreintes, `test/port/bcrypt.test.ts`) ; `AuthenticationManager.authenticate`,
+    `AuthenticationProvider.authenticate`, `retrieveUser` et `additionalAuthenticationChecks` rendent `T | Promise<T>`.
+    `encode` (création d'utilisateur, changement de mot de passe, actions ponctuelles) reste synchrone ;
   - kepubify (`KepubConverter.convertEpubToKepub*`) : processus attendu sans bloquer (`spawnAsync`, même délai de 10 s) ;
   - réponses HTTP en flux (téléchargement d'un livre, d'une série ou d'une liste en ZIP), clients HTTP.
 - **Pool de tâches** : `ThreadPoolTaskExecutor` (`src/port/spring-scheduling.ts`) garde la comptabilité d'un

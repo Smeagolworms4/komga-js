@@ -57,7 +57,7 @@ WORKDIR /app
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/build/komgasqlite.so /app/build/komgajpeg.node ./build/
+COPY --from=build /app/build/komgasqlite.so /app/build/komgajpeg.node /app/build/komgabcrypt.node ./build/
 COPY --from=build /app/resources ./resources
 COPY --from=build /app/native/jdk-profiles ./native/jdk-profiles
 COPY --from=build /app/bin ./bin
