@@ -7,13 +7,12 @@
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
-API, same database, same web interface, **two to three times less memory** on a small library
-(see below: not yet on a large one).
+API, same database, same web interface, **two to three times less memory**.
 
 *[Version française](README.fr.md)*
 
 Komga is written in Kotlin on the JVM, and a JVM is generous with memory: an idle Komga
-with an empty library sits above half a gigabyte, and grows toward a gigabyte once it has
+with an empty library sits above half a gigabyte, and grows past a gigabyte once it has
 scanned and served a library. KomgaJS runs the same program on Node.js. It is not a
 rewrite and not a clone: every one of Komga's 442 backend files has a TypeScript twin of
 the same name, in the same place, with the same functions in the same order — so that when
@@ -27,18 +26,19 @@ same load, with the current code (`tools/mem-bench.mjs`). Resident memory of the
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Idle, after start-up | 612 MB | **237 MB** | ÷ 2.6 |
-| After scanning and analysing the library | 862 MB | **345 MB** | ÷ 2.5 |
-| After reading (thumbnails, pages) | 785 MB | **345 MB** | ÷ 2.3 |
-| Start-up | 22.8 s | **2.2 s** | ÷ 10 |
-| Scan and analysis of the 60 books | **51 s** | 101 s | 2 × slower |
+| Idle, after start-up | 574 MB | **241 MB** | ÷ 2.4 |
+| After scanning and analysing the library | 1,011 MB | **346 MB** | ÷ 2.9 |
+| After reading (thumbnails, pages) | 1,088 MB | **347 MB** | ÷ 3.1 |
+| Start-up | 22.1 s | **2.0 s** | ÷ 11 |
+| Scan and analysis of the 60 books | **57 s** | 66 s | 1.2 × slower |
 
-**On a large library, the gain is not there yet.** On a Raspberry Pi 4 with a real library of
-6,594 books, KomgaJS sat at 564 MB when idle after rebuilding its search index, against
-583 MB for Komga right after its start. This is being worked on (memory of the index rebuild,
-memory kept by the allocator after large tasks). The search index now lives off the V8 heap:
-on a generated library of 7,000 books, the idle memory after the rebuild went from 797 MB (with the 1 GB heap the old index needed) to
-about 300 MB (x86-64 bench).
+**Large libraries.** The search index used to be the problem: the port kept it as JavaScript
+objects, about 70 KB per book, so on a Raspberry Pi 4 with a real library of 6,594 books
+KomgaJS idled at 564 MB, no better than Komga. The index now lives off the V8 heap, in compact
+typed arrays, with the same search results as Lucene. On a generated library of 7,000 books,
+the idle memory after rebuilding the index went from 797 MB to about 300 MB, and the rebuild
+fits in a 256 MB heap up to at least 48,000 books (x86-64 bench). The Raspberry Pi figures will
+be re-measured with this version.
 
 The scan is slower: image processing runs on a single thread to keep memory low. Background
 tasks (scan, analysis, hashing, thumbnails) run in a worker thread, like Komga's task pool, so

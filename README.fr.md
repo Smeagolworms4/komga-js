@@ -8,12 +8,12 @@
 [Komga](https://komga.org), le serveur multimédia pour vos BD, mangas, comics, magazines et
 livres numériques — avec son backend porté ligne à ligne de Kotlin vers TypeScript. Même
 serveur, même API, même base de données, même interface web, **deux à trois fois moins de
-mémoire** sur une petite bibliothèque (voir plus bas : pas encore sur une grosse).
+mémoire**.
 
 *[English version](README.md)*
 
 Komga est écrit en Kotlin sur la JVM, et une JVM est généreuse en mémoire : un Komga au
-repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et approche le gigaoctet une
+repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et dépasse le gigaoctet une
 fois une bibliothèque scannée et servie. KomgaJS fait tourner le même programme sur
 Node.js. Ce n'est ni une réécriture ni un clone : chacun des 442 fichiers du backend de Komga
 a son jumeau TypeScript, du même nom, au même endroit, avec les mêmes fonctions dans le même
@@ -27,19 +27,20 @@ même charge, avec le code actuel (`tools/mem-bench.mjs`). Mémoire résidente d
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Au repos, après le démarrage | 612 Mo | **237 Mo** | ÷ 2,6 |
-| Après scan et analyse de la bibliothèque | 862 Mo | **345 Mo** | ÷ 2,5 |
-| Après lecture (miniatures, pages) | 785 Mo | **345 Mo** | ÷ 2,3 |
-| Démarrage | 22,8 s | **2,2 s** | ÷ 10 |
-| Scan et analyse des 60 livres | **51 s** | 101 s | 2 × plus lent |
+| Au repos, après le démarrage | 574 Mo | **241 Mo** | ÷ 2,4 |
+| Après scan et analyse de la bibliothèque | 1 011 Mo | **346 Mo** | ÷ 2,9 |
+| Après lecture (miniatures, pages) | 1 088 Mo | **347 Mo** | ÷ 3,1 |
+| Démarrage | 22,1 s | **2,0 s** | ÷ 11 |
+| Scan et analyse des 60 livres | **57 s** | 66 s | 1,2 × plus lent |
 
-**Sur une grosse bibliothèque, le gain n'est pas encore là.** Sur un Raspberry Pi 4 avec une
-vraie bibliothèque de 6 594 livres, KomgaJS était à 564 Mo au repos après avoir reconstruit son
-index de recherche, contre 583 Mo pour Komga juste après son démarrage. C'est en cours
-(mémoire de la reconstruction de l'index, mémoire gardée par l'allocateur après les grosses
-tâches). L'index de recherche est désormais hors du tas V8 : sur une bibliothèque générée de
-7 000 livres, la mémoire au repos après la reconstruction passe de 797 Mo (avec le tas de 1 Go qu'exigeait l'ancien index) à environ 300 Mo
-(banc x86-64).
+**Grosses bibliothèques.** L'index de recherche était le problème : le portage le gardait sous
+forme d'objets JavaScript, environ 70 Ko par livre, si bien que sur un Raspberry Pi 4 avec une
+vraie bibliothèque de 6 594 livres, KomgaJS était à 564 Mo au repos, pas mieux que Komga.
+L'index vit maintenant hors du tas V8, dans des tableaux typés compacts, avec les mêmes
+résultats de recherche que Lucene. Sur une bibliothèque générée de 7 000 livres, la mémoire au
+repos après la reconstruction de l'index passe de 797 Mo à environ 300 Mo, et la reconstruction
+tient dans un tas de 256 Mo jusqu'à au moins 48 000 livres (banc x86-64). Les chiffres du
+Raspberry Pi seront remesurés avec cette version.
 
 Le scan est plus lent : le traitement d'image tourne sur un seul thread pour garder la mémoire
 basse. Les tâches de fond (scan, analyse, empreintes, miniatures) tournent dans un worker
