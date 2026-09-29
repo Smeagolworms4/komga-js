@@ -108,6 +108,9 @@ same `application.yml` settings and `KOMGA_*` environment variables apply.
 `:main` is a moving tag, republished on every push to `main`: the image to try the latest
 version. Anything that must stay stable should point at a version tag.
 
+Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,
+Node 22: Node 24 has no armv7 build; the test suite also runs on Node 22 in CI).
+
 ### From source
 
 Node.js 24, a C compiler, the ICU development files and `zip` (for the tests):
@@ -115,7 +118,7 @@ Node.js 24, a C compiler, the ICU development files and `zip` (for the tests):
 ```sh
 sudo apt install build-essential libicu-dev zip
 npm ci
-npm run build:native   # SQLite ICU collations, JDK-identical JPEG codec
+npm run build:native   # SQLite ICU collations, JDK-identical JPEG codec, bcrypt off the JS thread
 npm run build
 bin/komgajs --server.port=25600 --komga.config-dir=$HOME/.komga
 ```

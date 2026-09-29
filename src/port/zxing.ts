@@ -4,7 +4,12 @@
 //   (`isRotateSupported() == true`) ; avec TRY_HARDER, `OneDReader.decode` retente donc sur l'image tournée de 90°.
 //   La version JS ne le fait pas : portage à plat de GrayscaleLuminanceSource / RGBLuminanceSource 3.5.4.
 // Vérifié contre la vraie bibliothèque (jshell) : test/infrastructure/metadata/barcode/BarcodeOracle.test.ts.
-import { IllegalArgumentException, InvertedLuminanceSource, LuminanceSource } from '@zxing/library'
+import zxing from '@zxing/library'
+
+// Node 22 (runtime de l'image linux/arm/v7) : son cjs-module-lexer ne voit pas les exports nommés de ce module
+// CommonJS (SyntaxError au chargement) ; lus sur l'export par défaut, mêmes classes
+const { IllegalArgumentException, InvertedLuminanceSource, LuminanceSource } = zxing
+type LuminanceSource = import('@zxing/library').LuminanceSource
 
 /** `com.google.zxing.GrayscaleLuminanceSource` (3.5.4) */
 export class GrayscaleLuminanceSource extends LuminanceSource {

@@ -1,5 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/barcode/IsbnBarcodeProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { BarcodeFormat, BinaryBitmap, DecodeHintType, HybridBinarizer, MultiFormatReader } from '@zxing/library'
+import zxing from '@zxing/library'
 import { BookMetadataPatch, BookMetadataPatchCapability } from '../../../domain/model/BookMetadataPatch.js'
 import type { BookWithMedia } from '../../../domain/model/BookWithMedia.js'
 import type { Library } from '../../../domain/model/Library.js'
@@ -14,6 +14,11 @@ import { component } from '../../../port/spring.js'
 // PORT: com.google.zxing -> @zxing/library ; RGBLuminanceSource de ZXing 3.5.4 (rotation) portée dans port/zxing.ts
 import { quietly, RGBLuminanceSource } from '../../../port/zxing.js'
 import { BookMetadataProvider } from '../BookMetadataProvider.js'
+
+// PORT: exports lus sur l'export par défaut du module CommonJS (Node 22, runtime de l'image linux/arm/v7, ne voit pas
+// ses exports nommés)
+const { BarcodeFormat, BinaryBitmap, DecodeHintType, HybridBinarizer, MultiFormatReader } = zxing
+type DecodeHintType = import('@zxing/library').DecodeHintType
 
 const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.metadata.barcode.IsbnBarcodeProvider')
 
