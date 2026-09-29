@@ -323,6 +323,8 @@ export type BeanDefinition = {
   preDestroy: string[]
   /** `@EventListener` : méthode appelée pour chaque événement instance d'un des types */
   eventListeners: { method: string; events: Token[] }[]
+  /** `SmartLifecycle` : le bean a `stop()` et `getPhase()`, arrêté à la fermeture par phase décroissante */
+  smartLifecycle: boolean
   early: boolean
   /** Place du bean quand les tâches s'exécutent dans le worker des tâches (voir `TaskWorkerRole`) */
   taskWorker?: TaskWorkerRole
@@ -358,6 +360,11 @@ export type ComponentOptions = {
   postConstruct?: string[]
   preDestroy?: string[]
   eventListeners?: { method: string; events: Token[] }[]
+  /**
+   * `SmartLifecycle` : le bean a `stop()` et `getPhase()` ; à la fermeture du contexte, `stop()` est appelé par phase
+   * décroissante, avant l'arrêt gracieux du serveur web si sa phase est supérieure (`GRACEFUL_SHUTDOWN_PHASE`)
+   */
+  smartLifecycle?: boolean
   /** `@DependsOn("bean")` : beans créés avant celui-ci */
   dependsOn?: string[]
   /**
@@ -389,6 +396,7 @@ export function component<T>(cls: Token<T>, opts: ComponentOptions = {}): void {
     postConstruct: opts.postConstruct ?? [],
     preDestroy: opts.preDestroy ?? [],
     eventListeners: opts.eventListeners ?? [],
+    smartLifecycle: opts.smartLifecycle ?? false,
     early: opts.early ?? false,
     taskWorker: opts.taskWorker,
     create: (ctx) => {
@@ -451,6 +459,7 @@ export function configuration<T>(cls: Token<T>, opts: ComponentOptions & { beans
       postConstruct: [],
       preDestroy: [],
       eventListeners: [],
+      smartLifecycle: false,
       early: false,
       create: (ctx) => {
         const config = ctx.getBean(configName) as Record<string, (...a: unknown[]) => unknown>
@@ -491,6 +500,12 @@ export class ApplicationReadyEvent {}
 
 /** `org.springframework.context.event.ContextRefreshedEvent` : publié à la fin de `refresh()` */
 export class ContextRefreshedEvent {}
+
+/** `SmartLifecycle.DEFAULT_PHASE` */
+export const DEFAULT_PHASE = 2147483647
+
+/** `WebServerApplicationContext.GRACEFUL_SHUTDOWN_PHASE` : phase de l'arrêt gracieux du serveur web */
+export const GRACEFUL_SHUTDOWN_PHASE = DEFAULT_PHASE - 2048
 
 /** `org.springframework.context.event.ContextClosedEvent` : publié au début de `close()` */
 export class ContextClosedEvent {}
@@ -562,7 +577,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
     else if (threading?.role === 'taskWorker')
       this.active = this.active.map((d) => {
         if (d.taskWorker !== 'callMain') return d
-        const proxy: BeanDefinition = { ...d, postConstruct: [], preDestroy: [], eventListeners: [], configurationProperties: undefined, create: () => threading.remoteBean(d) }
+        const proxy: BeanDefinition = { ...d, postConstruct: [], preDestroy: [], eventListeners: [], smartLifecycle: false, configurationProperties: undefined, create: () => threading.remoteBean(d) }
         this.remote.add(proxy)
         return proxy
       })
@@ -576,6 +591,7 @@ export class ApplicationContext implements ApplicationEventPublisher {
         postConstruct: [],
         preDestroy: [],
         eventListeners: [],
+        smartLifecycle: false,
         early: false,
         create: () => e.instance,
       }
@@ -787,10 +803,45 @@ export class ApplicationContext implements ApplicationEventPublisher {
     this.destroyBeans()
   }
 
-  private stopLifecycle(): void {
+  /**
+   * Fermeture par le shutdown hook de SpringApplication (SIGINT / SIGTERM), comme `doClose` : ContextClosedEvent, arrêt
+   * des Lifecycle par phase décroissante — exécuteurs et planificateurs, SmartLifecycle de phase supérieure à
+   * `GRACEFUL_SHUTDOWN_PHASE` (SseController : flux SSE terminés), puis `webServerShutdown`
+   * (WebServerGracefulShutdownLifecycle : attente des requêtes en cours) — puis destruction des beans.
+   * Sans cet ordre, l'arrêt gracieux attendait la fin des flux SSE ouverts par l'interface web, jusqu'au délai de
+   * spring.lifecycle.timeout-per-shutdown-phase (30 s, au-delà des 10 s de `docker stop`).
+   */
+  async closeWithWebServer(webServerShutdown: () => Promise<void>): Promise<void> {
+    if (this.closed) return
+    this.stopLifecycle(GRACEFUL_SHUTDOWN_PHASE)
+    try {
+      await webServerShutdown()
+    } finally {
+      this.stopSmartLifecycles(Number.NEGATIVE_INFINITY)
+      this.destroyBeans()
+    }
+  }
+
+  private stopLifecycle(minPhase = Number.NEGATIVE_INFINITY): void {
     this.publishEvent(new ContextClosedEvent())
     this.closed = true
     for (const r of [...this.lifecycleResources].reverse()) r.stop()
+    this.stopSmartLifecycles(minPhase)
+  }
+
+  private readonly stoppedLifecycles = new Set<BeanDefinition>()
+
+  /** `DefaultLifecycleProcessor.stopBeans` : `stop()` des SmartLifecycle de phase > `minPhase`, par phase décroissante */
+  private stopSmartLifecycles(minPhase: number): void {
+    const beans = this.created
+      .filter((d) => d.smartLifecycle && !this.remote.has(d) && !this.stoppedLifecycles.has(d))
+      .map((d) => ({ d, bean: this.instances.get(d) as { stop(): void; getPhase(): number } }))
+      .filter(({ bean }) => bean.getPhase() > minPhase)
+      .sort((a, b) => b.bean.getPhase() - a.bean.getPhase())
+    for (const { d, bean } of beans) {
+      this.stoppedLifecycles.add(d)
+      bean.stop()
+    }
   }
 
   private destroyBeans(): void {

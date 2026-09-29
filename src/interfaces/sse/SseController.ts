@@ -8,6 +8,7 @@ import { toFilePath } from '../../infrastructure/web/Utils.js'
 import { IOException } from '../../port/java-io.js'
 import { IllegalStateException } from '../../port/kotlin.js'
 import { KotlinLogging } from '../../port/logging.js'
+import { DEFAULT_PHASE } from '../../port/spring.js'
 import { scheduled } from '../../port/spring-scheduling.js'
 import { MediaType, authenticationPrincipal, restController } from '../../port/spring-web.js'
 import { SseEmitter } from '../../port/spring-web-sse.js'
@@ -27,9 +28,6 @@ import { ThumbnailSeriesCollectionSseDto } from './dto/ThumbnailSeriesCollection
 import { ThumbnailSeriesSseDto } from './dto/ThumbnailSeriesSseDto.js'
 
 const logger = KotlinLogging.logger('org.gotson.komga.interfaces.sse.SseController')
-
-/** `SmartLifecycle.DEFAULT_PHASE` */
-const DEFAULT_PHASE = 2147483647
 
 export class SseController {
   private acceptingConnections = true
@@ -154,8 +152,8 @@ restController(SseController, {
   inject: [BookRepository, TasksRepository],
   rest: false,
   javaName: 'org.gotson.komga.interfaces.sse.SseController',
-  // PORT: SmartLifecycle.stop() -> appelé à la fermeture du contexte (@PreDestroy)
-  preDestroy: ['stop'],
+  // SmartLifecycle : stop() à la fermeture du contexte, avant l'arrêt gracieux du serveur web (phase supérieure)
+  smartLifecycle: true,
   // @EventListener
   eventListeners: [{ method: 'handleSseEvent', events: [DomainEvent] }],
   handlers: {

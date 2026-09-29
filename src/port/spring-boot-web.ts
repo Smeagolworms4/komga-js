@@ -19,6 +19,7 @@ import { type DispatcherType, ForwardedHeaderFilter, GenericFilterBean, RequestD
 import { installTomcatOutput, isOutputCommitted } from './tomcat-output.js'
 
 const logger = KotlinLogging.logger('org.springframework.boot.web.embedded.tomcat.TomcatWebServer')
+const gracefulShutdownLogger = KotlinLogging.logger('org.springframework.boot.web.embedded.tomcat.GracefulShutdown')
 
 /** `Ordered.HIGHEST_PRECEDENCE` / `LOWEST_PRECEDENCE` */
 export const Ordered = {
@@ -120,24 +121,43 @@ export class WebServer {
     private readonly gracePeriodMs: number,
   ) {}
 
+  /** durée maximale de `stop()` */
+  get shutdownTimeoutMs(): number {
+    return this.graceful ? this.gracePeriodMs : 0
+  }
+
   get port(): number {
     const a = this.server.address() as AddressInfo | null
     return a ? a.port : -1
   }
 
-  /** Arrêt : gracieux (attend les requêtes en cours, au plus spring.lifecycle.timeout-per-shutdown-phase) ou immédiat */
+  /**
+   * Arrêt : gracieux (attend les requêtes en cours, au plus spring.lifecycle.timeout-per-shutdown-phase, puis ferme les
+   * connexions restantes) ou immédiat. Les connexions keep-alive inactives sont fermées tout de suite.
+   */
   async stop(): Promise<void> {
-    await new Promise<void>((resolve) => {
-      if (!this.server.listening) return resolve()
-      const timer = setTimeout(() => this.server.closeAllConnections(), this.graceful ? this.gracePeriodMs : 0)
-      timer.unref()
+    if (!this.server.listening) return
+    if (this.graceful) gracefulShutdownLogger.info(() => 'Commencing graceful shutdown. Waiting for active requests to complete')
+    const complete = await new Promise<boolean>((resolve) => {
+      let timedOut = false
+      const timer = setTimeout(
+        () => {
+          timedOut = true
+          this.server.closeAllConnections()
+        },
+        this.graceful ? this.gracePeriodMs : 0,
+      )
       this.server.close(() => {
         clearTimeout(timer)
-        resolve()
+        resolve(!timedOut)
       })
       this.server.closeIdleConnections()
       if (!this.graceful) this.server.closeAllConnections()
     })
+    if (this.graceful) {
+      if (complete) gracefulShutdownLogger.info(() => 'Graceful shutdown complete')
+      else gracefulShutdownLogger.info(() => 'Graceful shutdown aborted with one or more requests still active')
+    }
   }
 }
 
