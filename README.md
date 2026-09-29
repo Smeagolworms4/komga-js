@@ -37,14 +37,16 @@ with the same results as Lucene: on 7,000 books, about 300 MB idle after rebuild
 and the rebuild fits in a 256 MB heap up to at least 48,000 books.
 
 On a Raspberry Pi 4 (arm64) with a real library of 6,594 books in 4 libraries, the same
-database and the same files, each server running alone:
+database and the same files, each server running alone for 15 minutes after start-up, measured
+the same evening (the NAS was serving files over NFS at the same time):
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Idle | 583–658 MB | **153–159 MB** | ÷ 4 |
-| Peak (start-up, scan of the 4 libraries) | — | 249 MB | |
-| Start-up | 36 s | **4.5 s** | ÷ 8 |
-| API response time (`/actuator/health`) | — | 3–5 ms | |
+| Idle, 15 min after start-up | 483 MB | **166 MB** | ÷ 2.9 |
+| Peak (start-up, scan of the 4 libraries) | 492 MB | **256 MB** | ÷ 1.9 |
+| Start-up | 18.3 s | **4.5 s** | ÷ 4 |
+| API response time, median | 8 ms | **4 ms** | |
+| API response time, 99th percentile | 391 ms | **16 ms** | |
 
 **How it runs.** A single JavaScript thread serves the web requests and runs the background
 tasks; file reads, hashing, decompression and image coding run on Node's native thread pool,

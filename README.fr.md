@@ -38,15 +38,17 @@ typés compacts, avec les mêmes résultats que Lucene : sur 7 000 livres, envir
 après reconstruction de l'index, et la reconstruction tient dans un tas de 256 Mo jusqu'à au
 moins 48 000 livres.
 
-Sur un Raspberry Pi 4 (arm64) avec une vraie bibliothèque de 6 594 livres en 4 bibliothèques, la
-même base et les mêmes fichiers, chaque serveur tournant seul :
+Sur un Raspberry Pi 4 (arm64) avec une vraie bibliothèque de 6 594 livres en 4 bibliothèques,
+la même base et les mêmes fichiers, chaque serveur tournant seul pendant 15 minutes après son
+démarrage, mesurés le même soir (le NAS servait des fichiers en NFS pendant ce temps) :
 
 | | Komga (JVM) | KomgaJS | |
 |---|---|---|---|
-| Au repos | 583–658 Mo | **153–159 Mo** | ÷ 4 |
-| Pic (démarrage, scan des 4 bibliothèques) | — | 249 Mo | |
-| Démarrage | 36 s | **4,5 s** | ÷ 8 |
-| Temps de réponse de l'API (`/actuator/health`) | — | 3–5 ms | |
+| Au repos, 15 min après le démarrage | 483 Mo | **166 Mo** | ÷ 2,9 |
+| Pic (démarrage, scan des 4 bibliothèques) | 492 Mo | **256 Mo** | ÷ 1,9 |
+| Démarrage | 18,3 s | **4,5 s** | ÷ 4 |
+| Temps de réponse de l'API, médiane | 8 ms | **4 ms** | |
+| Temps de réponse de l'API, 99ᵉ centile | 391 ms | **16 ms** | |
 
 **Fonctionnement.** Un seul thread JavaScript sert les requêtes web et exécute les tâches de
 fond ; lectures de fichiers, empreintes, décompression et codage d'images passent par le pool
