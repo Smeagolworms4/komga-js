@@ -10,7 +10,7 @@
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
 API, same database, same web interface, **three to six times less memory**.
 
-*[Version française](README.fr.md)*
+*[Version française](README.fr.md)* · *The story of the port: [KomgaJS on smea.tech](https://smea.tech/komgajs-komga-nodejs/) (in French)*
 
 Komga is written in Kotlin on the JVM, and a JVM is generous with memory: an idle Komga
 with an empty library sits above half a gigabyte, and grows past a gigabyte once it has

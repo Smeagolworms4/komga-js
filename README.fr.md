@@ -11,7 +11,7 @@ livres numériques — avec son backend porté ligne à ligne de Kotlin vers Typ
 serveur, même API, même base de données, même interface web, **trois à six fois moins de
 mémoire**.
 
-*[English version](README.md)*
+*[English version](README.md)* · *L'histoire du portage : [l'article sur smea.tech](https://smea.tech/komgajs-komga-nodejs/)*
 
 Komga est écrit en Kotlin sur la JVM, et une JVM est généreuse en mémoire : un Komga au
 repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et dépasse le gigaoctet une
