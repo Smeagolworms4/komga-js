@@ -2,6 +2,7 @@
 
 [![Build](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml/badge.svg)](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml)
 [![Image](https://img.shields.io/badge/ghcr.io-komga--js%3Amain-0b7285)](https://github.com/Smeagolworms4/komga-js/pkgs/container/komga-js)
+[![Docker Hub](https://img.shields.io/docker/pulls/smeagolworms4/komga-js?label=Docker%20Hub&logo=docker&color=0b7285)](https://hub.docker.com/r/smeagolworms4/komga-js)
 [![Komga](https://img.shields.io/badge/port%20of-Komga%201.27.1-005ed3)](https://github.com/gotson/komga)
 [![Licence](https://img.shields.io/badge/licence-MIT-3d7a3d)](LICENSE)
 
@@ -113,7 +114,8 @@ Elle s'utilise exactement comme [l'image de Komga](https://komga.org/docs/instal
 la configuration et la base de données sont dans `/config`, le serveur écoute sur `25600`,
 et les mêmes réglages `application.yml` et variables d'environnement `KOMGA_*` s'appliquent.
 
-`:main` est un tag mobile, republié à chaque push sur `main` : l'image pour essayer la
+La même image est sur Docker Hub sous [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
+(amd64, arm64, armv7). `:main` est un tag mobile, republié à chaque push sur `main` : l'image pour essayer la
 dernière version. Ce qui doit rester stable doit pointer vers un tag de version.
 
 Plateformes : `linux/amd64` et `linux/arm64` (Node 24), `linux/arm/v7` (Raspberry Pi 32 bits,

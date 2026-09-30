@@ -2,6 +2,7 @@
 
 [![Build](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml/badge.svg)](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml)
 [![Image](https://img.shields.io/badge/ghcr.io-komga--js%3Amain-0b7285)](https://github.com/Smeagolworms4/komga-js/pkgs/container/komga-js)
+[![Docker Hub](https://img.shields.io/docker/pulls/smeagolworms4/komga-js?label=Docker%20Hub&logo=docker&color=0b7285)](https://hub.docker.com/r/smeagolworms4/komga-js)
 [![Komga](https://img.shields.io/badge/port%20of-Komga%201.27.1-005ed3)](https://github.com/gotson/komga)
 [![Licence](https://img.shields.io/badge/licence-MIT-3d7a3d)](LICENSE)
 
@@ -109,7 +110,8 @@ It is used exactly like [Komga's image](https://komga.org/docs/installation/dock
 configuration and the database live in `/config`, the server listens on `25600`, and the
 same `application.yml` settings and `KOMGA_*` environment variables apply.
 
-`:main` is a moving tag, republished on every push to `main`: the image to try the latest
+The same image is on Docker Hub as [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
+(amd64, arm64, armv7). `:main` is a moving tag, republished on every push to `main`: the image to try the latest
 version. Anything that must stay stable should point at a version tag.
 
 Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,

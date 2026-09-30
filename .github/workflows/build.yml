@@ -153,6 +153,8 @@ jobs:
     # Published only from main and version tags; pull requests only build it.
     # A manual run on another branch (workflow_dispatch) only runs the tests.
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKER_USERNAME }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     permissions:
@@ -176,11 +178,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Docker Hub (smeagolworms4/komga-js) : publié en plus de ghcr.io quand les secrets DOCKER_USERNAME et
+      # DOCKER_PASSWORD (jeton d'accès Docker Hub) sont définis dans le dépôt.
+      - uses: docker/login-action@v4
+        if: github.event_name != 'pull_request' && env.DOCKERHUB_USER != ''
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       # `:main` is a moving tag, republished on every push to main; versions (v1.2.3) are stable tags.
       - id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghcr.io/${{ github.repository_owner }}/komga-js
+          images: |
+            ghcr.io/${{ github.repository_owner }}/komga-js
+            name=docker.io/smeagolworms4/komga-js,enable=${{ env.DOCKERHUB_USER != '' }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}

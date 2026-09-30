@@ -1,0 +1,29 @@
+# Recopie le README sur la page Docker Hub de l'image (smeagolworms4/komga-js), quand les secrets
+# DOCKER_USERNAME / DOCKER_PASSWORD sont définis.
+name: Docker Hub README
+
+on:
+  push:
+    branches: [main]
+    paths: [README.md]
+  workflow_dispatch:
+
+jobs:
+  readme:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Push README to Docker Hub
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+        run: |
+          if [ -z "$DOCKER_USERNAME" ]; then echo "No Docker Hub credentials, skipped"; exit 0; fi
+          TOKEN=$(jq -n --arg u "$DOCKER_USERNAME" --arg p "$DOCKER_PASSWORD" '{username:$u,password:$p}' \
+            | curl -sf -X POST -H 'Content-Type: application/json' -d @- https://hub.docker.com/v2/users/login/ | jq -r .token)
+          jq -n --rawfile full README.md \
+            --arg short "Komga's backend ported to TypeScript: same server, API, database and web UI, 3 to 6 times less memory" \
+            '{full_description:$full, description:$short}' \
+            | curl -sf -X PATCH -H "Authorization: JWT $TOKEN" -H 'Content-Type: application/json' -d @- \
+              https://hub.docker.com/v2/repositories/smeagolworms4/komga-js/ >/dev/null
+          echo "README pushed to Docker Hub"
