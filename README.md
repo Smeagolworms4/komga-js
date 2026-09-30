@@ -96,7 +96,7 @@ this port follows.
 # compose.yaml
 services:
   komga:
-    image: ghcr.io/smeagolworms4/komga-js:main
+    image: ghcr.io/smeagolworms4/komga-js:latest
     container_name: komga
     volumes:
       - ./config:/config
@@ -111,8 +111,10 @@ configuration and the database live in `/config`, the server listens on `25600`,
 same `application.yml` settings and `KOMGA_*` environment variables apply.
 
 The same image is on Docker Hub as [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
-(amd64, arm64, armv7). `:main` is a moving tag, republished on every push to `main`: the image to try the latest
-version. Anything that must stay stable should point at a version tag.
+(amd64, arm64, armv7). Versions are tagged `vX.Y.Z.N`: `X.Y.Z` is the Komga version ported, `N` the
+revision of the port. Image tags: `:1.27.1.1` (fixed), `:1.27.1` (latest revision of the port of
+Komga 1.27.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
+the latest changes.
 
 Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,
 Node 22: Node 24 has no armv7 build; the test suite also runs on Node 22 in CI).
