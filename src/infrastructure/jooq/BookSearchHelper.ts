@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/BookSearchHelper.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/BookSearchHelper.kt@2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
 import type { Media } from '../../domain/model/Media.js'
 import { MediaType } from '../../domain/model/MediaType.js'
 import { ReadStatus } from '../../domain/model/ReadStatus.js'
@@ -160,11 +160,9 @@ export class BookSearchHelper {
       const operator = searchCondition.operator
       let c: Condition
       if (operator instanceof SearchOperator.Is) {
-        if (operator.value.name === null && operator.value.role === null) c = DSL.noCondition()
-        else c = field.in(inner(operator.value.name, operator.value.role))
+        c = field.in(inner(operator.value.name, operator.value.role))
       } else {
-        if (operator.value.name === null && operator.value.role === null) c = DSL.noCondition()
-        else c = field.notIn(inner(operator.value.name, operator.value.role))
+        c = field.notIn(inner(operator.value.name, operator.value.role))
       }
       return [c, new Set()]
     } else if (searchCondition instanceof SearchCondition.Poster) {

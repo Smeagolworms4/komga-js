@@ -16,7 +16,7 @@ mkdirSync(configDir, { recursive: true })
 const args = [`--server.port=${port}`, `--komga.config-dir=${configDir}`]
 const child =
   kind === 'java'
-    ? spawn('java', [...extra, '-jar', join(ROOT, '../komga-src/komga/build/libs/komga-1.27.1.jar'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
+    ? spawn('java', [...extra, '-jar', join(ROOT, '../komga-src/komga/build/libs/komga-1.28.1.jar'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
     : spawn(join(ROOT, 'bin/komgajs'), args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...Object.fromEntries(extra.map((e) => e.split('='))) } })
 let log = ''
 child.stdout.on('data', (d) => (log += d))

@@ -3,7 +3,7 @@
 [![Build](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml/badge.svg)](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml)
 [![Image](https://img.shields.io/badge/ghcr.io-komga--js%3Amain-0b7285)](https://github.com/Smeagolworms4/komga-js/pkgs/container/komga-js)
 [![Docker Hub](https://img.shields.io/docker/pulls/smeagolworms4/komga-js?label=Docker%20Hub&logo=docker&color=0b7285)](https://hub.docker.com/r/smeagolworms4/komga-js)
-[![Komga](https://img.shields.io/badge/port%20of-Komga%201.27.1-005ed3)](https://github.com/gotson/komga)
+[![Komga](https://img.shields.io/badge/port%20of-Komga%201.28.1-005ed3)](https://github.com/gotson/komga)
 [![Licence](https://img.shields.io/badge/licence-MIT-3d7a3d)](LICENSE)
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
@@ -112,8 +112,8 @@ same `application.yml` settings and `KOMGA_*` environment variables apply.
 
 The same image is on Docker Hub as [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
 (amd64, arm64, armv7). Versions are tagged `vX.Y.Z.N`: `X.Y.Z` is the Komga version ported, `N` the
-revision of the port. Image tags: `:1.27.1.1` (fixed), `:1.27.1` (latest revision of the port of
-Komga 1.27.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
+revision of the port. Image tags: `:1.28.1.1` (fixed), `:1.28.1` (latest revision of the port of
+Komga 1.28.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
 the latest changes.
 
 Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,
