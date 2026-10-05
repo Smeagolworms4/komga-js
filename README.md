@@ -10,7 +10,7 @@
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
 API, same database, same web interface, **three to six times less memory**.
 
-*[Version française](README.fr.md)* · *The story of the port: [KomgaJS on smea.tech](https://smea.tech/komgajs-komga-nodejs/) (in French)*
+*[Version française](https://github.com/Smeagolworms4/komga-js/blob/main/README.fr.md)* · *The story of the port: [KomgaJS on smea.tech](https://smea.tech/komgajs-komga-nodejs/) (in French)*
 
 Komga is written in Kotlin on the JVM, and a JVM is generous with memory: an idle Komga
 with an empty library sits above half a gigabyte, and grows past a gigabyte once it has
@@ -237,8 +237,11 @@ Questions about Komga itself belong on [Komga's Discord](https://discord.gg/TdRp
 The TypeScript port is by [SmeagolWorms4](https://github.com/Smeagolworms4), also the author
 of [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Komga, its ideas and
 its design belong to Gauthier Roebroeck and the Komga contributors: if you give, give to Komga
-first. The port can also be supported, as a bonus: [GitHub Sponsors](https://github.com/sponsors/Smeagolworms4) · [Buy me a coffee](https://www.buymeacoffee.com/smeagolworms4) ·
-[PayPal](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0).
+first. The port can also be supported, as a bonus:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-SmeagolWorms4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Smeagolworms4)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-smeagolworms4-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/smeagolworms4)
+[![PayPal](https://img.shields.io/badge/PayPal-donate-003087?logo=paypal&logoColor=white)](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0)
 
 ## Licence
 
