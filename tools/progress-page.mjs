@@ -141,7 +141,7 @@ footer{color:var(--muted);font-size:13px}
   <header>
     <div>
       <h1>Portage KomgaJS</h1>
-      <p class="sub">Backend de Komga 1.27.1 traduit à plat, fichier par fichier, du Kotlin vers TypeScript.</p>
+      <p class="sub">Backend de Komga 1.28.1 traduit à plat, fichier par fichier, du Kotlin vers TypeScript.</p>
     </div>
     <div class="flow">Mis à jour à ${hhmm(now)} · session commencée à ${data.sessionStart.slice(11, 16)} · <span class="num">${fmtMin(elapsedMin)}</span> écoulées<br><b>Kotlin</b> → <i>TypeScript</i></div>
   </header>

@@ -3,14 +3,14 @@
 [![Build](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml/badge.svg)](https://github.com/Smeagolworms4/komga-js/actions/workflows/build.yml)
 [![Image](https://img.shields.io/badge/ghcr.io-komga--js%3Amain-0b7285)](https://github.com/Smeagolworms4/komga-js/pkgs/container/komga-js)
 [![Docker Hub](https://img.shields.io/docker/pulls/smeagolworms4/komga-js?label=Docker%20Hub&logo=docker&color=0b7285)](https://hub.docker.com/r/smeagolworms4/komga-js)
-[![Komga](https://img.shields.io/badge/port%20of-Komga%201.27.1-005ed3)](https://github.com/gotson/komga)
+[![Komga](https://img.shields.io/badge/port%20of-Komga%201.28.1-005ed3)](https://github.com/gotson/komga)
 [![Licence](https://img.shields.io/badge/licence-MIT-3d7a3d)](LICENSE)
 
 [Komga](https://komga.org), the media server for your comics, mangas, BDs, magazines and
 eBooks — with its backend ported line by line from Kotlin to TypeScript. Same server, same
 API, same database, same web interface, **three to six times less memory**.
 
-*[Version française](README.fr.md)* · *The story of the port: [KomgaJS on smea.tech](https://smea.tech/komgajs-komga-nodejs/) (in French)*
+*[Version française](https://github.com/Smeagolworms4/komga-js/blob/main/README.fr.md)* · *The story of the port: [KomgaJS on smea.tech](https://smea.tech/komgajs-komga-nodejs/) (in French)*
 
 Komga is written in Kotlin on the JVM, and a JVM is generous with memory: an idle Komga
 with an empty library sits above half a gigabyte, and grows past a gigabyte once it has
@@ -112,8 +112,8 @@ same `application.yml` settings and `KOMGA_*` environment variables apply.
 
 The same image is on Docker Hub as [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
 (amd64, arm64, armv7). Versions are tagged `vX.Y.Z.N`: `X.Y.Z` is the Komga version ported, `N` the
-revision of the port. Image tags: `:1.27.1.1` (fixed), `:1.27.1` (latest revision of the port of
-Komga 1.27.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
+revision of the port. Image tags: `:1.28.1.1` (fixed), `:1.28.1` (latest revision of the port of
+Komga 1.28.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
 the latest changes.
 
 Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,
@@ -237,8 +237,11 @@ Questions about Komga itself belong on [Komga's Discord](https://discord.gg/TdRp
 The TypeScript port is by [SmeagolWorms4](https://github.com/Smeagolworms4), also the author
 of [Media Center Sync](https://github.com/Smeagolworms4/media-center-sync). Komga, its ideas and
 its design belong to Gauthier Roebroeck and the Komga contributors: if you give, give to Komga
-first. The port can also be supported, as a bonus: [GitHub Sponsors](https://github.com/sponsors/Smeagolworms4) · [Buy me a coffee](https://www.buymeacoffee.com/smeagolworms4) ·
-[PayPal](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0).
+first. The port can also be supported, as a bonus:
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub%20Sponsors-SmeagolWorms4-ea4aaa?logo=githubsponsors&logoColor=white)](https://github.com/sponsors/Smeagolworms4)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-smeagolworms4-ffdd00?logo=buymeacoffee&logoColor=black)](https://www.buymeacoffee.com/smeagolworms4)
+[![PayPal](https://img.shields.io/badge/PayPal-donate-003087?logo=paypal&logoColor=white)](https://www.paypal.com/donate/?business=SURRPGEXF4YVU&no_recurring=0)
 
 ## Licence
 

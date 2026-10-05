@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookSearchTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookSearchTest.kt@2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
 import '../../../../src/infrastructure/jooq/main/BookDao.js'
 import '../../../../src/infrastructure/jooq/main/BookDtoDao.js'
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
@@ -961,7 +961,7 @@ describe('BookSearchTest', () => {
       expect(foundDto.map((it) => it.name).sort()).toEqual(['2', '4'])
     }
 
-    // empty AuthorMatch does not apply any condition
+    // empty AuthorMatch searches for any author
     {
       const search = new BookSearch({
         condition: new SearchCondition.Author({ operator: new SearchOperator.Is({ value: new SearchCondition.AuthorMatch() }) }),
@@ -969,8 +969,8 @@ describe('BookSearchTest', () => {
       const found = bookDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
       const foundDto = bookDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
 
-      expect(found.map((it) => it.name).sort()).toEqual(['1', '2', '3', '4'])
-      expect(foundDto.map((it) => it.name).sort()).toEqual(['1', '2', '3', '4'])
+      expect(found.map((it) => it.name).sort()).toEqual(['1', '2', '3'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['1', '2', '3'])
     }
   })
 

@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDaoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDaoTest.kt@2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
 // PORT: équivalent du scan de composants : modules des beans nécessaires
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
@@ -211,6 +211,50 @@ describe('BookDtoDaoTest', () => {
       expect(page.totalElements).toBe(2)
       expect(page.content).toHaveLength(2)
       expect(page.content.map((it) => it.metadata.title)).toEqual(['Éric le rouge', 'Éric le bleu'])
+    })
+
+    it('given books when searching by any author then results are matched and not duplicated', () => {
+      // given
+      const book1 = makeBook('Éric le rouge', { seriesId: series.id, libraryId: library.id })
+      const book2 = makeBook('Éric le bleu', { seriesId: series.id, libraryId: library.id })
+      seriesLifecycle.addBooks(series, [book1, book2])
+
+      {
+        const it = bookMetadataRepository.findById(book1.id)
+        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'Mark', role: 'writer' }), new Author({ name: 'Jim', role: 'inker' })] }))
+      }
+
+      {
+        // when
+        const page = bookDtoDao.findAll(
+          new BookSearch({
+            condition: new SearchCondition.Author({ operator: new SearchOperator.Is({ value: new SearchCondition.AuthorMatch() }) }),
+          }),
+          new SearchContext(user),
+          Pageable.unpaged(),
+        )
+
+        // then
+        expect(page.totalElements).toBe(1)
+        expect(page.content).toHaveLength(1)
+        expect(page.content.map((it) => it.metadata.title)).toEqual(['Éric le rouge'])
+      }
+
+      {
+        // when
+        const page = bookDtoDao.findAll(
+          new BookSearch({
+            condition: new SearchCondition.Author({ operator: new SearchOperator.IsNot({ value: new SearchCondition.AuthorMatch() }) }),
+          }),
+          new SearchContext(user),
+          Pageable.unpaged(),
+        )
+
+        // then
+        expect(page.totalElements).toBe(1)
+        expect(page.content).toHaveLength(1)
+        expect(page.content.map((it) => it.metadata.title)).toEqual(['Éric le bleu'])
+      }
     })
   })
 
