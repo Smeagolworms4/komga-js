@@ -8,7 +8,7 @@
 ARG TARGETARCH
 
 # --- Sources de Komga, au commit porté -------------------------------------------------------
-FROM --platform=$BUILDPLATFORM alpine/git:2.47.2 AS komga-src
+FROM --platform=$BUILDPLATFORM alpine/git:v2.52.0 AS komga-src
 ARG KOMGA_REF
 RUN test -n "$KOMGA_REF" && \
     git clone --filter=blob:none --no-checkout https://github.com/gotson/komga.git /komga && \
