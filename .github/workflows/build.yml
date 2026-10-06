@@ -98,6 +98,18 @@ jobs:
             && test "$(curl -s -o /dev/null -w '%{http_code}' -u admin@example.org:wrong http://localhost:25600/api/v2/users/me)" = 401 \
             || { cat server.log; exit 1; }
 
+  # The linux/amd64 and linux/arm64 images run on Alpine (musl) with a Node.js built with V8 pointer compression
+  # (see the Dockerfile): same suite inside that image, so that runtime is tested too.
+  alpine:
+    name: Tests on Alpine (amd64 and arm64 image runtime)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Oracle and integration tests in the Alpine image
+        run: docker run --rm -v "$PWD:/src:ro" smeagolworms4/node-pointer-compression:24-alpine sh /src/tools/alpine-tests.sh
+
   verify:
     name: Types, native modules and tests
     runs-on: ubuntu-24.04
@@ -149,7 +161,7 @@ jobs:
 
   image:
     name: Docker image
-    needs: [verify, unit, node22]
+    needs: [verify, unit, node22, alpine]
     # Published only from main and version tags; pull requests only build it.
     # A manual run on another branch (workflow_dispatch) only runs the tests.
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
@@ -205,7 +217,8 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
-          # linux/arm/v7: Node 22 runtime, better-sqlite3 compiled from source under QEMU (~10 min without cache)
+          # linux/amd64 and linux/arm64: Alpine, Node.js with pointer compression; linux/arm/v7: Debian, Node 22,
+          # better-sqlite3 compiled from source under QEMU (~10 min without cache)
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           build-args: |
             KOMGA_REF=${{ steps.upstream.outputs.ref }}
