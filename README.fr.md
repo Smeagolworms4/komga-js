@@ -8,13 +8,13 @@
 
 [Komga](https://komga.org), le serveur multimédia pour vos BD, mangas, comics, magazines et
 livres numériques — avec son backend porté ligne à ligne de Kotlin vers TypeScript. Même
-serveur, même API, même base de données, même interface web, **trois à six fois moins de
+serveur, même API, même base de données, même interface web, **trois à cinq fois moins de
 mémoire**.
 
 *[English version](https://github.com/Smeagolworms4/komga-js/blob/main/README.md)* · *L'histoire du portage : [l'article sur smea.tech](https://smea.tech/komgajs-komga-nodejs/)*
 
 Komga est écrit en Kotlin sur la JVM, et une JVM est généreuse en mémoire : un Komga au
-repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et dépasse le gigaoctet une
+repos, bibliothèque vide, dépasse déjà le demi-gigaoctet, et approche le gigaoctet une
 fois une bibliothèque scannée et servie. KomgaJS fait tourner le même programme sur
 Node.js. Ce n'est ni une réécriture ni un clone : chacun des 442 fichiers du backend de Komga
 a son jumeau TypeScript, du même nom, au même endroit, avec les mêmes fonctions dans le même
@@ -22,37 +22,68 @@ ordre — pour que les évolutions de Komga puissent être reportées en lisant 
 
 ## Mémoire
 
-La même bibliothèque de 60 BD (645 Mo), le même scénario, chaque serveur partant d'une
-configuration vierge avec ses réglages par défaut, les deux mesurés sur la même machine sous la
-même charge, avec le code actuel (`tools/mem-bench.mjs`), bibliothèque créée comme le fait
-l'interface web (import des ISBN par code-barres désactivé, sauf mention). Mémoire résidente du
-processus :
+Mesuré sur Komga 1.28.1 avec `tools/mem-bench.mjs` : la même bibliothèque, le même scénario pour chaque
+serveur (démarrage, scan, lecture de miniatures et de pages, puis une charge API : 2 000 requêtes à la
+suite, puis les mêmes par 16 à la fois), mémoire résidente du processus. Komga est mesuré deux fois : tel qu'il est livré, et avec une JVM réglée pour la mémoire,
+parce que régler la JVM divise son empreinte par presque trois et qu'une comparaison honnête doit le
+montrer. KomgaJS est montré avec l'image d'avant la 1.28.1.2 (Debian, Node.js standard) et avec l'image
+actuelle (Alpine, Node.js compilé avec la compression de pointeurs de V8).
 
-| | Komga (JVM) | KomgaJS | |
-|---|---|---|---|
-| Au repos, après le démarrage | 599 Mo | **165 Mo** | ÷ 3,6 |
-| Après scan et analyse de la bibliothèque | 1 372 Mo | **234 Mo** | ÷ 5,9 |
-| Après lecture (miniatures, pages) | 1 496 Mo | **235 Mo** | ÷ 6,4 |
-| Démarrage | 11,3 s | **1,0 s** | ÷ 11 |
-| Scan et analyse des 60 livres | 13,3 s | **10,4 s** | 1,3 × plus rapide |
-| Idem, avec l'import des ISBN par code-barres | 32,0 s | **18,8 s** | 1,7 × plus rapide |
+**Poste x86-64, bibliothèque de 60 BD (645 Mo)** — chaque serveur part d'une configuration vierge,
+bibliothèque créée comme le fait l'interface web (import des ISBN par code-barres désactivé) ; moyenne
+de 10 passages :
+
+| | Komga, par défaut | Komga, JVM réglée | KomgaJS 1.28.1.1 | KomgaJS 1.28.1.2 |
+|---|---|---|---|---|
+| Au repos, après le démarrage | 603 Mo | 318 Mo | 169 Mo | **155 Mo** |
+| Après scan et analyse de la bibliothèque | 908 Mo | 332 Mo | 244 Mo | **174 Mo** |
+| Après lecture (miniatures, pages) | 932 Mo | 350 Mo | 244 Mo | **184 Mo** |
+| Après la charge API | 878 Mo | 349 Mo | 275 Mo | **192 Mo** |
+| Démarrage | 11,4 s | 13,9 s | **1,4 s** | 1,6 s |
+| Scan et analyse des 60 livres | 7,4 s | 9,2 s | **4,8 s** | 5,5 s |
+| Temps de réponse de l'API, médiane | 5,2 ms | 6,6 ms | **4,2 ms** | 4,8 ms |
+| Débit de l'API, 16 requêtes à la fois | **739 req/s** | 536 req/s | 412 req/s | 358 req/s |
+
+**Raspberry Pi 4, arm64, vraie bibliothèque d'environ 6 500 livres** (4 bibliothèques, 286 Go sur
+disques durs) — chaque serveur démarre sur sa propre copie de la même base de production, finit ses
+tâches de démarrage, lit 200 livres répartis dans la bibliothèque, puis reçoit la même charge API ;
+médiane de 3 à 4 passages :
+
+| | Komga, par défaut | Komga, JVM réglée | KomgaJS 1.28.1.1 | KomgaJS 1.28.1.2 |
+|---|---|---|---|---|
+| Au repos, tâches de démarrage finies | 547 Mo | 344 Mo | 275 Mo | **207 Mo** |
+| Après lecture de 200 livres | 724 Mo | 388 Mo | 225 Mo | **183 Mo** |
+| Après la charge API | 703 Mo | 386 Mo | 258 Mo | **193 Mo** |
+| Pic | 755 Mo | 427 Mo | 352 Mo | **284 Mo** |
+| Temps de réponse de l'API, médiane | 10,5 ms | 13,7 ms | **9,3 ms** | **9,3 ms** |
+| Débit de l'API, 16 requêtes à la fois | **97 req/s** | 70 req/s | 88 req/s | 83 req/s |
+
+Ce que disent ces chiffres :
+
+- **Face à Komga tel qu'il est livré**, KomgaJS utilise quatre à cinq fois moins de mémoire sur le
+  poste et environ trois à quatre fois moins sur le Pi, démarre en une à deux secondes au lieu de onze, et
+  scanne plus vite.
+- **Face à une JVM réglée pour la mémoire**, KomgaJS en utilise encore environ la moitié. La JVM réglée
+  paie son empreinte réduite d'un quart de son débit et de réponses plus lentes.
+- **Komga garde le meilleur débit** quand beaucoup de requêtes arrivent ensemble : il les sert sur
+  plusieurs threads, KomgaJS sur un seul. Sur le Pi, avec peu de cœurs, les deux sont proches.
+- **La 1.28.1.2 face à la 1.28.1.1** : 40 à 80 Mo de moins une fois une bibliothèque chargée (peu de
+  différence au repos sur le poste), pour un scan environ 15 % plus lent et environ 10 % de débit en
+  moins.
+- Sur le Pi, le démarrage prend environ 7 à 10 s pour KomgaJS sur un passage non perturbé et 20 à 40 s
+  pour Komga ; la machine faisait tourner d'autres services, les temps de démarrage varient donc d'un
+  passage à l'autre et ne figurent pas dans le tableau.
+
+« Par défaut » : le jar de Komga sur Java 21 (poste) et l'image officielle avec son Java 23 (Pi).
+« Réglée » : G1 avec un tas de 256 Mo, collecte périodique toutes les 5 s, compilateur C1 seul, piles
+de 512 k, cache de code de 64 Mo et `MALLOC_ARENA_MAX=2`, plus les en-têtes d'objets compacts sur
+Java 25 (poste). Java 25 seul ne change rien ; son cache AOT ramène le démarrage à 5,4 s. Sur le poste,
+Komga tourne comme un processus et KomgaJS dans son conteneur.
 
 **Grosses bibliothèques.** L'index de recherche vit hors du tas JavaScript, dans des tableaux
 typés compacts, avec les mêmes résultats que Lucene : sur 7 000 livres, environ 300 Mo au repos
 après reconstruction de l'index, et la reconstruction tient dans un tas de 256 Mo jusqu'à au
 moins 48 000 livres.
-
-Sur un Raspberry Pi 4 (arm64) avec une vraie bibliothèque de 6 594 livres en 4 bibliothèques,
-la même base et les mêmes fichiers, chaque serveur tournant seul pendant 15 minutes après son
-démarrage, mesurés le même soir (le NAS servait des fichiers en NFS pendant ce temps) :
-
-| | Komga (JVM) | KomgaJS | |
-|---|---|---|---|
-| Au repos, 15 min après le démarrage | 483 Mo | **166 Mo** | ÷ 2,9 |
-| Pic (démarrage, scan des 4 bibliothèques) | 492 Mo | **256 Mo** | ÷ 1,9 |
-| Démarrage | 18,3 s | **4,5 s** | ÷ 4 |
-| Temps de réponse de l'API, médiane | 8 ms | **4 ms** | |
-| Temps de réponse de l'API, 99ᵉ centile | 391 ms | **16 ms** | |
 
 **Fonctionnement.** Un seul thread JavaScript sert les requêtes web et exécute les tâches de
 fond ; lectures de fichiers, empreintes, décompression et codage d'images passent par le pool
@@ -70,6 +101,7 @@ rendu PDF, décompression RAR, lecture des EPUB, mises à jour de l'index. Bancs
 | `KOMGAJS_IMAGE_THREADS` | 2 | threads natifs par opération d'image (1 : le moins de mémoire ; 2 : miniatures ~20 % plus rapides qu'avec 1 ; 0 : tous les cœurs) |
 | `UV_THREADPOOL_SIZE` | 4 | opérations natives simultanées ; à garder au-dessus des threads de tâches de Komga |
 | `KOMGAJS_TASK_WORKER` | false | `true` exécute les tâches dans un thread séparé (+60 à 100 Mo pendant les tâches) |
+| `KOMGAJS_NODE_OPTIONS` | vide | options supplémentaires de Node.js / V8 ; `--optimize-for-size` échange 10 à 15 % de vitesse contre environ 20 Mo de moins |
 
 ## Fonctionnalités
 
@@ -116,7 +148,7 @@ et les mêmes réglages `application.yml` et variables d'environnement `KOMGA_*`
 
 La même image est sur Docker Hub sous [`smeagolworms4/komga-js`](https://hub.docker.com/r/smeagolworms4/komga-js)
 (amd64, arm64, armv7). Les versions sont taguées `vX.Y.Z.N` : `X.Y.Z` est la version de Komga portée,
-`N` la révision du portage. Tags d'image : `:1.28.1.1` (figé), `:1.28.1` (dernière révision du
+`N` la révision du portage. Tags d'image : `:1.28.1.2` (figé), `:1.28.1` (dernière révision du
 portage de Komga 1.28.1), `:latest` (dernière version publiée), et `:main`, republié à chaque push
 sur `main`, pour essayer les derniers changements.
 
