@@ -120,8 +120,11 @@ La même image est sur Docker Hub sous [`smeagolworms4/komga-js`](https://hub.do
 portage de Komga 1.28.1), `:latest` (dernière version publiée), et `:main`, republié à chaque push
 sur `main`, pour essayer les derniers changements.
 
-Plateformes : `linux/amd64` et `linux/arm64` (Node 24), `linux/arm/v7` (Raspberry Pi 32 bits,
-Node 22 : Node 24 n'existe pas en armv7 ; la suite de tests tourne aussi sous Node 22 en CI).
+Plateformes : `linux/amd64` et `linux/arm64` (Alpine, sur un Node 24 compilé avec la compression de
+pointeurs de V8, [node-pointer-compression](https://github.com/Smeagolworms4/node-pointer-compression) :
+un tas JavaScript plus petit), `linux/arm/v7` (Raspberry Pi 32 bits : Debian et le Node 22 standard, la
+compression de pointeurs n'existant qu'en 64 bits et Node 24 n'existant pas en armv7). La suite de tests
+tourne en CI sur les deux environnements.
 
 ### Depuis les sources
 

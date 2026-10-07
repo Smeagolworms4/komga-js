@@ -27,4 +27,5 @@ fi
 HEAP_OPT=""
 [ -n "$HEAP_MB" ] && HEAP_OPT="--max-old-space-size=$HEAP_MB"
 # --expose-gc : ramasse-miettes complet quand le pool de tâches devient inactif (src/port/spring-boot-application.ts)
-exec node --expose-gc --max-semi-space-size=4 $HEAP_OPT "$DIR/dist/src/main.js" "$@"
+# KOMGAJS_NODE_OPTIONS : options supplémentaires de Node / V8, ajoutées après celles-ci (la dernière l'emporte)
+exec node --expose-gc --max-semi-space-size=4 $HEAP_OPT $KOMGAJS_NODE_OPTIONS "$DIR/dist/src/main.js" "$@"

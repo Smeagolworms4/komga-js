@@ -116,8 +116,10 @@ revision of the port. Image tags: `:1.28.1.1` (fixed), `:1.28.1` (latest revisio
 Komga 1.28.1), `:latest` (latest release), and `:main`, republished on every push to `main`, to try
 the latest changes.
 
-Platforms: `linux/amd64` and `linux/arm64` (Node 24), `linux/arm/v7` (32-bit Raspberry Pi,
-Node 22: Node 24 has no armv7 build; the test suite also runs on Node 22 in CI).
+Platforms: `linux/amd64` and `linux/arm64` (Alpine, on a Node 24 built with V8 pointer compression,
+[node-pointer-compression](https://github.com/Smeagolworms4/node-pointer-compression): a smaller JavaScript
+heap), `linux/arm/v7` (32-bit Raspberry Pi: Debian and the stock Node 22, since pointer compression only
+exists on 64-bit and Node 24 has no armv7 build). The test suite runs in CI on both runtimes.
 
 ### From source
 
