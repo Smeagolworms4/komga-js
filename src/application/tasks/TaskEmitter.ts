@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/application/tasks/TaskEmitter.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/application/tasks/TaskEmitter.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Book } from '../../domain/model/Book.js'
 import { BookMetadataPatchCapability } from '../../domain/model/BookMetadataPatch.js'
 import type { BookPageNumbered } from '../../domain/model/BookPageNumbered.js'
@@ -10,7 +10,7 @@ import { SearchContext } from '../../domain/model/SearchContext.js'
 import { SearchOperator } from '../../domain/model/SearchOperator.js'
 import { BookRepository } from '../../domain/persistence/BookRepository.js'
 import { BookConverter } from '../../domain/service/BookConverter.js'
-import { UnpagedSorted } from '../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../application/query/UnpagedSorted.js'
 import type { LuceneEntity } from '../../infrastructure/search/LuceneEntity.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { ApplicationEventPublisher, component } from '../../port/spring.js'

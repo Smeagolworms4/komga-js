@@ -64,8 +64,8 @@ function isException(d: string): boolean {
 }
 
 describe.skipIf(!hasReference)('openapi reference', () => {
-  // PORT: la version de l'application (build.gradle, 1.27.1 pour le document de référence) est passée en propriété
-  const ctx = mockMvcTest({ 'application.version': '1.27.1' }, [], { profiles: ['test', 'claim', 'generate-openapi'] })
+  // PORT: la version de l'application (build.gradle, 1.29.1 pour le document de référence) est passée en propriété
+  const ctx = mockMvcTest({ 'application.version': '1.29.1' }, [], { profiles: ['test', 'claim', 'generate-openapi'] })
   const mockMvc = ctx.getBean(MockMvc)
   afterAll(() => closeContext(ctx))
   const reference = hasReference ? (JSON.parse(readFileSync(REFERENCE, 'utf8')) as Record<string, Json>) : {}

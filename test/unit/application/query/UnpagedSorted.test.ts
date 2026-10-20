@@ -1,9 +1,9 @@
-// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/jooq/UnpagedSortedOracleTest.kt
-import { UnpagedSorted } from '../../../../src/infrastructure/jooq/UnpagedSorted.js'
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/application/query/UnpagedSortedOracleTest.kt
+import { UnpagedSorted } from '../../../../src/application/query/UnpagedSorted.js'
 import { Order, Sort } from '../../../../src/port/spring-data.js'
 import { oracle } from '../../oracle.js'
 
-const { func, kase } = oracle('infrastructure/jooq/UnpagedSorted')
+const { func, kase } = oracle('application/query/UnpagedSorted')
 
 const p = new UnpagedSorted(Sort.by(Order.desc('a'), Order.asc('b')))
 const unsorted = new UnpagedSorted(Sort.unsorted())

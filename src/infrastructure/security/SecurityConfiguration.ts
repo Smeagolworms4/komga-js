@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/SecurityConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/SecurityConfiguration.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { UserRoles } from '../../domain/model/UserRoles.js'
 import { KomgaSettingsProvider } from '../configuration/KomgaSettingsProvider.js'
 import { Hasher } from '../hash/Hasher.js'
@@ -184,17 +184,6 @@ export class SecurityConfiguration {
         h.cacheControl((c) => c.disable())
       })
 
-      // somehow the Kobo gets a Json issue when receiving the session ID in a cookie header
-      // this happens when requesting /v1/user/profile
-      // Kobo error: packetdump.warning) Invalid JSON script: QVariant(Invalid) "illegal value"
-//      sessionManagement {
-//        sessionCreationPolicy = SessionCreationPolicy.IF_REQUIRED
-//        sessionConcurrency {
-//          sessionRegistry = theSessionRegistry
-//          maximumSessions = -1
-//        }
-//      }
-
       it.addFilterBefore(AnonymousAuthenticationFilter, this.koboAuthenticationFilter())
     })
 
@@ -218,14 +207,6 @@ export class SecurityConfiguration {
 
       it.headers((h) => {
         h.cacheControl((c) => c.disable())
-      })
-
-      it.sessionManagement((s) => {
-        s.sessionCreationPolicy = SessionCreationPolicy.IF_REQUIRED
-        s.sessionConcurrency((c) => {
-          c.sessionRegistry = this.theSessionRegistry
-          c.maximumSessions = -1
-        })
       })
 
       it.addFilterBefore(AnonymousAuthenticationFilter, this.kosyncAuthenticationFilter())

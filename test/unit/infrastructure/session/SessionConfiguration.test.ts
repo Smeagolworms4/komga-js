@@ -1,20 +1,17 @@
-// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/security/session/SessionConfigurationOracleTest.kt
-import { Duration } from '@js-joda/core'
-import { SessionConfiguration } from '../../../../../src/infrastructure/security/session/SessionConfiguration.js'
-import type { ApplicationContext } from '../../../../../src/port/spring.js'
-import { SecurityContext, UsernamePasswordAuthenticationToken } from '../../../../../src/port/spring-security.js'
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/session/SessionConfigurationOracleTest.kt
+import { SessionConfiguration } from '../../../../src/infrastructure/session/SessionConfiguration.js'
+import { SecurityContext, UsernamePasswordAuthenticationToken } from '../../../../src/port/spring-security.js'
 import {
   CaffeineIndexedSessionRepository,
   type CookieSerializer,
   CookieValue,
   FindByIndexNameSessionRepository,
-  ServerProperties,
-} from '../../../../../src/port/spring-session.js'
+} from '../../../../src/port/spring-session.js'
 import { afterAll } from 'vitest'
-import { oracle } from '../../../oracle.js'
-import { describeResponse, request, response } from '../../../web-oracle.js'
+import { oracle } from '../../oracle.js'
+import { describeResponse, request, response } from '../../web-oracle.js'
 
-const { func, kase } = oracle('infrastructure/security/session/SessionConfiguration')
+const { func, kase } = oracle('infrastructure/session/SessionConfiguration')
 
 const config = new SessionConfiguration()
 
@@ -22,17 +19,6 @@ function writeCookie(serializer: CookieSerializer, value: string): unknown[] {
   const res = response()
   serializer.writeCookieValue(new CookieValue(request({ uri: '/api/v1/users/me' }), res, value))
   return describeResponse(res)
-}
-
-// PORT: ServerProperties construit depuis l'environnement (valeur par défaut 30m si absent)
-function serverProperties(timeout: string | null): ServerProperties {
-  return new ServerProperties({ environment: { getProperty: (k: string, d?: string) => (k === 'server.servlet.session.timeout' && timeout !== null ? timeout : (d ?? null)) } } as unknown as ApplicationContext)
-}
-
-function repository(timeout: Duration | null): unknown {
-  const repo = new CaffeineIndexedSessionRepository()
-  config.customizeSessionRepository(serverProperties(timeout === null ? null : `${timeout.toMillis()}ms`)).customize(repo)
-  return repo.createSession().maxInactiveInterval
 }
 
 func('sessionCookieName', () => {
@@ -55,13 +41,6 @@ func('httpSessionIdResolver', () => {
   kase('class', () => resolver.constructor.name)
   kase('header', () => resolver.resolveSessionIds(request({ headers: [['X-Auth-Token', 'abc']] })))
   kase('cookie', () => resolver.resolveSessionIds(request({ headers: [['Cookie', 'KOMGA-SESSION=c2Vzc2lvbi0x']] })))
-})
-
-func('customizeSessionRepository', () => {
-  kase('default timeout', () => repository(null))
-  kase('1 day', () => repository(Duration.ofDays(1)))
-  kase('90 seconds', () => repository(Duration.ofSeconds(90)))
-  kase('sub-second', () => repository(Duration.ofMillis(1500)))
 })
 
 func('sessionRegistry', () => {

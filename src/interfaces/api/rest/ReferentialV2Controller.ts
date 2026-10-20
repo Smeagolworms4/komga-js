@@ -1,13 +1,14 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReferentialV2Controller.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { FilterBy, FilterByEntity, FilterTags } from '../../../domain/model/FilterBy.js'
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReferentialV2Controller.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { FilterTags, unpackFilters } from '../../../domain/model/FilterBy.js'
 import { SearchContext } from '../../../domain/model/SearchContext.js'
 import { ReferentialRepository } from '../../../domain/persistence/ReferentialRepository.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { AuthorDto, toDto } from './dto/AuthorDto.js'
+import { unpackPageParams } from '../Utils.js'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
 import { registerClass } from '../../../port/jackson.js'
-import { type Page, PageImpl, PageRequest, Pageable } from '../../../port/spring-data.js'
+import { type Page, PageImpl, type Pageable } from '../../../port/spring-data.js'
 import { MediaType, authenticationPrincipal, pageable, requestParam, restController, withParameter } from '../../../port/spring-web.js'
 
 // @RestController
@@ -30,18 +31,8 @@ export class ReferentialV2Controller {
     unpaged: boolean = false,
     page: Pageable,
   ): Page<AuthorDto> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : seriesIds.size > 0
-            ? new FilterBy({ type: FilterByEntity.SERIES, ids: seriesIds })
-            : readListIds.size > 0
-              ? new FilterBy({ type: FilterByEntity.READLIST, ids: readListIds })
-              : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds, seriesIds, readListIds })
 
     return this.referentialRepository.findAuthors(new SearchContext(principal.user), search, role, filterBy, pageRequest).map((it) => toDto(it))
   }
@@ -58,18 +49,8 @@ export class ReferentialV2Controller {
     unpaged: boolean = false,
     page: Pageable,
   ): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : seriesIds.size > 0
-            ? new FilterBy({ type: FilterByEntity.SERIES, ids: seriesIds })
-            : readListIds.size > 0
-              ? new FilterBy({ type: FilterByEntity.READLIST, ids: readListIds })
-              : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds, seriesIds, readListIds })
 
     return this.referentialRepository.findAuthorsRoles(new SearchContext(principal.user), filterBy, pageRequest)
   }
@@ -88,18 +69,8 @@ export class ReferentialV2Controller {
     unpaged: boolean = false,
     page: Pageable,
   ): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : seriesIds.size > 0
-            ? new FilterBy({ type: FilterByEntity.SERIES, ids: seriesIds })
-            : readListIds.size > 0
-              ? new FilterBy({ type: FilterByEntity.READLIST, ids: readListIds })
-              : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds, seriesIds, readListIds })
 
     return this.referentialRepository.findAuthorsNames(new SearchContext(principal.user), search, role, filterBy, pageRequest)
   }
@@ -108,14 +79,8 @@ export class ReferentialV2Controller {
   // @GetMapping("genres")
   // @Operation(summary = "List genres", description = "Can be filtered by various criteria")
   getGenres(principal: KomgaPrincipal, search: string | null, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findGenres(new SearchContext(principal.user), search, filterBy, pageRequest)
   }
@@ -124,14 +89,8 @@ export class ReferentialV2Controller {
   // @GetMapping("sharing-labels")
   // @Operation(summary = "List sharing labels", description = "Can be filtered by various criteria")
   getSharingLabels(principal: KomgaPrincipal, search: string | null, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findSharingLabels(new SearchContext(principal.user), search, filterBy, pageRequest)
   }
@@ -140,14 +99,8 @@ export class ReferentialV2Controller {
   // @GetMapping("languages")
   // @Operation(summary = "List languages", description = "Can be filtered by various criteria")
   getLanguages(principal: KomgaPrincipal, search: string | null, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findLanguages(new SearchContext(principal.user), search, filterBy, pageRequest)
   }
@@ -156,14 +109,8 @@ export class ReferentialV2Controller {
   // @GetMapping("publishers")
   // @Operation(summary = "List publishers", description = "Can be filtered by various criteria")
   getPublishers(principal: KomgaPrincipal, search: string | null, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findPublishers(new SearchContext(principal.user), search, filterBy, pageRequest)
   }
@@ -182,18 +129,8 @@ export class ReferentialV2Controller {
     unpaged: boolean = false,
     page: Pageable,
   ): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : seriesIds.size > 0
-            ? new FilterBy({ type: FilterByEntity.SERIES, ids: seriesIds })
-            : readListIds.size > 0
-              ? new FilterBy({ type: FilterByEntity.READLIST, ids: readListIds })
-              : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds, seriesIds, readListIds })
 
     return this.referentialRepository.findTags(new SearchContext(principal.user), search, filterBy, includeTags, pageRequest)
   }
@@ -202,14 +139,8 @@ export class ReferentialV2Controller {
   // @GetMapping("series/release-years")
   // @Operation(summary = "List series release years", description = "Can be filtered by various criteria")
   getSeriesReleaseYears(principal: KomgaPrincipal, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<string> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findSeriesReleaseYears(new SearchContext(principal.user), filterBy, pageRequest)
   }
@@ -218,14 +149,8 @@ export class ReferentialV2Controller {
   // @GetMapping("age-ratings")
   // @Operation(summary = "List age ratings", description = "Can be filtered by various criteria")
   getAgeRatings(principal: KomgaPrincipal, libraryIds: ReadonlySet<string> = new Set(), collectionIds: ReadonlySet<string> = new Set(), unpaged: boolean = false, page: Pageable): Page<number> {
-    const pageRequest = unpaged ? Pageable.unpaged() : PageRequest.of(page.pageNumber, page.pageSize)
-
-    const filterBy =
-      libraryIds.size > 0
-        ? new FilterBy({ type: FilterByEntity.LIBRARY, ids: libraryIds })
-        : collectionIds.size > 0
-          ? new FilterBy({ type: FilterByEntity.COLLECTION, ids: collectionIds })
-          : null
+    const pageRequest = unpackPageParams(unpaged, page)
+    const filterBy = unpackFilters({ libraryIds, collectionIds })
 
     return this.referentialRepository.findAgeRatings(new SearchContext(principal.user), filterBy, pageRequest)
   }

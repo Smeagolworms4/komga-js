@@ -1,4 +1,4 @@
-// Support de portage : sous-ensemble de com.github.junrar (junrar 8.1.0) utilisé par Komga, sans jumeau Kotlin.
+// Support de portage : sous-ensemble de com.github.junrar (junrar 8.1.2) utilisé par Komga, sans jumeau Kotlin.
 // Les en-têtes sont lus par un portage de la lecture d'en-têtes de junrar (Archive.readHeaders / readHeadersRar5,
 // FileHeader, FileNameDecoder, Rar5FileHeaderReader) : mêmes entrées, mêmes noms (octets stockés, `\` en RAR 1.5-4.x,
 // UTF-8 strict sinon ISO-8859-1, nom Unicode encodé), mêmes tailles, mêmes exceptions à l'ouverture, mêmes en-têtes
@@ -10,8 +10,16 @@
 //  - `isPasswordProtected` : en-têtes chiffrés ou au moins une entrée chiffrée ; MainHeaderNullException sans en-tête
 //    principal (RAR 1.5-4.x) ;
 //  - `mainHeader` : null en RAR5 (junrar ne le renseigne pas) ;
-//  - `getInputStream(header)` : junrar extrait dans un thread et ignore les erreurs : flux vide pour un en-tête au CRC
-//    faux, des données tronquées ou une entrée commencée dans un volume précédent, sinon les octets produits.
+//  - en-têtes RAR 1.5-4.x (8.1.2) : un bloc de type inconnu, un en-tête de fichier trop court pour ses champs
+//    obligatoires (ou annonçant des champs hauts, un sel absents, une taille négative) et un en-tête de récupération
+//    trop court sont sautés (avertissement) ; un nom ou des temps étendus tronqués sont bornés aux octets présents et
+//    marquent l'en-tête « cassé » ; un en-tête corrompu ou une position qui n'avance pas arrête la lecture en gardant
+//    les en-têtes déjà lus (sauf en-têtes chiffrés) ; une archive qui déclare des blocs sans en-tête principal lisible
+//    lève CorruptHeaderException ; RAR5 : taille décompressée inconnue = Long.MAX_VALUE ;
+//  - `getInputStream(header)` : junrar extrait dans un thread ; un échec (en-tête cassé, entrée absente ou commencée
+//    dans un volume précédent, CRC des données, données tronquées) n'est plus une fin de flux normale : la lecture
+//    qui atteint la fin des octets produits, au plus tard celle qui atteint la taille déclarée, lève
+//    IOException("Extraction failed") (8.1.2) ; une entrée vide est extraite aussi.
 // Lecture de l'archive à la demande (fs.readSync), jamais en entier en mémoire ; les extractions successives dans une
 // même archive continuent la passe en cours au lieu de repartir du début (archives solides), comme junrar.
 // PORT: les archives RAR 1.4 (signature RE~^) sont listées par unrar.
@@ -21,7 +29,7 @@ import { crc32 } from 'node:zlib'
 import { Extractor } from 'node-unrar-js/dist/js/Extractor.js'
 import { getUnrar } from 'node-unrar-js/dist/js/unrar.singleton.js'
 import { Exception, NullPointerException } from './kotlin.js'
-import { ByteArrayInputStream, EOFException, IOException, InputStream, openForRead } from './java-io.js'
+import { EOFException, IOException, InputStream, openForRead } from './java-io.js'
 import { KotlinLogging } from './logging.js'
 
 const logger = KotlinLogging.logger('com.github.junrar.Archive')
@@ -54,6 +62,8 @@ export class UnsupportedRarVersionException extends RarException {}
 export class NotRarArchiveException extends RarException {}
 export class MainHeaderNullException extends RarException {}
 export class InitDeciphererFailedException extends RarException {}
+export class HeaderNotInArchiveException extends RarException {}
+export class MissingPreviousVolumeException extends RarException {}
 
 const MHD_VOLUME = 0x0001
 const MHD_PASSWORD = 0x0080
@@ -65,6 +75,11 @@ const LHD_DIRECTORY = 0x00e0
 const LHD_LARGE = 0x0100
 const LHD_UNICODE = 0x0200
 const LHD_SPLIT_BEFORE = 0x0001
+const LHD_SALT = 0x0400
+const LHD_EXTTIME = 0x1000
+const SALT_SIZE = 8
+const HIGH_SIZE_FIELDS_SIZE = 8
+const LONG_MAX_VALUE = 9223372036854775807
 const EARC_DATACRC = 0x0002
 const EARC_VOLNUMBER = 0x0008
 const MAX_HEADER_SIZE = 20971520
@@ -224,20 +239,18 @@ function decodeUnicodeName(name: Uint8Array, nameSize: number, encPos: number): 
   return buf
 }
 
-/** `new FileHeader(blockHead, fileHeaderBuffer)` (RAR 1.5-4.x) */
-function parseFileHeader(type: number, flags: number, packSize: number, fh: Uint8Array): FileHeader {
-  const at = (i: number): number => {
-    if (i >= fh.length) throw new RangeError('ArrayIndexOutOfBoundsException')
-    return fh[i] as number
-  }
-  at(20)
+/** `new FileHeader(blockHead, fileHeaderBuffer)` (RAR 1.5-4.x) ; `headerSize` : taille déclarée de l'en-tête */
+function parseFileHeader(type: number, flags: number, packSize: number, headerSize: number, fh: Uint8Array): FileHeader {
+  // NEWLHD_SIZE - BaseBlockSize - blockHeaderSize
+  if (fh.length < 32 - 7 - 4) throw new CorruptHeaderException('File header shorter than its mandatory fields')
+  let broken = false
   const unpSize = u32(fh, 0)
   let nameSize = i16(fh, 15)
   let position = 21
   let highPackSize = 0
   let highUnpackSize = 0
   if ((flags & LHD_LARGE) !== 0) {
-    at(position + 7)
+    if (fh.length - position < HIGH_SIZE_FIELDS_SIZE) throw new CorruptHeaderException('File header announces high size fields it does not hold')
     highPackSize = u32(fh, position)
     position += 4
     highUnpackSize = u32(fh, position)
@@ -245,12 +258,19 @@ function parseFileHeader(type: number, flags: number, packSize: number, fh: Uint
   } else if (unpSize === 0xffffffff) {
     highUnpackSize = 0x7fffffff
   }
+  // les champs hauts sont des Int Java : une valeur >= 2^31 donne une taille négative
+  if (highPackSize >= 0x80000000 || highUnpackSize >= 0x80000000) throw new CorruptHeaderException('File header declares a size that does not fit a signed 64-bit count')
   const fullPackSize = highPackSize * 0x100000000 + packSize
   const fullUnpackSize = highUnpackSize * 0x100000000 + unpSize
   nameSize = nameSize > 4 * 1024 ? 4 * 1024 : nameSize
   if (nameSize <= 0) throw new CorruptHeaderException('Invalid file name with negative size')
-  at(position + nameSize - 1)
+  if (nameSize > fh.length - position) {
+    nameSize = fh.length - position
+    broken = true
+  }
+  if (nameSize <= 0) throw new CorruptHeaderException('File header holds none of the name it announces')
   const fileNameBytes = fh.slice(position, position + nameSize)
+  position += nameSize
   let fileName = ''
   let fileNameW = ''
   const isFileHeader = type === 0x74
@@ -273,13 +293,58 @@ function parseFileHeader(type: number, flags: number, packSize: number, fh: Uint
     // isFilenameValid : File.getCanonicalPath échoue sur un caractère NUL
     if (name.includes('\0')) throw new CorruptHeaderException(`Invalid filename: ${name}`)
   }
+  if (type === 0x7a) {
+    // NewSubHeader : données du sous-en-tête, bornées aux octets présents
+    let datasize = headerSize - 32 - nameSize
+    if ((flags & LHD_SALT) !== 0) datasize -= SALT_SIZE
+    if ((flags & LHD_LARGE) !== 0) datasize -= HIGH_SIZE_FIELDS_SIZE
+    if (datasize > fh.length - position) {
+      datasize = fh.length - position
+      broken = true
+    }
+    if (datasize > 0) position += datasize
+  }
+  if ((flags & LHD_SALT) !== 0) {
+    if (fh.length - position < SALT_SIZE) throw new CorruptHeaderException('File header announces a salt it does not hold')
+    position += SALT_SIZE
+  }
+  if ((flags & LHD_EXTTIME) !== 0) {
+    let extTimeFlags = 0
+    if (position + 1 < fh.length) {
+      extTimeFlags = u16(fh, position)
+      position += 2
+    } else {
+      logger.warn(() => `FileHeader for entry '${(flags & LHD_UNICODE) !== 0 && fileNameW !== '' ? fileNameW : fileName}' signals extended time data, but does not contain any`)
+    }
+    // parseExtTime : seules les positions (et l'en-tête « cassé ») sont utiles ici ; mtime part de l'heure DOS
+    const parseExtTime = (shift: number, hasBaseTime: boolean): void => {
+      const flag = extTimeFlags >>> shift
+      if ((flag & 0x8) === 0) return
+      if (!hasBaseTime) {
+        if (fh.length - position < 4) {
+          broken = true
+          return
+        }
+        position += 4
+      }
+      const count = flag & 0x3
+      if (count > fh.length - position) {
+        broken = true
+        position = fh.length
+      } else position += count
+    }
+    parseExtTime(12, true)
+    parseExtTime(8, false)
+    parseExtTime(4, false)
+    parseExtTime(0, false)
+  }
   const name = (flags & LHD_UNICODE) !== 0 && fileNameW !== '' ? fileNameW : fileName
   const h = new FileHeader(name, (flags & LHD_WINDOWMASK) === LHD_DIRECTORY, (flags & LHD_PASSWORD) !== 0, fullUnpackSize)
   h.fullPackSize = fullPackSize
   h.isFileHeader = isFileHeader
   h.splitBefore = (flags & LHD_SPLIT_BEFORE) !== 0
-  // PORT: temps étendus (LHD_EXTTIME) non décodés : seule la couverture du CRC étroit en dépend
-  h.parsedLength = position + nameSize + ((flags & 0x0400) !== 0 ? 8 : 0)
+  h.brokenHeader = broken
+  h.parsedLength = Math.min(position, fh.length)
   return h
 }
 
@@ -334,11 +399,43 @@ function safelyAllocate(len: number, max: number): number {
   return len
 }
 
-/** `Archive.readHeaders` (RAR 1.5-4.x) */
-function readHeaders15(ch: Channel, res: ReadResult): void {
+const RAR3_HEADER_TYPES: Record<number, string> = {
+  0x72: 'MarkHeader',
+  0x73: 'MainHeader',
+  0x74: 'FileHeader',
+  0x75: 'CommHeader',
+  0x76: 'AvHeader',
+  0x77: 'SubHeader',
+  0x78: 'ProtectHeader',
+  0x79: 'SignHeader',
+  0x7a: 'NewSubHeader',
+  0x7b: 'EndArcHeader',
+}
+
+/** `ProtectHeader.protectHeaderSize` */
+const PROTECT_HEADER_SIZE = 15
+
+/**
+ * `Archive.skipBlock` : bloc dont le corps ne peut pas être lu, laissé hors des en-têtes
+ * (PORT: `getHeaderFailures()` n'est pas exposé, seul l'avertissement est reproduit)
+ */
+function skipBlock(type: number, headerSize: number, position: number, reason: string): void {
+  logger.warn(() => `Unparseable ${RAR3_HEADER_TYPES[type] ?? 'null'} header of declared size ${headerSize} at position ${position} (${reason}); skipping to the next block`)
+}
+
+/** `Archive.readHeaders3` (RAR 1.5-4.x) ; `state.blocksSeen` : `rar3BlocksSeen` */
+function readHeaders3(ch: Channel, res: ReadResult, state: { blocksSeen: number }): void {
   const processed = new Set<number>()
+  // `headersAreEncrypted()` : faux tant qu'aucun en-tête principal n'est lu
+  const headersAreEncrypted = (): boolean => res.mainHeader !== null && res.mainHeader.isEncrypted
+  // `advanceTo` : refuse un bloc qui n'avance pas, ou une position déjà lue
+  const advanceTo = (newpos: number, position: number): void => {
+    if (newpos <= position || processed.has(newpos)) throw new BadRarArchiveException()
+    processed.add(newpos)
+    ch.pos = newpos
+  }
   for (;;) {
-    if (res.mainHeader !== null && res.mainHeader.isEncrypted) {
+    if (headersAreEncrypted()) {
       ch.readFully(8)
       // pas de mot de passe : buildDecipherer échoue
       throw new InitDeciphererFailedException('password should be specified')
@@ -346,16 +443,18 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
     const position = ch.pos
     if (position >= ch.length) break
     const base = ch.readFully(7)
+    state.blocksSeen++
     const headCrc = u16(base, 0)
     const type = base[2] as number
     const flags = u16(base, 3)
     const headerSize = u16(base, 5)
+    const hs = headersAreEncrypted() ? headerSize + ((~headerSize + 1) & 0xf) : headerSize
     if (type < 0x72 || type > 0x7b) {
-      logger.warn(() => 'unknown block header!')
-      throw new CorruptHeaderException()
+      // type inconnu : bloc sauté, pas un arrêt
+      skipBlock(type, headerSize, position, 'unknown block type')
+      advanceTo(position + hs, position)
+      continue
     }
-    const encrypted = res.mainHeader !== null && res.mainHeader.isEncrypted
-    const hs = encrypted ? headerSize + ((~headerSize + 1) & 0xf) : headerSize
     switch (type) {
       case 0x72: {
         if (!(base[0] === 0x52 && ((base[1] === 0x45 && base[2] === 0x7e && base[3] === 0x5e) || (base[1] === 0x61 && base[2] === 0x72 && base[3] === 0x21 && base[4] === 0x1a && base[5] === 0x07))))
@@ -377,10 +476,7 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
         break
       case 0x75: {
         ch.readFully(6)
-        const newpos = position + hs
-        ch.pos = newpos
-        if (processed.has(newpos)) throw new BadRarArchiveException()
-        processed.add(newpos)
+        advanceTo(position + hs, position)
         break
       }
       case 0x7b: {
@@ -389,7 +485,7 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
         if ((flags & EARC_VOLNUMBER) !== 0) toRead += 2
         if (toRead > 0) ch.readFully(toRead)
         const valid = headCrc === 0x3dc4 && flags === 0x4000 && headerSize === 7
-        if (!(res.mainHeader as MainHeader).isMultiVolume && !valid) throw new CorruptHeaderException('Invalid End Archive Header')
+        if ((res.mainHeader === null || !res.mainHeader.isMultiVolume) && !valid) throw new CorruptHeaderException('Invalid End Archive Header')
         return
       }
       default: {
@@ -398,7 +494,8 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
         switch (type) {
           case 0x7a:
           case 0x74: {
-            const toRead = safelyAllocate(headerSize - 7 - 4, MAX_HEADER_SIZE)
+            // l'archive peut se terminer dans le corps : tampon borné aux octets présents
+            const toRead = safelyAllocate(Math.max(0, Math.min(headerSize - 7 - 4, ch.length - ch.pos)), MAX_HEADER_SIZE)
             let fhBuf: Uint8Array
             try {
               fhBuf = ch.readFully(toRead)
@@ -406,7 +503,16 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
               if (e instanceof EOFException) throw new CorruptHeaderException('Unexpected end of file')
               throw e
             }
-            const fh = parseFileHeader(type, flags, packSize, fhBuf)
+            let fh: FileHeader
+            try {
+              fh = parseFileHeader(type, flags, packSize, headerSize, fhBuf)
+            } catch (e) {
+              if (!(e instanceof CorruptHeaderException)) throw e
+              // champ obligatoire absent : bloc sauté plutôt qu'une entrée inventée
+              skipBlock(type, headerSize, position, e.message)
+              advanceTo(position + hs + packSize, position)
+              break
+            }
             const header = concatBytes(base, block, fhBuf)
             // en-tête avec commentaire (LHD_COMMENT) : couverture étroite puis complète
             const ok = headerCrcMatches(headCrc, header)
@@ -418,26 +524,24 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
             fh.positionInFile = position
             fh.headerSize = hs
             res.headers.push(fh)
-            const newpos = position + hs + fh.fullPackSize
-            ch.pos = newpos
-            if (processed.has(newpos)) throw new BadRarArchiveException()
-            processed.add(newpos)
+            advanceTo(position + hs + fh.fullPackSize, position)
             break
           }
           case 0x78: {
-            ch.readFully(safelyAllocate(headerSize - 7 - 4, MAX_HEADER_SIZE))
-            const newpos = position + hs + packSize
-            ch.pos = newpos
-            if (processed.has(newpos)) throw new BadRarArchiveException()
-            processed.add(newpos)
+            const toRead = safelyAllocate(Math.max(0, Math.min(headerSize - 7 - 4, ch.length - ch.pos)), MAX_HEADER_SIZE)
+            const ph = ch.readFully(toRead)
+            if (ph.length < PROTECT_HEADER_SIZE) {
+              // trop court pour sa structure fixe : sauté, données de récupération comprises
+              skipBlock(type, headerSize, position, 'Recovery record header shorter than its fixed layout')
+              advanceTo(position + hs + packSize, position)
+              break
+            }
+            advanceTo(position + hs + packSize, position)
             break
           }
           case 0x77: {
             ch.readFully(3)
-            const newpos = position + hs + packSize
-            ch.pos = newpos
-            if (processed.has(newpos)) throw new BadRarArchiveException()
-            processed.add(newpos)
+            advanceTo(position + hs + packSize, position)
             break
           }
           default:
@@ -447,6 +551,23 @@ function readHeaders15(ch: Channel, res: ReadResult): void {
       }
     }
   }
+}
+
+/**
+ * `Archive.readHeaders` (RAR 1.5-4.x) : un en-tête corrompu arrête la lecture en gardant les en-têtes déjà lus
+ * (sauf en-têtes chiffrés) ; une archive qui déclare des blocs sans en-tête principal lisible est refusée
+ */
+function readHeaders15(ch: Channel, res: ReadResult): void {
+  const state = { blocksSeen: 0 }
+  try {
+    readHeaders3(ch, res, state)
+  } catch (e) {
+    if (!(e instanceof CorruptHeaderException || e instanceof BadRarArchiveException)) throw e
+    if (res.mainHeader !== null && res.mainHeader.isEncrypted) throw e
+    logger.warn(e, () => `Stopped reading RAR3 headers at a corrupt block; keeping the ${res.headers.filter((it) => it.isFileHeader).length} entries already read`)
+  }
+  if (res.mainHeader === null && state.blocksSeen > 1)
+    throw new CorruptHeaderException('Archive declares blocks but no readable main archive header, so nothing describes the archive itself')
 }
 
 /** `VInt.read` */
@@ -541,7 +662,9 @@ function readRar5FileHeader(header: Uint8Array, service: boolean, fieldsOffset: 
   const directory = (fileFlags & 0x0001) !== 0
   const rawUnpSize = v.read()
   const unknownUnpSize = (fileFlags & 0x0008) !== 0
-  const unpSize = unknownUnpSize ? -1 : rawUnpSize
+  // taille inconnue : « décompresser jusqu'à la fin des données » (Long.MAX_VALUE)
+  // PORT: Long.MAX_VALUE arrondi au double le plus proche (2^63)
+  const unpSize = unknownUnpSize ? LONG_MAX_VALUE : rawUnpSize
   v.read() // attributes
   let pos = v.pos
   const requireBytes = (len: number): void => {
@@ -792,26 +915,32 @@ export class Archive {
     return this.headers.filter((it) => it.isFileHeader)
   }
 
-  /** Extrait l'entrée ; junrar ignore les erreurs d'extraction : flux vide ou tronqué */
+  /**
+   * Extrait l'entrée. Une extraction en échec n'est plus une fin de flux normale : la lecture qui atteint la fin des
+   * octets produits (au plus tard celle qui atteint la taille déclarée) lève IOException("Extraction failed").
+   */
   getInputStream(hd: FileHeader | null | undefined): InputStream {
     // PORT: junrar déréférence l'en-tête null : NullPointerException (message de la JVM)
     if (hd === null || hd === undefined) throw new NullPointerException('Cannot invoke "com.github.junrar.rarfile.FileHeader.getFullUnpackSize()" because "hd" is null')
-    if (hd.fullUnpackSize <= 0) return new ByteArrayInputStream(new Uint8Array(0))
-    return new ByteArrayInputStream(this.extractFile(hd))
+    const result = this.extractFile(hd)
+    return new FailurePropagatingInputStream(result.data, result.failure, hd.fullUnpackSize)
   }
 
-  private extractFile(hd: FileHeader): Uint8Array {
+  /** `extractFile` : octets produits et, en cas d'échec, l'exception (junrar la remet au flux) */
+  private extractFile(hd: FileHeader): { data: Uint8Array; failure: unknown } {
+    const fail = (failure: unknown, data = new Uint8Array(0)) => ({ data, failure })
     const fileHeaders = this.getFileHeaders()
     const targetIdx = fileHeaders.indexOf(hd)
-    if (targetIdx < 0) return new Uint8Array(0)
+    if (targetIdx < 0) return fail(new HeaderNotInArchiveException())
     // doExtractFile : en-tête cassé, entrée commencée dans un volume précédent
-    if (hd.brokenHeader || hd.splitBefore) return new Uint8Array(0)
-    // données tronquées : junrar ne produit rien
+    if (hd.brokenHeader) return fail(new CorruptHeaderException(`Cannot extract '${hd.fileName}': its header is broken`))
+    if (hd.splitBefore) return fail(new MissingPreviousVolumeException(`Extraction of '${hd.fileName}' must start from a previous volume`))
+    // données tronquées : l'extraction échoue
     const length = statSync(this.file).size
-    if (hd.positionInFile + hd.headerSize + hd.fullPackSize > length && hd.fullPackSize > 0) return new Uint8Array(0)
+    if (hd.positionInFile + hd.headerSize + hd.fullPackSize > length && hd.fullPackSize > 0) return fail(new EOFException())
     if (this.unrarHeaders === null) this.unrarHeaders = this.extractor.list()
     // correspondance par rang parmi les entrées de fichier (unrar ne liste pas les en-têtes de service)
-    if (this.unrarHeaders[targetIdx] === undefined) return new Uint8Array(0)
+    if (this.unrarHeaders[targetIdx] === undefined) return fail(new RarException('Entry not found by unrar'))
     return this.extract(targetIdx)
   }
 
@@ -825,7 +954,7 @@ export class Archive {
     return session
   }
 
-  private extract(index: number): Uint8Array {
+  private extract(index: number): { data: Uint8Array; failure: unknown } {
     try {
       if (this.session === null || this.session.done || this.session.headerIndex > index) {
         this.abortSession()
@@ -843,11 +972,11 @@ export class Archive {
         }
         if (s.headerIndex - 1 === index) break
       }
-      return concat(this.extractor.current)
-    } catch {
-      // junrar : erreur ignorée, flux tronqué
+      return { data: concat(this.extractor.current), failure: null }
+    } catch (e) {
+      // le décodeur a pu s'arrêter au milieu de l'entrée : l'extraction suivante repart du début (lastProcessedFileIndex)
       if (this.session) this.session.done = true
-      return concat(this.extractor.current)
+      return { data: concat(this.extractor.current), failure: e }
     }
   }
 
@@ -858,6 +987,42 @@ export class Archive {
 
   close(): void {
     this.abortSession()
+  }
+}
+
+/**
+ * `Archive.FailurePropagatingPipedInputStream` : flux des octets extraits dont la fin lève IOException("Extraction
+ * failed") quand l'extraction a échoué ; la lecture qui atteint la taille déclarée regarde déjà la suite (une erreur
+ * détectée après le dernier octet, le CRC, est ainsi signalée à un lecteur qui ne lit que cette taille).
+ */
+class FailurePropagatingInputStream extends InputStream {
+  private pos = 0
+  private consumed = 0
+
+  constructor(
+    private readonly data: Uint8Array,
+    private readonly failure: unknown,
+    private readonly size: number,
+  ) {
+    super()
+  }
+
+  read(b: Uint8Array, off = 0, len = b.length - off): number {
+    if (len === 0) return 0
+    if (this.pos >= this.data.length) return this.checkEof(-1)
+    const n = Math.min(len, this.data.length - this.pos)
+    b.set(this.data.subarray(this.pos, this.pos + n), off)
+    this.pos += n
+    const before = this.consumed
+    this.consumed += n
+    // taille déclarée atteinte : regarder la suite pour lever l'échec dès maintenant (octet conservé sinon)
+    if (before < this.size && this.consumed >= this.size && this.pos >= this.data.length) this.checkEof(-1)
+    return n
+  }
+
+  private checkEof(n: number): number {
+    if (n === -1 && this.failure !== null) throw new IOException('Extraction failed', this.failure)
+    return n
   }
 }
 

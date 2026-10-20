@@ -1,6 +1,6 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/session/SmartHttpSessionIdResolver.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import type { HttpServletRequest, HttpServletResponse } from '../../../port/servlet.js'
-import { CookieHttpSessionIdResolver, type CookieSerializer, HeaderHttpSessionIdResolver, type HttpSessionIdResolver } from '../../../port/spring-session.js'
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/session/SmartHttpSessionIdResolver.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import type { HttpServletRequest, HttpServletResponse } from '../../port/servlet.js'
+import { CookieHttpSessionIdResolver, type CookieSerializer, HeaderHttpSessionIdResolver, type HttpSessionIdResolver } from '../../port/spring-session.js'
 
 export class SmartHttpSessionIdResolver implements HttpSessionIdResolver {
   private readonly cookie: CookieHttpSessionIdResolver

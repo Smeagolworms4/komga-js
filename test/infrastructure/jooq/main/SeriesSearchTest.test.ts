@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesSearchTest.kt@2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesSearchTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDtoDao.js'
@@ -43,7 +43,9 @@ import '../../../../src/infrastructure/mediacontainer/divina/RarExtractor.js'
 import '../../../../src/infrastructure/kobo/KepubConverter.js'
 import '../../../../src/infrastructure/metadata/barcode/IsbnConfiguration.js'
 import '../../../../src/infrastructure/security/PasswordEncoderConfiguration.js'
-import '../../../../src/infrastructure/security/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/CaffeineSessionConfiguration.js'
+import '../../../../src/infrastructure/session/JdbcSessionConfiguration.js'
 import '../../../../src/infrastructure/transaction/TransactionConfiguration.js'
 import '../../../../src/infrastructure/search/LuceneConfiguration.js'
 import '../../../../src/infrastructure/search/LuceneSyncCommitter.js'
@@ -54,6 +56,7 @@ import { Duration, LocalDate, LocalDateTime, ZonedDateTime } from '@js-joda/core
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Author } from '../../../../src/domain/model/Author.js'
 import { KomgaUser } from '../../../../src/domain/model/KomgaUser.js'
+import { NotableEntity } from '../../../../src/domain/model/NotableEntity.js'
 import { ReadProgress } from '../../../../src/domain/model/ReadProgress.js'
 import { ReadStatus } from '../../../../src/domain/model/ReadStatus.js'
 import { SearchCondition } from '../../../../src/domain/model/SearchCondition.js'
@@ -73,7 +76,7 @@ import { KomgaUserLifecycle } from '../../../../src/domain/service/KomgaUserLife
 import { LibraryLifecycle } from '../../../../src/domain/service/LibraryLifecycle.js'
 import { SeriesLifecycle } from '../../../../src/domain/service/SeriesLifecycle.js'
 import { SeriesMetadataLifecycle } from '../../../../src/domain/service/SeriesMetadataLifecycle.js'
-import { UnpagedSorted } from '../../../../src/infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../../src/application/query/UnpagedSorted.js'
 import { SeriesDao } from '../../../../src/infrastructure/jooq/main/SeriesDao.js'
 import { SeriesDtoDao } from '../../../../src/infrastructure/jooq/main/SeriesDtoDao.js'
 import { IllegalArgumentException, first } from '../../../../src/port/kotlin.js'
@@ -1012,6 +1015,107 @@ describe('SeriesSearchTest', () => {
     // empty AuthorMatch searches for any author
     {
       const search = new SeriesSearch({ condition: new SearchCondition.Author({ operator: new SearchOperator.Is({ value: new SearchCondition.AuthorMatch() }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['1', '2', '3'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['1', '2', '3'])
+    }
+  })
+
+  it('given some series when searching by notable entities then results are accurate', () => {
+    {
+      const series = makeSeries('1', { libraryId: library1.id })
+      seriesLifecycle.createSeries(series)
+      const book = makeBook('1', { libraryId: series.libraryId })
+      seriesLifecycle.addBooks(series, [book])
+      bookMetadataRepository.update(bookMetadataRepository.findById(book.id).copy({ notableEntities: [new NotableEntity({ kind: 'writer', name: 'john' }), new NotableEntity({ kind: 'cover', name: 'jim' })] }))
+      seriesMetadataLifecycle.aggregateMetadata(series)
+    }
+    {
+      const series = makeSeries('2', { libraryId: library1.id })
+      seriesLifecycle.createSeries(series)
+      const book = makeBook('2', { libraryId: series.libraryId })
+      seriesLifecycle.addBooks(series, [book])
+      bookMetadataRepository.update(bookMetadataRepository.findById(book.id).copy({ notableEntities: [new NotableEntity({ kind: 'artist', name: 'john' }), new NotableEntity({ kind: 'artist', name: 'amanda' })] }))
+      seriesMetadataLifecycle.aggregateMetadata(series)
+    }
+    {
+      const series = makeSeries('3', { libraryId: library1.id })
+      seriesLifecycle.createSeries(series)
+      const book = makeBook('3', { libraryId: series.libraryId })
+      seriesLifecycle.addBooks(series, [book])
+      bookMetadataRepository.update(bookMetadataRepository.findById(book.id).copy({ notableEntities: [new NotableEntity({ kind: 'writer', name: 'jack' })] }))
+      seriesMetadataLifecycle.aggregateMetadata(series)
+    }
+    {
+      const series = makeSeries('4', { libraryId: library1.id })
+      seriesLifecycle.createSeries(series)
+    }
+
+    // series with an author named 'john'
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch({ name: 'john' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['1', '2'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['1', '2'])
+    }
+
+    // series with an notable entity named 'john' with the 'writer' kind
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch({ name: 'john', kind: 'writer' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['1'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['1'])
+    }
+
+    // series with any notable entity with the 'writer' kind
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch({ kind: 'writer' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['1', '3'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['1', '3'])
+    }
+
+    // series without any notable entity named 'john' with a 'writer' kind
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch({ name: 'john', kind: 'writer' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['2', '3', '4'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['2', '3', '4'])
+    }
+
+    // series without any notable entity named 'john'
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch({ name: 'jOhn' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['3', '4'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['3', '4'])
+    }
+
+    // series without any notable entity with the 'writer' kind
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch({ kind: 'writer' }) }) }) })
+      const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
+      const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
+
+      expect(found.map((it) => it.name).sort()).toEqual(['2', '4'])
+      expect(foundDto.map((it) => it.name).sort()).toEqual(['2', '4'])
+    }
+
+    // empty NotableEntityMatch searches for any notable entity
+    {
+      const search = new SeriesSearch({ condition: new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch() }) }) })
       const found = seriesDao.findAll(search.condition, new SearchContext(user1), Pageable.unpaged()).content
       const foundDto = seriesDtoDao.findAll(search, new SearchContext(user1), Pageable.unpaged()).content
 

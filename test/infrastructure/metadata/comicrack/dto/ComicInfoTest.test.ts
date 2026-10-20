@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/dto/ComicInfoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/dto/ComicInfoTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { describe, expect, it } from 'vitest'
 import { AgeRating } from '../../../../../src/infrastructure/metadata/comicrack/dto/AgeRating.js'
 import { ComicInfo } from '../../../../../src/infrastructure/metadata/comicrack/dto/ComicInfo.js'
@@ -39,6 +39,9 @@ describe('ComicInfoTest', () => {
   <Imprint>Vertigo</Imprint>
   <Count>10</Count>
   <Genre>Fantasy, Supernatural/Occult, Horror, Mature, Superhero, Mythology, Drama</Genre>
+  <Locations>Tokyo, Paris, London</Locations>
+  <Characters>Pierre, Paul, Jacques</Characters>
+  <Teams>Les bleus, les rouges, les verts</Teams>
   <Tags>dark, Occult</Tags>
   <PageCount>237</PageCount>
   <LanguageISO>en</LanguageISO>
@@ -70,6 +73,9 @@ describe('ComicInfoTest', () => {
     expect(comicInfo.seriesGroup).toBe('Sandman')
     expect(comicInfo.translator).toBe('The translator')
     expect(comicInfo.gtin).toBe('ABC123')
+    expect(comicInfo.locations).toBe('Tokyo, Paris, London')
+    expect(comicInfo.characters).toBe('Pierre, Paul, Jacques')
+    expect(comicInfo.teams).toBe('Les bleus, les rouges, les verts')
   })
 
   it('given another valid xml file when deserializing then properties are available', () => {

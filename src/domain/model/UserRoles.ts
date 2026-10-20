@@ -1,5 +1,6 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/UserRoles.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/UserRoles.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { KEnum, distinctSet, mapNotNull } from '../../port/kotlin.js'
+import { serializable } from '../../port/java-serialization.js'
 
 export class UserRoles extends KEnum {
   static readonly ADMIN = new UserRoles('ADMIN')
@@ -25,3 +26,6 @@ export class UserRoles extends KEnum {
     )
   }
 }
+
+// : Serializable
+serializable(UserRoles, 'org.gotson.komga.domain.model.UserRoles')

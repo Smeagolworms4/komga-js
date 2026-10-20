@@ -1,7 +1,8 @@
 // Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/interfaces/api/UtilsOracleTest.kt
 import { LocalDateTime } from '@js-joda/core'
 import { Media } from '../../../../src/domain/model/Media.js'
-import { getBookLastModified, setNotModified } from '../../../../src/interfaces/api/Utils.js'
+import { getBookLastModified, setNotModified, unpackPageParams } from '../../../../src/interfaces/api/Utils.js'
+import { Order, PageRequest, Pageable, Sort } from '../../../../src/port/spring-data.js'
 import { ResponseEntity } from '../../../../src/port/spring-web.js'
 import { oracle } from '../../oracle.js'
 import { describeEntity } from '../../web-oracle.js'
@@ -26,4 +27,14 @@ func('getBookLastModified', () => {
 
 func('setNotModified', () => {
   for (const it of dates) kase(`${it}`, () => describeEntity(setNotModified(ResponseEntity.ok(), media(it)).build()))
+})
+
+const describe = (p: Pageable) => [p.isPaged, p.isPaged ? p.pageNumber : null, p.isPaged ? p.pageSize : null, p.sort.toString()]
+
+func('unpackPageParams', () => {
+  kase('paged', () => describe(unpackPageParams(false, PageRequest.of(2, 15))))
+  kase('unpaged flag', () => describe(unpackPageParams(true, PageRequest.of(2, 15))))
+  kase('sort dropped', () => describe(unpackPageParams(false, PageRequest.of(0, 5, Sort.by(Order.desc('name'))))))
+  kase('unpaged flag with sort', () => describe(unpackPageParams(true, PageRequest.of(0, 5, Sort.by('name')))))
+  kase('unpaged input', () => describe(unpackPageParams(true, Pageable.unpaged())))
 })

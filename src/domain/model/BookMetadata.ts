@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadata.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadata.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { javaFloatToString } from '../../port/jackson-tree.js'
 import { type LocalDate, LocalDateTime } from '@js-joda/core'
 import { lowerNotBlank } from '../../language/LanguageUtils.js'
@@ -6,6 +6,7 @@ import { trim } from '../../port/extra-metadata.js'
 import { distinctSet, str, kFloat } from '../../port/kotlin.js'
 import type { Auditable } from './Auditable.js'
 import type { Author } from './Author.js'
+import type { NotableEntity } from './NotableEntity.js'
 import type { WebLink } from './WebLink.js'
 
 type BookMetadataParams = {
@@ -15,6 +16,7 @@ type BookMetadataParams = {
   numberSort: number // PORT: Float
   releaseDate?: LocalDate | null
   authors?: Author[]
+  notableEntities?: NotableEntity[]
   tags?: ReadonlySet<string>
   isbn?: string
   links?: WebLink[]
@@ -24,6 +26,7 @@ type BookMetadataParams = {
   numberSortLock?: boolean
   releaseDateLock?: boolean
   authorsLock?: boolean
+  notableEntitiesLock?: boolean
   tagsLock?: boolean
   isbnLock?: boolean
   linksLock?: boolean
@@ -36,6 +39,7 @@ export class BookMetadata implements Auditable {
   readonly numberSort: number // PORT: Float
   readonly releaseDate: LocalDate | null
   readonly authors: Author[]
+  readonly notableEntities: NotableEntity[]
   readonly isbn: string
   readonly links: WebLink[]
   readonly titleLock: boolean
@@ -44,6 +48,7 @@ export class BookMetadata implements Auditable {
   readonly numberSortLock: boolean
   readonly releaseDateLock: boolean
   readonly authorsLock: boolean
+  readonly notableEntitiesLock: boolean
   readonly tagsLock: boolean
   readonly isbnLock: boolean
   readonly linksLock: boolean
@@ -63,6 +68,7 @@ export class BookMetadata implements Auditable {
     numberSort,
     releaseDate = null,
     authors = [],
+    notableEntities = [],
     tags = new Set(),
     isbn = '',
     links = [],
@@ -72,6 +78,7 @@ export class BookMetadata implements Auditable {
     numberSortLock = false,
     releaseDateLock = false,
     authorsLock = false,
+    notableEntitiesLock = false,
     tagsLock = false,
     isbnLock = false,
     linksLock = false,
@@ -82,6 +89,7 @@ export class BookMetadata implements Auditable {
     this.numberSort = kFloat(numberSort)
     this.releaseDate = releaseDate
     this.authors = authors
+    this.notableEntities = notableEntities
     this.isbn = isbn
     this.links = links
     this.titleLock = titleLock
@@ -90,6 +98,7 @@ export class BookMetadata implements Auditable {
     this.numberSortLock = numberSortLock
     this.releaseDateLock = releaseDateLock
     this.authorsLock = authorsLock
+    this.notableEntitiesLock = notableEntitiesLock
     this.tagsLock = tagsLock
     this.isbnLock = isbnLock
     this.linksLock = linksLock
@@ -110,6 +119,7 @@ export class BookMetadata implements Auditable {
     numberSort = this.numberSort,
     releaseDate = this.releaseDate,
     authors = [...this.authors],
+    notableEntities = [...this.notableEntities],
     tags = this.tags,
     isbn = this.isbn,
     links = this.links,
@@ -119,6 +129,7 @@ export class BookMetadata implements Auditable {
     numberSortLock = this.numberSortLock,
     releaseDateLock = this.releaseDateLock,
     authorsLock = this.authorsLock,
+    notableEntitiesLock = this.notableEntitiesLock,
     tagsLock = this.tagsLock,
     isbnLock = this.isbnLock,
     linksLock = this.linksLock,
@@ -133,6 +144,7 @@ export class BookMetadata implements Auditable {
       numberSort: numberSort,
       releaseDate: releaseDate,
       authors: authors,
+      notableEntities: notableEntities,
       tags: tags,
       isbn: isbn,
       links: links,
@@ -142,6 +154,7 @@ export class BookMetadata implements Auditable {
       numberSortLock: numberSortLock,
       releaseDateLock: releaseDateLock,
       authorsLock: authorsLock,
+      notableEntitiesLock: notableEntitiesLock,
       tagsLock: tagsLock,
       isbnLock: isbnLock,
       linksLock: linksLock,
@@ -152,6 +165,6 @@ export class BookMetadata implements Auditable {
   }
 
   toString(): string {
-    return `BookMetadata(numberSort=${javaFloatToString(this.numberSort)}, releaseDate=${str(this.releaseDate)}, authors=${str(this.authors)}, isbn='${this.isbn}', links=${str(this.links)}, titleLock=${this.titleLock}, summaryLock=${this.summaryLock}, numberLock=${this.numberLock}, numberSortLock=${this.numberSortLock}, releaseDateLock=${this.releaseDateLock}, authorsLock=${this.authorsLock}, tagsLock=${this.tagsLock}, isbnLock=${this.isbnLock}, linksLock=${this.linksLock}, bookId='${this.bookId}', createdDate=${this.createdDate}, lastModifiedDate=${this.lastModifiedDate}, title='${this.title}', summary='${this.summary}', number='${this.number}', tags=${str(this.tags)})`
+    return `BookMetadata(authors=${str(this.authors)}, numberSort=${javaFloatToString(this.numberSort)}, releaseDate=${str(this.releaseDate)}, notableEntities=${str(this.notableEntities)}, isbn='${this.isbn}', links=${str(this.links)}, titleLock=${this.titleLock}, summaryLock=${this.summaryLock}, numberLock=${this.numberLock}, numberSortLock=${this.numberSortLock}, releaseDateLock=${this.releaseDateLock}, authorsLock=${this.authorsLock}, notableEntitiesLock=${this.notableEntitiesLock}, tagsLock=${this.tagsLock}, isbnLock=${this.isbnLock}, linksLock=${this.linksLock}, bookId='${this.bookId}', createdDate=${this.createdDate}, lastModifiedDate=${this.lastModifiedDate}, title='${this.title}', summary='${this.summary}', number='${this.number}', tags=${str(this.tags)})`
   }
 }

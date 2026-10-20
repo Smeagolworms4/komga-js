@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/domain/model/BookSearchTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/domain/model/BookSearchTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Duration, ZoneOffset, ZonedDateTime } from '@js-joda/core'
 import { describe, expect, it } from 'vitest'
 import { BookSearch } from '../../../src/domain/model/BookSearch.js'
@@ -60,6 +60,11 @@ describe('BookSearchTest', () => {
           new SearchCondition.Author({ operator: new SearchOperator.Is({ value: new SearchCondition.AuthorMatch({ role: 'writer' }) }) }),
           new SearchCondition.Author({ operator: new SearchOperator.IsNot({ value: new SearchCondition.AuthorMatch({ name: 'jim' }) }) }),
           new SearchCondition.Author({ operator: new SearchOperator.IsNot({ value: new SearchCondition.AuthorMatch() }) }),
+          new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch({ name: 'john', kind: 'writer' }) }) }),
+          new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch({ name: 'jack', kind: 'writer' }) }) }),
+          new SearchCondition.NotableEntity({ operator: new SearchOperator.Is({ value: new SearchCondition.NotableEntityMatch({ kind: 'writer' }) }) }),
+          new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch({ name: 'jim' }) }) }),
+          new SearchCondition.NotableEntity({ operator: new SearchOperator.IsNot({ value: new SearchCondition.NotableEntityMatch() }) }),
           new SearchCondition.OneShot({ operator: SearchOperator.IsFalse }),
           new SearchCondition.OneShot({ operator: SearchOperator.IsTrue }),
           new SearchCondition.Poster({ operator: new SearchOperator.Is({ value: new SearchCondition.PosterMatch({ type: SearchCondition.PosterMatch.Type.GENERATED, selected: false }) }) }),

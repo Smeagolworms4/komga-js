@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/apikey/ApiKeyAuthenticationFilter.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/apikey/ApiKeyAuthenticationFilter.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { FilterChain, HttpServletRequest, HttpServletResponse } from '../../../port/servlet.js'
 import {
   AnonymousAuthenticationToken,
@@ -69,6 +69,9 @@ export class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     context.authentication = authentication
     this.securityContextHolderStrategy.context = context
     this.securityContextRepository.saveContext(context, request, response)
+
+    // Explicitly tell SessionManagementFilter to skip execution for this request thread, else it will create a session in the session registry
+    request.setAttribute('__spring_security_session_mgmt_filter_applied', true)
   }
 
   private authenticationIsRequired(username: string): boolean {

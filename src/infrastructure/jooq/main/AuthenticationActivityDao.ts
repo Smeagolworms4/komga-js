@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/AuthenticationActivityDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/AuthenticationActivityDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import type { LocalDateTime } from '@js-joda/core'
 import { AuthenticationActivity } from '../../../domain/model/AuthenticationActivity.js'
 import type { KomgaUser } from '../../../domain/model/KomgaUser.js'
@@ -49,13 +50,17 @@ export class AuthenticationActivityDao extends SplitDslDaoBase implements Authen
 
   // PORT: surcharge privée findAll(conditions, pageable) renommée (pas de surcharge en TS)
   private findAllByCondition(conditions: Condition, pageable: Pageable): PageImpl<AuthenticationActivity> {
-    const count = this.dslRO.fetchCount(this.aa, conditions)
-
     const orderBy = toOrderBy(pageable.sort, this.sorts)
 
-    const itemsQuery = this.dslRO.selectFrom(this.aa).where(conditions).orderBy(orderBy)
-    if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
-    const items = itemsQuery.fetchInto(this.aa).map((it) => this.toDomain(it))
+    let items: AuthenticationActivity[]
+    if (isEmpty(pageable)) items = []
+    else {
+      const itemsQuery = this.dslRO.selectFrom(this.aa).where(conditions).orderBy(orderBy)
+      if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
+      items = itemsQuery.fetchInto(this.aa).map((it) => this.toDomain(it))
+    }
+
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(this.aa, conditions)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(

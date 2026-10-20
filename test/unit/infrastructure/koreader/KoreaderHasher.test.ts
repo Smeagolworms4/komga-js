@@ -1,10 +1,10 @@
-// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/hash/KoreaderHasherOracleTest.kt
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/koreader/KoreaderHasherOracleTest.kt
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { KoreaderHasher } from '../../../../src/infrastructure/hash/KoreaderHasher.js'
+import { KoreaderHasher } from '../../../../src/infrastructure/koreader/KoreaderHasher.js'
 import { exceptionType, oracle, oracleBytes, tempDir } from '../../oracle.js'
 
-const { func, kase } = oracle('infrastructure/hash/KoreaderHasher')
+const { func, kase } = oracle('infrastructure/koreader/KoreaderHasher')
 
 const hasher = new KoreaderHasher()
 const sizes = [0, 1, 100, 1023, 1024, 1025, 2048, 4095, 4096, 4097, 16384, 70000, 262144, 262145, 1_100_000, 4_194_305]

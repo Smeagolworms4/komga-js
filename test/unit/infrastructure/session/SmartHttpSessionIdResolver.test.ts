@@ -1,10 +1,10 @@
-// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/security/session/SmartHttpSessionIdResolverOracleTest.kt
-import { SmartHttpSessionIdResolver } from '../../../../../src/infrastructure/security/session/SmartHttpSessionIdResolver.js'
-import { DefaultCookieSerializer } from '../../../../../src/port/spring-session.js'
-import { oracle } from '../../../oracle.js'
-import { describeResponse, request, response } from '../../../web-oracle.js'
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/session/SmartHttpSessionIdResolverOracleTest.kt
+import { SmartHttpSessionIdResolver } from '../../../../src/infrastructure/session/SmartHttpSessionIdResolver.js'
+import { DefaultCookieSerializer } from '../../../../src/port/spring-session.js'
+import { oracle } from '../../oracle.js'
+import { describeResponse, request, response } from '../../web-oracle.js'
 
-const { func, kase } = oracle('infrastructure/security/session/SmartHttpSessionIdResolver')
+const { func, kase } = oracle('infrastructure/session/SmartHttpSessionIdResolver')
 
 const serializer = new DefaultCookieSerializer()
 serializer.setCookieName('KOMGA-SESSION')

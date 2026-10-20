@@ -1,4 +1,4 @@
-// Vérifie que le runner Flyway TS produit exactement le schéma et l'historique du vrai Flyway (Komga 1.27.1).
+// Vérifie que le runner Flyway TS produit exactement le schéma et l'historique du vrai Flyway (Komga 1.29.1).
 // Les bases de référence ont été produites par `./gradlew :komga:flywayMigrateMain :komga:flywayMigrateTasks`.
 import Database from 'better-sqlite3'
 import { describe, expect, it } from 'vitest'
@@ -52,7 +52,7 @@ describe('Flyway', () => {
   it('is idempotent and validates checksums', () => {
     const db = new Database(':memory:')
     const fw = new Flyway(db, { sqlLocations: ['resources/tasks/migration/sqlite'] })
-    expect(fw.migrate()).toBe(1)
+    expect(fw.migrate()).toBe(2)
     expect(fw.migrate()).toBe(0)
     db.prepare('UPDATE flyway_schema_history SET checksum = checksum + 1').run()
     expect(() => fw.migrate()).toThrow(/checksum mismatch/)

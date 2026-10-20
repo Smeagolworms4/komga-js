@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/PageHashDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/PageHashDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { BookPageNumbered } from '../../../domain/model/BookPageNumbered.js'
 import { PageHashKnown } from '../../../domain/model/PageHashKnown.js'
@@ -64,12 +65,18 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
     if (actions !== null) query.where(this.ph.ACTION.in(actions.map((it) => it.name)))
     query.groupBy(...this.ph.fields())
 
-    const count = this.dslRO.fetchCount(query)
-
     const orderBy = toOrderBy(pageable.sort, this.sortsKnown)
-    query.orderBy(orderBy)
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = query.fetch().map((it) => toDomain(it.into(this.ph), it.get<number>('count')))
+
+    let items: PageHashKnown[]
+    if (isEmpty(pageable)) items = []
+    else {
+      query.orderBy(orderBy)
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = query.fetch().map((it) => toDomain(it.into(this.ph), it.get<number>('count')))
+    }
+
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(
@@ -89,12 +96,18 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       .groupBy(this.p.FILE_HASH)
       .having(DSL.count(this.p.BOOK_ID).gt(1))
 
-    const count = this.dslRO.fetchCount(query)
-
     const orderBy = toOrderBy(pageable.sort, this.sortsUnknown)
-    query.orderBy(orderBy)
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = query.fetch((it) => new PageHashUnknown({ hash: it.value1(), size: it.value2(), matchCount: it.value3() }))
+
+    let items: PageHashUnknown[]
+    if (isEmpty(pageable)) items = []
+    else {
+      query.orderBy(orderBy)
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = query.fetch((it) => new PageHashUnknown({ hash: it.value1(), size: it.value2(), matchCount: it.value3() }))
+    }
+
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(
@@ -112,22 +125,28 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       .on(this.p.BOOK_ID.eq(this.b.ID))
       .where(this.p.FILE_HASH.eq(pageHash))
 
-    const count = this.dslRO.fetchCount(query)
-
     const orderBy = toOrderBy(pageable.sort, this.sortsUnknown)
-    query.orderBy(orderBy)
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = query.fetch(
-      (it) =>
-        new PageHashMatch({
-          bookId: it.value1(),
-          url: new URL(it.value2<string>()),
-          pageNumber: it.value3<number>() + 1,
-          fileName: it.value4(),
-          fileSize: it.value5(),
-          mediaType: it.value6(),
-        }),
-    )
+
+    let items: PageHashMatch[]
+    if (isEmpty(pageable)) items = []
+    else {
+      query.orderBy(orderBy)
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = query.fetch(
+        (it) =>
+          new PageHashMatch({
+            bookId: it.value1(),
+            url: new URL(it.value2<string>()),
+            pageNumber: it.value3<number>() + 1,
+            fileName: it.value4(),
+            fileSize: it.value5(),
+            mediaType: it.value6(),
+          }),
+      )
+    }
+
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(

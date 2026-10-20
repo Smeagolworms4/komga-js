@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/ComicInfoProviderTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/ComicInfoProviderTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDate } from '@js-joda/core'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -62,6 +62,9 @@ describe('ComicInfoProviderTest', () => {
         web: '   https://www.comixology.com/Sandman/digital-comic/727888    https://www.comics.com/Sandman/digital-comic/727889   ',
         tags: 'dark, Occult',
         gtin: '9783440077894',
+        locations: 'Tokyo, Paris, London',
+        teams: 'Les bleus, les rouges, les verts',
+        characters: 'Pierre, Paul, Jacques',
       })
 
       mockMapper.readValue.mockReturnValue(ci)
@@ -92,6 +95,15 @@ describe('ComicInfoProviderTest', () => {
 
       expect([...patch.tags!]).toHaveLength(2)
       expectExactlyInAnyOrder(patch.tags, 'dark', 'occult')
+
+      expect(patch.notableEntities).toHaveLength(9)
+      const names = (kind: string) => patch.notableEntities?.filter((it) => it.kind === kind)?.map((it) => it.name)
+      expect(names('location')).toHaveLength(3)
+      expectExactlyInAnyOrder(names('location'), 'Tokyo', 'Paris', 'London')
+      expect(names('character')).toHaveLength(3)
+      expectExactlyInAnyOrder(names('character'), 'Pierre', 'Paul', 'Jacques')
+      expect(names('team')).toHaveLength(3)
+      expectExactlyInAnyOrder(names('team'), 'Les bleus', 'les rouges', 'les verts')
     })
 
     it('given comicInfo with single link when getting book metadata then metadata patch is valid', async () => {

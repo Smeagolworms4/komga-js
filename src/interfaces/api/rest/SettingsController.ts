@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SettingsController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SettingsController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Duration } from '@js-joda/core'
 import { KomgaSettingsProvider } from '../../../infrastructure/configuration/KomgaSettingsProvider.js'
 import { KepubConverter } from '../../../infrastructure/kobo/KepubConverter.js'
@@ -56,6 +56,7 @@ export class SettingsController {
         effectiveValue: this.kepubConverter.kepubifyPath?.toString() ?? null,
       }),
       maxUploadFileSizeBytes: this.multipartProperties.maxFileSize?.toBytes() ?? null,
+      nextUiAsDefault: this.komgaSettingsProvider.nextUiAsDefault,
     })
 
     return principal.user.isAdmin ? settingsDto : publicSettings(settingsDto)
@@ -83,6 +84,7 @@ export class SettingsController {
     if (newSettings.koboProxy !== null) this.komgaSettingsProvider.koboProxy = newSettings.koboProxy
     if (newSettings.isSet('koboPort')) this.komgaSettingsProvider.koboPort = newSettings.koboPort
     if (newSettings.isSet('kepubifyPath')) this.komgaSettingsProvider.kepubifyPath = newSettings.kepubifyPath
+    if (newSettings.nextUiAsDefault !== null) this.komgaSettingsProvider.nextUiAsDefault = newSettings.nextUiAsDefault
   }
 }
 

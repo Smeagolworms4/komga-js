@@ -27,7 +27,7 @@ import { SeriesLifecycle } from '../../../../src/domain/service/SeriesLifecycle.
 import { SeriesMetadataLifecycle } from '../../../../src/domain/service/SeriesMetadataLifecycle.js'
 import { KomgaSettingsProvider } from '../../../../src/infrastructure/configuration/KomgaSettingsProvider.js'
 import { Hasher } from '../../../../src/infrastructure/hash/Hasher.js'
-import { KoreaderHasher } from '../../../../src/infrastructure/hash/KoreaderHasher.js'
+import { KoreaderHasher } from '../../../../src/infrastructure/koreader/KoreaderHasher.js'
 import { ImageAnalyzer } from '../../../../src/infrastructure/image/ImageAnalyzer.js'
 import { ImageConverter } from '../../../../src/infrastructure/image/ImageConverter.js'
 import { ImageType } from '../../../../src/infrastructure/image/ImageType.js'

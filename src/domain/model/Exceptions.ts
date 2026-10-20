@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Exceptions.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/Exceptions.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Exception, registerJavaExceptionNames, throwableToString } from '../../port/kotlin.js'
 
 export class CodedException extends Exception {
@@ -81,8 +81,6 @@ export class ConfigurationException extends Exception {
   }
 }
 
-export class EntityNotFoundException extends Exception {}
-
 registerJavaExceptionNames(
   'org.gotson.komga.domain.model',
   'CodedException',
@@ -98,5 +96,4 @@ registerJavaExceptionNames(
   'ComicRackListException',
   'EntryNotFoundException',
   'ConfigurationException',
-  'EntityNotFoundException',
 )

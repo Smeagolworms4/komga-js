@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SettingsUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SettingsUpdateDto.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { openApiSchema } from '../../../../port/swagger-annotations.js'
 import { Max, Pattern, Positive, constraints } from '../../../../port/validation.js'
@@ -16,6 +16,7 @@ type SettingsUpdateDtoParams = {
   koboProxy?: boolean | null
   koboPort?: number | null
   kepubifyPath?: string | null
+  nextUiAsDefault?: boolean | null
 }
 
 // PORT: classe Kotlin sans constructeur principal, dont Jackson affecte les propriétés présentes dans le JSON ;
@@ -78,6 +79,8 @@ export class SettingsUpdateDto {
     this._isSet.set('kepubifyPath', true)
   }
 
+  nextUiAsDefault: boolean | null = null
+
   constructor(props: SettingsUpdateDtoParams = {}) {
     Object.assign(this, props)
   }
@@ -102,6 +105,7 @@ jsonProperties(SettingsUpdateDto, {
   koboProxy: { nullable: 'Boolean' },
   koboPort: { nullable: 'Int' },
   kepubifyPath: { nullable: 'String' },
+  nextUiAsDefault: { nullable: 'Boolean' },
 })
 // PORT: @Deprecated("Will be removed in a future version") Kotlin sur la propriété : springdoc (module Kotlin) en fait
 // `deprecated: true` et la description du schéma

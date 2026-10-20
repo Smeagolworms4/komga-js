@@ -3,7 +3,7 @@
 // (réponses comparées à celles du Komga JVM, fixtures/reference.json). Ce fichier n'a pas de jumeau Kotlin.
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { EntityNotFoundException } from '../../../src/domain/model/Exceptions.js'
+import { Exception } from '../../../src/port/kotlin.js'
 import { ReadStatus } from '../../../src/domain/model/ReadStatus.js'
 import { SeriesMetadata } from '../../../src/domain/model/SeriesMetadata.js'
 import { LibraryCreationDto } from '../../../src/interfaces/api/rest/dto/LibraryCreationDto.js'
@@ -36,6 +36,9 @@ import { CorsFilter } from '../../../src/port/spring-web-cors.js'
 import { type ProblemDetail } from '../../../src/port/spring-web-dispatcher.js'
 import { ConstraintViolationException } from '../../../src/port/validation-engine.js'
 import { Email, NotBlank } from '../../../src/port/validation.js'
+
+// PORT: exception de test (EntityNotFoundException a disparu de Komga 1.29)
+class EntityNotFoundException extends Exception {}
 
 registerClass('org.gotson.komga.domain.model.ReadStatus', ReadStatus as never)
 registerClass('org.gotson.komga.domain.model.SeriesMetadata$Status', SeriesMetadata.Status as never)

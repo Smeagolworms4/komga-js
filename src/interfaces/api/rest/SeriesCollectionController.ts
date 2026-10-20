@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SeriesCollectionController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SeriesCollectionController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { ZoneOffset, ZonedDateTime } from '@js-joda/core'
 import type { Author } from '../../../domain/model/Author.js'
 import { Dimension } from '../../../domain/model/Dimension.js'
@@ -16,7 +16,7 @@ import { SeriesCollectionRepository } from '../../../domain/persistence/SeriesCo
 import { ThumbnailSeriesCollectionRepository } from '../../../domain/persistence/ThumbnailSeriesCollectionRepository.js'
 import { SeriesCollectionLifecycle } from '../../../domain/service/SeriesCollectionLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
-import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../application/query/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { Authors } from '../../../infrastructure/web/Authors.js'

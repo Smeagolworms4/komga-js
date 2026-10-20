@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/hash/KoreaderHasher.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/koreader/KoreaderHasher.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { createHash } from 'node:crypto'
 import { closeSync, fstatSync } from 'node:fs'
 import { openAsync, preadManyAsync } from '../../port/async-io.js'
@@ -6,7 +6,7 @@ import { FileNotFoundException, fileNotFound } from '../../port/java-io.js'
 import { KotlinLogging } from '../../port/logging.js'
 import { component } from '../../port/spring.js'
 
-const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.hash.KoreaderHasher')
+const logger = KotlinLogging.logger('org.gotson.komga.infrastructure.koreader.KoreaderHasher')
 
 export class KoreaderHasher {
   // PORT: async (lectures sur le pool de libuv, voir PORTING.md « Architecture d'exécution »)

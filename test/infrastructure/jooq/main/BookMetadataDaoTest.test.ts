@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookMetadataDaoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookMetadataDaoTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
 import '../../../../src/infrastructure/jooq/main/BookDao.js'
@@ -7,6 +7,7 @@ import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { Author } from '../../../../src/domain/model/Author.js'
 import { BookMetadata } from '../../../../src/domain/model/BookMetadata.js'
+import { NotableEntity } from '../../../../src/domain/model/NotableEntity.js'
 import { WebLink } from '../../../../src/domain/model/WebLink.js'
 import { BookRepository } from '../../../../src/domain/persistence/BookRepository.js'
 import { LibraryRepository } from '../../../../src/domain/persistence/LibraryRepository.js'
@@ -69,6 +70,7 @@ describe('BookMetadataDaoTest', () => {
       numberSort: 1,
       releaseDate: LocalDate.now(),
       authors: [new Author({ name: 'author', role: 'role' })],
+      notableEntities: [new NotableEntity({ kind: 'power', name: 'elasticity' }), new NotableEntity({ kind: 'team', name: 'mutants' })],
       tags: new Set(['tag', 'another']),
       isbn: '987654321',
       links: [new WebLink({ label: 'Comicvine', url: new URI('https://comicvine.gamespot.com/doctor-strange-30-a-gathering-of-fear/4000-18731/') })],
@@ -79,6 +81,7 @@ describe('BookMetadataDaoTest', () => {
       numberSortLock: true,
       releaseDateLock: true,
       authorsLock: true,
+      notableEntitiesLock: true,
       tagsLock: true,
       isbnLock: true,
     })
@@ -101,6 +104,12 @@ describe('BookMetadataDaoTest', () => {
       expect(it.name).toBe(first(metadata.authors).name)
       expect(it.role).toBe(first(metadata.authors).role)
     }
+    expect(created.notableEntities).toHaveLength(2)
+    {
+      const it = first(created.notableEntities)
+      expect(it.name).toBe(first(metadata.notableEntities).name)
+      expect(it.kind).toBe(first(metadata.notableEntities).kind)
+    }
     expect([...created.tags]).toEqual(expect.arrayContaining([...metadata.tags]))
     expect(created.isbn).toBe(metadata.isbn)
     {
@@ -115,6 +124,7 @@ describe('BookMetadataDaoTest', () => {
     expect(created.numberSortLock).toBe(metadata.numberSortLock)
     expect(created.releaseDateLock).toBe(metadata.releaseDateLock)
     expect(created.authorsLock).toBe(metadata.authorsLock)
+    expect(created.notableEntitiesLock).toBe(metadata.notableEntitiesLock)
     expect(created.tagsLock).toBe(metadata.tagsLock)
     expect(created.isbnLock).toBe(metadata.isbnLock)
     expect(created.linksLock).toBe(metadata.linksLock)
@@ -139,6 +149,7 @@ describe('BookMetadataDaoTest', () => {
     expect(created.numberSort).toBe(metadata.numberSort)
     expect(created.releaseDate).toBeNull()
     expect(created.authors).toHaveLength(0)
+    expect(created.notableEntities).toHaveLength(0)
     expect(created.tags.size).toBe(0)
     expect(isBlank(created.isbn)).toBe(true)
     expect(created.links).toHaveLength(0)
@@ -149,6 +160,7 @@ describe('BookMetadataDaoTest', () => {
     expect(created.numberSortLock).toBe(false)
     expect(created.releaseDateLock).toBe(false)
     expect(created.authorsLock).toBe(false)
+    expect(created.notableEntitiesLock).toBe(false)
     expect(created.tagsLock).toBe(false)
     expect(created.isbnLock).toBe(false)
     expect(created.linksLock).toBe(false)
@@ -162,6 +174,7 @@ describe('BookMetadataDaoTest', () => {
       numberSort: 1,
       releaseDate: LocalDate.now(),
       authors: [new Author({ name: 'author', role: 'role' })],
+      notableEntities: [new NotableEntity({ kind: 'power', name: 'flying' })],
       tags: new Set(['tag']),
       links: [new WebLink({ label: 'Comicvine', url: new URI('https://comicvine.gamespot.com/doctor-strange-30-a-gathering-of-fear/4000-18731/') })],
       bookId: book.id,
@@ -176,6 +189,7 @@ describe('BookMetadataDaoTest', () => {
       numberSort: 2,
       releaseDate: LocalDate.now(),
       authors: [new Author({ name: 'author2', role: 'role2' })],
+      notableEntities: [new NotableEntity({ kind: 'team', name: 'mutants' })],
       tags: new Set(['another']),
       isbn: '987654321',
       links: [new WebLink({ label: 'Bedetheque', url: new URI('https://www.bedetheque.com/BD-AD-Grand-Riviere-Tome-1-Terre-d-election-12596.html') })],
@@ -185,6 +199,7 @@ describe('BookMetadataDaoTest', () => {
       numberSortLock: true,
       releaseDateLock: true,
       authorsLock: true,
+      notableEntitiesLock: true,
       tagsLock: true,
       isbnLock: true,
       linksLock: true,
@@ -210,6 +225,7 @@ describe('BookMetadataDaoTest', () => {
     expect(modified.numberSortLock).toBe(updated.numberSortLock)
     expect(modified.releaseDateLock).toBe(updated.releaseDateLock)
     expect(modified.authorsLock).toBe(updated.authorsLock)
+    expect(modified.notableEntitiesLock).toBe(updated.notableEntitiesLock)
     expect(modified.tagsLock).toBe(updated.tagsLock)
     expect(modified.isbnLock).toBe(updated.isbnLock)
     expect(modified.linksLock).toBe(updated.linksLock)
@@ -217,6 +233,8 @@ describe('BookMetadataDaoTest', () => {
     expect([...modified.tags]).toEqual(expect.arrayContaining([...updated.tags]))
     expect(first(modified.authors).name).toBe(first(updated.authors).name)
     expect(first(modified.authors).role).toBe(first(updated.authors).role)
+    expect(first(modified.notableEntities).name).toBe(first(updated.notableEntities).name)
+    expect(first(modified.notableEntities).kind).toBe(first(updated.notableEntities).kind)
     expect(first(modified.links).label).toBe(first(updated.links).label)
     expect(eq(first(modified.links).url, first(updated.links).url)).toBe(true)
   })

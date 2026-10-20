@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesCollectionDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesCollectionDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { ContentRestrictions } from '../../../domain/model/ContentRestrictions.js'
 import type { SearchContext } from '../../../domain/model/SearchContext.js'
@@ -73,19 +74,26 @@ export class SeriesCollectionDao extends SplitDslDaoBase implements SeriesCollec
             .on(this.cs.SERIES_ID.eq(this.sd.SERIES_ID))
             .where(conditions)
 
-    const count = queryIds !== null ? this.dslRO.fetchCount(queryIds) : this.dslRO.fetchCount(this.c, searchCondition)
-
     const orderBy = mapNotNull(pageable.sort, (it) => {
       if (it.property === 'relevance' && !(collectionIds === null || collectionIds.length === 0))
         return sortByValues(this.c.ID, collectionIds, { asc: it.isAscending })
       else return toSortField(it, this.sorts)
     })
 
-    const itemsQuery = this.selectBase(this.dslRO, context.restrictions.isRestricted).where(conditions)
-    if (queryIds !== null) itemsQuery.and(this.c.ID.in(queryIds))
-    itemsQuery.orderBy(orderBy)
-    if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
-    const items = this.fetchAndMap(itemsQuery, this.dslRO, context.libraryIds, context.restrictions)
+    let items: SeriesCollection[]
+    if (isEmpty(pageable)) items = []
+    else {
+      const itemsQuery = this.selectBase(this.dslRO, context.restrictions.isRestricted).where(conditions)
+      if (queryIds !== null) itemsQuery.and(this.c.ID.in(queryIds))
+      itemsQuery.orderBy(orderBy)
+      if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
+      items = this.fetchAndMap(itemsQuery, this.dslRO, context.libraryIds, context.restrictions)
+    }
+
+    let count: number
+    if (pageable.isUnpaged) count = items.length
+    else if (queryIds !== null) count = this.dslRO.fetchCount(queryIds)
+    else count = this.dslRO.fetchCount(this.c, searchCondition)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(

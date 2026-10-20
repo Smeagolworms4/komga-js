@@ -1,17 +1,13 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/session/SessionConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-// @EnableCaffeineHttpSession : CaffeineHttpSessionConfiguration est enregistrée par port/spring-session.ts
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/session/SessionConfiguration.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import {
-  CaffeineIndexedSessionRepository,
   CookieSerializer,
   DefaultCookieSerializer,
   FindByIndexNameSessionRepository,
   HttpSessionIdResolver,
-  ServerProperties,
   SessionRegistry,
-  SessionRepositoryCustomizer,
   SpringSessionBackedSessionRegistry,
-} from '../../../port/spring-session.js'
-import { configuration } from '../../../port/spring.js'
+} from '../../port/spring-session.js'
+import { configuration } from '../../port/spring.js'
 import { SmartHttpSessionIdResolver } from './SmartHttpSessionIdResolver.js'
 
 export class SessionConfiguration {
@@ -33,12 +29,6 @@ export class SessionConfiguration {
     return new SmartHttpSessionIdResolver(sessionHeaderName, cookieSerializer)
   }
 
-  customizeSessionRepository(serverProperties: ServerProperties): SessionRepositoryCustomizer<CaffeineIndexedSessionRepository> {
-    return new SessionRepositoryCustomizer<CaffeineIndexedSessionRepository>((it) => {
-      it.setDefaultMaxInactiveInterval(serverProperties.servlet.session.timeout.seconds())
-    })
-  }
-
   sessionRegistry(sessionRepository: FindByIndexNameSessionRepository): SessionRegistry {
     return new SpringSessionBackedSessionRegistry(sessionRepository)
   }
@@ -55,7 +45,6 @@ configuration(SessionConfiguration, {
       type: HttpSessionIdResolver,
       inject: [{ expression: (ctx) => ctx.getBean('sessionHeaderName') }, CookieSerializer],
     },
-    { method: 'customizeSessionRepository', type: SessionRepositoryCustomizer, inject: [ServerProperties] },
     { method: 'sessionRegistry', type: SessionRegistry, inject: [FindByIndexNameSessionRepository] },
   ],
 })

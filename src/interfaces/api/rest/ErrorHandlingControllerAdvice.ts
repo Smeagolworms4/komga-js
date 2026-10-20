@@ -1,5 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ErrorHandlingControllerAdvice.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
-import { EntityNotFoundException } from '../../../domain/model/Exceptions.js'
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ErrorHandlingControllerAdvice.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { jsonProperties } from '../../../port/jackson-mapper.js'
 import { DataClass } from '../../../port/kotlin.js'
 import { MaxUploadSizeExceededException } from '../../../port/servlet.js'
@@ -23,10 +22,6 @@ export class ErrorHandlingControllerAdvice {
       violations: e.bindingResult.fieldErrors.map((it) => new Violation({ fieldName: it.field, message: it.defaultMessage })),
     })
   }
-
-  // @ExceptionHandler(EntityNotFoundException::class)
-  // @ResponseStatus(HttpStatus.NOT_FOUND)
-  handleEntityNotFound(): void {}
 
   // @ExceptionHandler(MaxUploadSizeExceededException::class)
   handleMaxUploadSizeExceededException(e: MaxUploadSizeExceededException): ProblemDetail {
@@ -72,7 +67,6 @@ controllerAdvice(ErrorHandlingControllerAdvice, {
   exceptionHandlers: {
     onConstraintValidationException: { exceptions: [ConstraintViolationException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
     onMethodArgumentNotValidException: { exceptions: [MethodArgumentNotValidException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
-    handleEntityNotFound: { exceptions: [EntityNotFoundException], responseStatus: HttpStatus.NOT_FOUND, args: [] },
     handleMaxUploadSizeExceededException: { exceptions: [MaxUploadSizeExceededException], args: [exceptionArg()] },
   },
 })

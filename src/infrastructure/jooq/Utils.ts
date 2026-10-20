@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/Utils.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/Utils.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { gunzipSync, gzipSync } from 'node:zlib'
 import { AllowExclude } from '../../domain/model/AgeRestriction.js'
 import type { ContentRestrictions } from '../../domain/model/ContentRestrictions.js'
@@ -10,7 +10,7 @@ import { DSL } from '../../port/jooq/dsl.js'
 import { classForName } from '../../port/jackson.js'
 import type { JavaType, ObjectMapper } from '../../port/jackson-mapper.js'
 import { mapNotNull } from '../../port/kotlin.js'
-import { PageImpl, PageRequest, type Pageable, type Order, type Sort } from '../../port/spring-data.js'
+import type { Order, Sort } from '../../port/spring-data.js'
 
 export function noCase(self: Field<string>): Field<string> {
   return self.collate('NOCASE')
@@ -136,14 +136,4 @@ export function rlbAlias(readListId: string) {
 
 export function csAlias(collectionId: string) {
   return Tables.COLLECTION_SERIES.as(`CS_${collectionId}`)
-}
-
-export function buildPage<T>(items: T[], pageable: Pageable, count: number, sort: Sort | null): PageImpl<T> {
-  return new PageImpl(
-    items,
-    pageable.isPaged
-      ? PageRequest.of(pageable.pageNumber, pageable.pageSize, sort ?? pageable.sort)
-      : PageRequest.of(0, Math.max(count, 20), sort ?? pageable.sort),
-    count,
-  )
 }

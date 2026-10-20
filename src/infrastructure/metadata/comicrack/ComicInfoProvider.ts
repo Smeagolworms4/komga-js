@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/ComicInfoProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/metadata/comicrack/ComicInfoProvider.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Author } from '../../../domain/model/Author.js'
 import { BCP47TagValidator } from '../../../domain/model/BCP47TagValidator.js'
 import { BookMetadataPatch, BookMetadataPatchCapability } from '../../../domain/model/BookMetadataPatch.js'
@@ -8,6 +8,7 @@ import { MetadataPatchTarget } from '../../../domain/model/MetadataPatchTarget.j
 import { SeriesMetadata } from '../../../domain/model/SeriesMetadata.js'
 import { SeriesMetadataPatch } from '../../../domain/model/SeriesMetadataPatch.js'
 import { WebLink } from '../../../domain/model/WebLink.js'
+import { NotableEntity } from '../../../domain/model/NotableEntity.js'
 import { BookAnalyzer } from '../../../domain/service/BookAnalyzer.js'
 import { ISBNValidator } from '../../../port/commons-validator.js'
 import { XmlMapper } from '../../../port/jackson-xml.js'
@@ -45,6 +46,7 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
     BookMetadataPatchCapability.NUMBER_SORT,
     BookMetadataPatchCapability.RELEASE_DATE,
     BookMetadataPatchCapability.AUTHORS,
+    BookMetadataPatchCapability.NOTABLE_ENTITIES,
     BookMetadataPatchCapability.READ_LISTS,
     BookMetadataPatchCapability.LINKS,
   ])
@@ -64,6 +66,11 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
       if (comicInfo.coverArtist !== null) authors.push(...(this.splitWithRole(comicInfo.coverArtist, 'cover') ?? []))
       if (comicInfo.editor !== null) authors.push(...(this.splitWithRole(comicInfo.editor, 'editor') ?? []))
       if (comicInfo.translator !== null) authors.push(...(this.splitWithRole(comicInfo.translator, 'translator') ?? []))
+
+      const notableEntities: NotableEntity[] = []
+      if (comicInfo.locations !== null) notableEntities.push(...(this.splitWithKind(comicInfo.locations, 'location') ?? []))
+      if (comicInfo.teams !== null) notableEntities.push(...(this.splitWithKind(comicInfo.teams, 'team') ?? []))
+      if (comicInfo.characters !== null) notableEntities.push(...(this.splitWithKind(comicInfo.characters, 'character') ?? []))
 
       const readLists: BookMetadataPatch.ReadListEntry[] = []
       if (!isNullOrBlank(comicInfo.alternateSeries)) {
@@ -123,6 +130,7 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
         numberSort: comicInfo.number !== null ? toFloatOrNull(comicInfo.number) : null,
         releaseDate: releaseDate,
         authors: authors.length === 0 ? null : authors,
+        notableEntities: notableEntities.length === 0 ? null : notableEntities,
         readLists: readLists,
         links: links !== null && links.length === 0 ? null : links,
         tags: tags !== null && tags.length > 0 ? distinctSet(tags) : null,
@@ -206,6 +214,11 @@ export class ComicInfoProvider implements BookMetadataProvider, SeriesMetadataFr
   private splitWithRole(self: string, role: string): Author[] | null {
     const list = mapNotNull(self.split(','), (it) => (isBlank(trim(it)) ? null : trim(it)))
     return list.length > 0 ? list.map((it) => new Author({ name: it, role: role })) : null
+  }
+
+  private splitWithKind(self: string, kind: string): NotableEntity[] | null {
+    const list = mapNotNull(self.split(','), (it) => (isBlank(trim(it)) ? null : trim(it)))
+    return list.length > 0 ? list.map((it) => new NotableEntity({ kind: kind, name: it })) : null
   }
 }
 

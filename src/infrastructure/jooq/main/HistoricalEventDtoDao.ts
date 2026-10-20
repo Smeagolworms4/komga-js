@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/HistoricalEventDtoDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/HistoricalEventDtoDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { SplitDslDaoBase } from '../SplitDslDaoBase.js'
 import { toOrderBy } from '../Utils.js'
 import { HistoricalEventDtoRepository } from '../../../interfaces/api/persistence/HistoricalEventDtoRepository.js'
@@ -26,27 +27,31 @@ export class HistoricalEventDtoDao extends SplitDslDaoBase implements Historical
   }
 
   findAll(pageable: Pageable): Page<HistoricalEventDto> {
-    const count = this.dslRO.fetchCount(this.e)
-
     const orderBy = toOrderBy(pageable.sort, this.sorts)
 
-    const q = this.dslRO.selectFrom(this.e).orderBy(orderBy)
-    if (pageable.isPaged) q.limit(pageable.pageSize).offset(pageable.offset)
-    // PORT: ResultQuery.map { } d'un selectFrom -> fetchInto(table) pour obtenir des records typés
-    const items = q.fetchInto(this.e).map((er) => {
-      const epr = this.dslRO.selectFrom(this.ep).where(this.ep.ID.eq(er.id)).fetchInto(this.ep)
-      return new HistoricalEventDto({
-        id: er.id,
-        type: er.type,
-        timestamp: er.timestamp,
-        bookId: er.bookId,
-        seriesId: er.seriesId,
-        properties: associate(
-          epr.filter((it) => !(it.key === null)),
-          (it) => [it.key, it.value],
-        ),
+    let items: HistoricalEventDto[]
+    if (isEmpty(pageable)) items = []
+    else {
+      const q = this.dslRO.selectFrom(this.e).orderBy(orderBy)
+      if (pageable.isPaged) q.limit(pageable.pageSize).offset(pageable.offset)
+      // PORT: ResultQuery.map { } d'un selectFrom -> fetchInto(table) pour obtenir des records typés
+      items = q.fetchInto(this.e).map((er) => {
+        const epr = this.dslRO.selectFrom(this.ep).where(this.ep.ID.eq(er.id)).fetchInto(this.ep)
+        return new HistoricalEventDto({
+          id: er.id,
+          type: er.type,
+          timestamp: er.timestamp,
+          bookId: er.bookId,
+          seriesId: er.seriesId,
+          properties: associate(
+            epr.filter((it) => !(it.key === null)),
+            (it) => [it.key, it.value],
+          ),
+        })
       })
-    })
+    }
+
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(this.e)
 
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
     return new PageImpl(

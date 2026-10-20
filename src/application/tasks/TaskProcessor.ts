@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/application/tasks/TaskProcessor.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/application/tasks/TaskProcessor.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { KomgaSettingsProvider } from '../../infrastructure/configuration/KomgaSettingsProvider.js'
 import { SettingChangedEvent } from '../../infrastructure/configuration/SettingChangedEvent.js'
 import { KotlinLogging } from '../../port/logging.js'
@@ -34,6 +34,12 @@ export class TaskProcessor {
     const disowned = this.tasksRepository.disown()
     if (disowned > 0) logger.info(() => `Reset ${disowned} tasks that were not finished`)
     this.processTasks = true
+  }
+
+  // DisposableBean
+  destroy(): void {
+    this.processTasks = false
+    this.executor.destroy()
   }
 
   taskPoolSizeChanged(): void {

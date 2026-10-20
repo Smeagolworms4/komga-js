@@ -1,7 +1,8 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadataPatch.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/BookMetadataPatch.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { LocalDate } from '@js-joda/core'
 import { DataClass, KEnum, kFloat } from '../../port/kotlin.js'
 import type { Author } from './Author.js'
+import type { NotableEntity } from './NotableEntity.js'
 import type { WebLink } from './WebLink.js'
 
 type BookMetadataPatchParams = {
@@ -11,6 +12,7 @@ type BookMetadataPatchParams = {
   numberSort?: number | null // PORT: Float
   releaseDate?: LocalDate | null
   authors?: Author[] | null
+  notableEntities?: NotableEntity[] | null
   isbn?: string | null
   links?: WebLink[] | null
   tags?: ReadonlySet<string> | null
@@ -24,6 +26,7 @@ export class BookMetadataPatch extends DataClass<BookMetadataPatchParams> {
   readonly numberSort: number | null // PORT: Float
   readonly releaseDate: LocalDate | null
   readonly authors: Author[] | null
+  readonly notableEntities: NotableEntity[] | null
   readonly isbn: string | null
   readonly links: WebLink[] | null
   readonly tags: ReadonlySet<string> | null
@@ -36,6 +39,7 @@ export class BookMetadataPatch extends DataClass<BookMetadataPatchParams> {
     numberSort = null,
     releaseDate = null,
     authors = null,
+    notableEntities = null,
     isbn = null,
     links = null,
     tags = null,
@@ -48,6 +52,7 @@ export class BookMetadataPatch extends DataClass<BookMetadataPatchParams> {
     this.numberSort = kFloat(numberSort)
     this.releaseDate = releaseDate
     this.authors = authors
+    this.notableEntities = notableEntities
     this.isbn = isbn
     this.links = links
     this.tags = tags
@@ -80,6 +85,7 @@ export class BookMetadataPatchCapability extends KEnum {
   static readonly NUMBER_SORT = new BookMetadataPatchCapability('NUMBER_SORT')
   static readonly RELEASE_DATE = new BookMetadataPatchCapability('RELEASE_DATE')
   static readonly AUTHORS = new BookMetadataPatchCapability('AUTHORS')
+  static readonly NOTABLE_ENTITIES = new BookMetadataPatchCapability('NOTABLE_ENTITIES')
   static readonly TAGS = new BookMetadataPatchCapability('TAGS')
   static readonly ISBN = new BookMetadataPatchCapability('ISBN')
   static readonly READ_LISTS = new BookMetadataPatchCapability('READ_LISTS')

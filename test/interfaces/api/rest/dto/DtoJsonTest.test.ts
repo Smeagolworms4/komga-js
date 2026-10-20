@@ -182,6 +182,8 @@ const bmeta = new BookMetadataDto({
   releaseDateLock: true,
   authors: [new AuthorDto({ name: 'n', role: 'r' })],
   authorsLock: false,
+  notableEntities: [],
+  notableEntitiesLock: false,
   tags: new Set(['b', 'a']),
   tagsLock: true,
   isbn: '978',
@@ -204,6 +206,8 @@ const bmeta2 = new BookMetadataDto({
   releaseDateLock: false,
   authors: [],
   authorsLock: false,
+  notableEntities: [],
+  notableEntitiesLock: false,
   tags: new Set(),
   tagsLock: false,
   isbn: '',
@@ -297,6 +301,7 @@ const smeta2 = new SeriesMetadataDto({
   lastModified: ldt0,
 })
 const bagg = new BookMetadataAggregationDto({
+  notableEntities: [],
   authors: [new AuthorDto({ name: 'a', role: 'b' })],
   tags: new Set(['t1', 't2']),
   releaseDate: ld,
@@ -305,7 +310,7 @@ const bagg = new BookMetadataAggregationDto({
   created: ldt,
   lastModified: ldt0,
 })
-const bagg2 = new BookMetadataAggregationDto({ releaseDate: null, summary: '', summaryNumber: '', created: ldt0, lastModified: ldt0 })
+const bagg2 = new BookMetadataAggregationDto({ notableEntities: [], releaseDate: null, summary: '', summaryNumber: '', created: ldt0, lastModified: ldt0 })
 
 const ent = new BookEntitlementDto({
   activePeriod: new PeriodDto({ from: zdt0 }),
@@ -657,6 +662,7 @@ const WRITE_VALUES: Record<string, () => unknown> = {
       koboPort: 8080,
       kepubifyPath: new SettingMultiSource<string>({ configurationSource: null, databaseSource: null, effectiveValue: null }),
       maxUploadFileSizeBytes: 5000000000,
+      nextUiAsDefault: true,
     }),
   'SettingsDto.empty': () => new SettingsDto(),
   'SettingsDto.public': () =>
@@ -670,6 +676,7 @@ const WRITE_VALUES: Record<string, () => unknown> = {
         koboProxy: false,
         koboPort: 8080,
         maxUploadFileSizeBytes: 1024,
+        nextUiAsDefault: true,
       }),
     ),
   TachiyomiReadProgressDto: () =>

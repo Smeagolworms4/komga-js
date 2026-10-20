@@ -1,5 +1,6 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/ApiKey.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/ApiKey.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDateTime } from '@js-joda/core'
+import { serializable } from '../../port/java-serialization.js'
 import { DataClass } from '../../port/kotlin.js'
 import { TsidCreator } from '../../port/tsid.js'
 import type { Auditable } from './Auditable.js'
@@ -38,3 +39,6 @@ export class ApiKey extends DataClass<ApiKeyParams> implements Auditable {
     this.lastModifiedDate = lastModifiedDate
   }
 }
+
+// : Serializable (serialVersionUID = -8614073344244207660L)
+serializable(ApiKey, 'org.gotson.komga.domain.model.ApiKey')

@@ -1,6 +1,7 @@
 // Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/interfaces/api/rest/dto/BookDtoOracleTest.kt
 import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { AuthorDto } from '../../../../../../src/interfaces/api/rest/dto/AuthorDto.js'
+import { NotableEntityDto } from '../../../../../../src/interfaces/api/rest/dto/NotableEntityDto.js'
 import { BookDto, BookMetadataDto, MediaDto, ReadProgressDto, restrictUrl } from '../../../../../../src/interfaces/api/rest/dto/BookDto.js'
 import { WebLinkDto } from '../../../../../../src/interfaces/api/rest/dto/WebLinkDto.js'
 import { kFloat } from '../../../../../../src/port/kotlin.js'
@@ -38,6 +39,8 @@ const book = (url: string, sizeBytes = 1536) =>
       releaseDateLock: false,
       authors: [new AuthorDto({ name: 'a', role: 'writer' })],
       authorsLock: false,
+      notableEntities: [new NotableEntityDto({ kind: 'team', name: 'X-Men' })],
+      notableEntitiesLock: false,
       tags: new Set(['t2', 't1']),
       tagsLock: false,
       isbn: '9781234567897',

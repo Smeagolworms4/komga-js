@@ -1,4 +1,4 @@
-// Généré par tools/gen-jooq.mjs depuis le code jOOQ de Komga (65981e600edb24944ffaae4818ff2716a5fa08dd), catalogue "tasks". Ne pas modifier.
+// Généré par tools/gen-jooq.mjs depuis le code jOOQ de Komga (a9b59dbee73424d7f2e186b24b0905913f816709), catalogue "tasks". Ne pas modifier.
 // Équivalent de org.gotson.komga.jooq.tasks.{Tables, Keys, tables.*, tables.records.*}
 /* eslint-disable */
 import type { LocalDate, LocalDateTime } from '@js-joda/core'

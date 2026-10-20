@@ -4,7 +4,8 @@
 import '../src/port/spring-boot-flyway.js'
 import '../src/infrastructure/configuration/KomgaProperties.js'
 import '../src/infrastructure/datasource/DataSourcesConfiguration.js'
-import '../src/infrastructure/datasource/FlywaySecondaryMigrationInitializer.js'
+import '../src/infrastructure/datasource/FlywayTasksMigrationInitializer.js'
+import '../src/infrastructure/datasource/FlywaySessionsMigrationInitializer.js'
 import '../src/infrastructure/jooq/KomgaJooqConfiguration.js'
 import '../src/port/spring-boot-jackson.js'
 import { rmSync } from 'node:fs'
@@ -49,7 +50,7 @@ export function springBootTest(
   ctxRef = ctx
   // Spring Boot : les DSLContext dépendent de l'initialisation des bases (JooqDependsOnDatabaseInitializationDetector) :
   // les migrations Flyway passent avant tout bean qui lit la base dans son constructeur (ex. KomgaSettingsProvider)
-  for (const n of ['flywayInitializer', 'flywaySecondaryMigrationInitializer']) ctx.getBean(n)
+  for (const n of ['flywayInitializer', 'flywayTasksMigrationInitializer']) ctx.getBean(n)
   ctx.refresh()
   if (isDefault) shared = ctx
   return ctx

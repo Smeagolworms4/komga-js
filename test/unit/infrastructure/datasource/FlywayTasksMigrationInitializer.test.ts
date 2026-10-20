@@ -1,11 +1,11 @@
-// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/datasource/FlywaySecondaryMigrationInitializerOracleTest.kt
+// Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/datasource/FlywayTasksMigrationInitializerOracleTest.kt
 import { afterAll } from 'vitest'
-import { FlywaySecondaryMigrationInitializer } from '../../../../src/infrastructure/datasource/FlywaySecondaryMigrationInitializer.js'
+import { FlywayTasksMigrationInitializer } from '../../../../src/infrastructure/datasource/FlywayTasksMigrationInitializer.js'
 import { HikariDataSource, SQLiteDataSource } from '../../../../src/port/sqlite.js'
 import { exec, query } from '../../db.js'
 import { oracle } from '../../oracle.js'
 
-const { func, kase } = oracle('infrastructure/datasource/FlywaySecondaryMigrationInitializer')
+const { func, kase } = oracle('infrastructure/datasource/FlywayTasksMigrationInitializer')
 
 const sqlite = new SQLiteDataSource()
 sqlite.setUrl('jdbc:sqlite::memory:')
@@ -19,13 +19,13 @@ const history = () => q('select installed_rank, version, description, type, scri
 func('afterPropertiesSet', () => {
   kase('empty database', () => q('select count(*) from sqlite_master'))
   kase('migrates the tasks database', () => {
-    new FlywaySecondaryMigrationInitializer(dataSource).afterPropertiesSet()
+    new FlywayTasksMigrationInitializer(dataSource).afterPropertiesSet()
     return q("select type, name, tbl_name from sqlite_master where name not like 'sqlite_%' order by type, name")
   })
   kase('schema history', () => history())
   kase('task table columns', () => q('select name, type, "notnull", dflt_value, pk from pragma_table_info(\'TASK\') order by cid'))
   kase('idempotent', () => {
-    new FlywaySecondaryMigrationInitializer(dataSource).afterPropertiesSet()
+    new FlywayTasksMigrationInitializer(dataSource).afterPropertiesSet()
     return history()
   })
   kase('task table usable', () => {

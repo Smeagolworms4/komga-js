@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { BookSearch } from '../../../domain/model/BookSearch.js'
 import { ContentRestrictions } from '../../../domain/model/ContentRestrictions.js'
 import type { ReadList } from '../../../domain/model/ReadList.js'
@@ -14,6 +15,7 @@ import { LuceneHelper } from '../../search/LuceneHelper.js'
 import { toFilePath } from '../../web/Utils.js'
 import { BookDtoRepository } from '../../../interfaces/api/persistence/BookDtoRepository.js'
 import { AuthorDto } from '../../../interfaces/api/rest/dto/AuthorDto.js'
+import { NotableEntityDto } from '../../../interfaces/api/rest/dto/NotableEntityDto.js'
 import { BookDto, BookMetadataDto, MediaDto, ReadProgressDto } from '../../../interfaces/api/rest/dto/BookDto.js'
 import { WebLinkDto } from '../../../interfaces/api/rest/dto/WebLinkDto.js'
 import { type BookMetadataRecord, type BookRecord, type MediaRecord, type ReadProgressRecord, Tables } from '../../../port/jooq/generated/main/Tables.js'
@@ -36,6 +38,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
   private readonly rlb = Tables.READLIST_BOOK
   private readonly bt = Tables.BOOK_METADATA_TAG
   private readonly bl = Tables.BOOK_METADATA_LINK
+  private readonly ne = Tables.BOOK_METADATA_NOTABLE_ENTITIES
 
   private readonly onDeckFields = [...this.b.fields(), ...this.m.fields(), ...this.d.fields(), ...this.r.fields(), this.sd.TITLE]
 
@@ -123,45 +126,53 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
         searchCondition = this.b.ID.in(tempTable.selectTempStrings())
       }
 
-      const countQuery = this.dslRO
-        .select(this.b.ID)
-        .from(this.b)
-        .leftJoin(this.m)
-        .on(this.b.ID.eq(this.m.BOOK_ID))
-        .leftJoin(this.d)
-        .on(this.b.ID.eq(this.d.BOOK_ID))
-        .leftJoin(this.r)
-        .on(this.b.ID.eq(this.r.BOOK_ID))
-        .and(this.readProgressCondition(userId))
-        .leftJoin(this.sd)
-        .on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
-      for (const join of joins) {
-        if (join instanceof RequiredJoin.ReadList) {
-          const rlbAlias_ = rlbAlias(join.readListId)
-          countQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
-        }
-        // always joined
-        else if (join === RequiredJoin.BookMetadata) {
-          // Unit
-        } else if (join === RequiredJoin.Media) {
-          // Unit
-        } else if (join instanceof RequiredJoin.ReadProgress) {
-          // Unit
-        }
-        // Series joins - not needed
-        else if (join === RequiredJoin.BookMetadataAggregation) {
-          // Unit
-        } else if (join === RequiredJoin.SeriesMetadata) {
-          // Unit
-        } else if (join instanceof RequiredJoin.Collection) {
-          // Unit
-        }
+      let dtos: BookDto[]
+      if (isEmpty(pageable)) dtos = []
+      else {
+        const dtosQuery = this.selectBase(this.dslRO, userId, { joins }).where(conditions).and(searchCondition).orderBy(orderBy)
+        if (pageable.isPaged) dtosQuery.limit(pageable.pageSize).offset(pageable.offset)
+        dtos = this.fetchAndMap(dtosQuery, this.dslRO)
       }
-      const count = this.dslRO.fetchCount(countQuery.where(conditions).and(searchCondition).groupBy(this.b.ID))
 
-      const dtosQuery = this.selectBase(this.dslRO, userId, { joins }).where(conditions).and(searchCondition).orderBy(orderBy)
-      if (pageable.isPaged) dtosQuery.limit(pageable.pageSize).offset(pageable.offset)
-      const dtos = this.fetchAndMap(dtosQuery, this.dslRO)
+      let count: number
+      if (pageable.isUnpaged) count = dtos.length
+      else {
+        const countQuery = this.dslRO
+          .select(this.b.ID)
+          .from(this.b)
+          .leftJoin(this.m)
+          .on(this.b.ID.eq(this.m.BOOK_ID))
+          .leftJoin(this.d)
+          .on(this.b.ID.eq(this.d.BOOK_ID))
+          .leftJoin(this.r)
+          .on(this.b.ID.eq(this.r.BOOK_ID))
+          .and(this.readProgressCondition(userId))
+          .leftJoin(this.sd)
+          .on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
+        for (const join of joins) {
+          if (join instanceof RequiredJoin.ReadList) {
+            const rlbAlias_ = rlbAlias(join.readListId)
+            countQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
+          }
+          // always joined
+          else if (join === RequiredJoin.BookMetadata) {
+            // Unit
+          } else if (join === RequiredJoin.Media) {
+            // Unit
+          } else if (join instanceof RequiredJoin.ReadProgress) {
+            // Unit
+          }
+          // Series joins - not needed
+          else if (join === RequiredJoin.BookMetadataAggregation) {
+            // Unit
+          } else if (join === RequiredJoin.SeriesMetadata) {
+            // Unit
+          } else if (join instanceof RequiredJoin.Collection) {
+            // Unit
+          }
+        }
+        count = this.dslRO.fetchCount(countQuery.where(conditions).and(searchCondition).groupBy(this.b.ID))
+      }
 
       const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
       return new PageImpl(
@@ -200,10 +211,16 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
   ): Page<BookDto> {
     const [query, sortField] = this.bookCommonDao.getBooksOnDeckQuery(userId, restrictions, filterOnLibraryIds, this.onDeckFields)
 
-    const count = this.dslRO.fetchCount(query)
-    query.orderBy(sortField.desc())
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const dtos = this.fetchAndMap(query, this.dslRO)
+    let dtos: BookDto[]
+    if (isEmpty(pageable)) dtos = []
+    else {
+      query.orderBy(sortField.desc())
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      dtos = this.fetchAndMap(query, this.dslRO)
+    }
+
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? dtos.length : this.dslRO.fetchCount(query)
 
     return new PageImpl(
       dtos,
@@ -366,6 +383,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
     let authors!: Map<string, AuthorDto[]>
     let tags!: Map<string, string[]>
     let links!: Map<string, WebLinkDto[]>
+    let notableEntities!: Map<string, NotableEntityDto[]>
     use(TempTable.withTempTable(dsl, this.batchSize, bookIds), (tempTable) => {
       // PORT: ResultQuery itéré (records typés) -> fetchInto(a)
       authors = groupByValues(
@@ -395,6 +413,15 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
         (it) => it.bookId,
         (it) => new WebLinkDto({ label: it.label, url: it.url }),
       )
+
+      notableEntities = groupByValues(
+        dsl
+          .selectFrom(this.ne)
+          .where(this.ne.BOOK_ID.in(tempTable.selectTempStrings()))
+          .fetchInto(this.ne),
+        (it) => it.bookId,
+        (it) => new NotableEntityDto({ kind: it.kind, name: it.name }),
+      )
     })
 
     return records.map((rec) => {
@@ -407,7 +434,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
       return this.bookToDto(
         br,
         this.mediaToDto(mr),
-        this.metadataToDto(dr, authors.get(br.id) ?? [], new Set(tags.get(br.id) ?? []), links.get(br.id) ?? []),
+        this.metadataToDto(dr, authors.get(br.id) ?? [], new Set(tags.get(br.id) ?? []), links.get(br.id) ?? [], notableEntities.get(br.id) ?? []),
         rr.userId !== null ? this.readProgressToDto(rr) : null,
         nn(seriesTitle),
       )
@@ -450,7 +477,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
   }
 
   // PORT: fonction d'extension BookMetadataRecord.toDto()
-  private metadataToDto(self: BookMetadataRecord, authors: AuthorDto[], tags: ReadonlySet<string>, links: WebLinkDto[]): BookMetadataDto {
+  private metadataToDto(self: BookMetadataRecord, authors: AuthorDto[], tags: ReadonlySet<string>, links: WebLinkDto[], notableEntities: NotableEntityDto[]): BookMetadataDto {
     return new BookMetadataDto({
       title: nn(self.title),
       titleLock: nn(self.titleLock),
@@ -464,6 +491,8 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
       releaseDateLock: nn(self.releaseDateLock),
       authors: authors,
       authorsLock: nn(self.authorsLock),
+      notableEntities: notableEntities,
+      notableEntitiesLock: nn(self.notableEntitiesLock),
       tags: tags,
       tagsLock: nn(self.tagsLock),
       isbn: nn(self.isbn),

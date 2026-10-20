@@ -595,6 +595,8 @@ export class ApplicationContext implements ApplicationEventPublisher {
         early: false,
         create: () => e.instance,
       }
+      // une instance fournie remplace la définition du même nom (surcharge de définition de bean)
+      this.active = this.active.filter((d) => d.name !== e.name)
       this.active.push(def)
       this.instances.set(def, e.instance)
     }

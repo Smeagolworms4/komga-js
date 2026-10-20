@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/UnpagedSorted.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/application/query/UnpagedSorted.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { UnsupportedOperationException } from '../../port/kotlin.js'
 import { Pageable, type Sort } from '../../port/spring-data.js'
 

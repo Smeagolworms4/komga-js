@@ -13,6 +13,8 @@ import '../../../src/infrastructure/web/BracketParamsFilterConfiguration.js'
 import '../../../src/infrastructure/web/WebServerEffectiveSettings.js'
 import '../../../src/interfaces/mvc/ResourceNotFoundController.js'
 import '../../../src/interfaces/mvc/IndexController.js'
+import { KomgaSettingsProvider } from '../../../src/infrastructure/configuration/KomgaSettingsProvider.js'
+import { ServerSettingsDao } from '../../../src/infrastructure/jooq/main/ServerSettingsDao.js'
 import './TestControllers.js'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -99,7 +101,7 @@ describe('DispatcherServlet (différentiel avec Komga JVM)', () => {
       },
       env: {},
     })
-    ctx = new ApplicationContext(env).refresh()
+    ctx = new ApplicationContext(env, settingsStubs()).refresh()
     server = await startWebServer(ctx, { port: 0, host: '127.0.0.1' })
     actual = (await sendAll(`http://127.0.0.1:${server.port}`, requests)) as Record<string, RawResponse>
   })
@@ -125,3 +127,11 @@ describe('DispatcherServlet (différentiel avec Komga JVM)', () => {
     })
   }
 })
+
+/** KomgaSettingsProvider (dépendance d'IndexController depuis Komga 1.29) sans base : interface classique par défaut */
+function settingsStubs() {
+  return [
+    { name: 'komgaSettingsProvider', type: KomgaSettingsProvider, instance: { nextUiAsDefault: false } },
+    { name: 'serverSettingsDao', type: ServerSettingsDao, instance: {} },
+  ]
+}

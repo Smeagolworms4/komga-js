@@ -1,11 +1,8 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/ContentRestrictions.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/ContentRestrictions.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { lowerNotBlank } from '../../language/LanguageUtils.js'
-import { type Equatable, distinctSet, eq, hash, lazy, str, subtract } from '../../port/kotlin.js'
+import { type Equatable, distinctSet, eq, hash, str, subtract } from '../../port/kotlin.js'
+import { serializable } from '../../port/java-serialization.js'
 import type { AgeRestriction } from './AgeRestriction.js'
-
-// `isRestricted` est initialisé dans le corps de la classe Kotlin : `labelsAllow` / `labelsExclude` y désignent les
-// paramètres du constructeur (non normalisés), pas les propriétés. Ex. labelsAllow = {" "} : isRestricted = true.
-const isRestrictedInit = new WeakMap<ContentRestrictions, () => boolean>()
 
 export class ContentRestrictions implements Equatable {
   readonly ageRestriction: AgeRestriction | null
@@ -22,15 +19,13 @@ export class ContentRestrictions implements Equatable {
     labelsExclude?: ReadonlySet<string>
   } = {}) {
     this.ageRestriction = ageRestriction
-    this.labelsAllow = subtract(distinctSet(lowerNotBlank(labelsAllow)), distinctSet(lowerNotBlank(labelsExclude)))
-
     this.labelsExclude = distinctSet(lowerNotBlank(labelsExclude))
 
-    isRestrictedInit.set(this, () => ageRestriction !== null || labelsAllow.size > 0 || labelsExclude.size > 0)
+    this.labelsAllow = subtract(distinctSet(lowerNotBlank(labelsAllow)), this.labelsExclude)
   }
 
   get isRestricted(): boolean {
-    return lazy(this, 'isRestricted', isRestrictedInit.get(this) as () => boolean)
+    return this.ageRestriction !== null || this.labelsAllow.size > 0 || this.labelsExclude.size > 0
   }
 
   toString(): string {
@@ -55,3 +50,6 @@ export class ContentRestrictions implements Equatable {
     return result
   }
 }
+
+// : Serializable (serialVersionUID = -6674967573322990355L)
+serializable(ContentRestrictions, 'org.gotson.komga.domain.model.ContentRestrictions')

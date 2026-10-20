@@ -25,9 +25,6 @@ func('onMethodArgumentNotValidException', () => {
   kase('no error', () => advice.onMethodArgumentNotValidException(notValid()))
   kase('errors in order', () => advice.onMethodArgumentNotValidException(notValid(['password', 'must not be blank'], ['other', null])))
 })
-func('handleEntityNotFound', () => {
-  kase('unit', () => advice.handleEntityNotFound())
-})
 func('handleMaxUploadSizeExceededException', () => {
   kase('known size', () => problem(new MaxUploadSizeExceededException('Maximum upload size of 1024 bytes exceeded')))
   kase('unknown size', () => problem(new MaxUploadSizeExceededException('Maximum upload size exceeded')))

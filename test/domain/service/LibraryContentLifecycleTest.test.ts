@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/LibraryContentLifecycleTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/LibraryContentLifecycleTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 // PORT: équivalent du scan de composants : modules des beans nécessaires
 import '../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../src/infrastructure/jooq/main/SeriesDao.js'
@@ -37,7 +37,9 @@ import '../../../src/infrastructure/search/LuceneAsyncCommitter.js'
 import '../../../src/infrastructure/search/LuceneHelper.js'
 import '../../../src/infrastructure/search/SearchIndexLifecycle.js'
 import '../../../src/infrastructure/security/PasswordEncoderConfiguration.js'
-import '../../../src/infrastructure/security/session/SessionConfiguration.js'
+import '../../../src/infrastructure/session/SessionConfiguration.js'
+import '../../../src/infrastructure/session/CaffeineSessionConfiguration.js'
+import '../../../src/infrastructure/session/JdbcSessionConfiguration.js'
 import '../../../src/infrastructure/metadata/barcode/IsbnConfiguration.js'
 import '../../../src/infrastructure/metadata/comicrack/ComicInfoProvider.js'
 import '../../../src/infrastructure/metadata/localartwork/LocalArtworkProvider.js'
@@ -90,6 +92,7 @@ import { ReadListLifecycle } from '../../../src/domain/service/ReadListLifecycle
 import { SeriesCollectionLifecycle } from '../../../src/domain/service/SeriesCollectionLifecycle.js'
 import { SeriesLifecycle } from '../../../src/domain/service/SeriesLifecycle.js'
 import { Hasher } from '../../../src/infrastructure/hash/Hasher.js'
+import { KoreaderHasher } from '../../../src/infrastructure/koreader/KoreaderHasher.js'
 import { SeriesDtoRepository } from '../../../src/interfaces/api/persistence/SeriesDtoRepository.js'
 import { toIndexedMap } from '../../../src/language/LanguageUtils.js'
 import { URL, urlToPath } from '../../../src/port/java-net.js'
@@ -125,12 +128,14 @@ describe('LibraryContentLifecycleTest', () => {
   const mockScanner = mockk(FileSystemScanner)
   const mockAnalyzer = mockk(BookAnalyzer)
   const mockHasher = mockk(Hasher)
+  const mockKoHasher = mockk(KoreaderHasher)
   const mockTaskEmitter = mockk(TaskEmitter)
 
   const ctx = springBootTest({}, [
     { type: FileSystemScanner, instance: mockScanner },
     { type: BookAnalyzer, instance: mockAnalyzer },
     { type: Hasher, instance: mockHasher },
+    { type: KoreaderHasher, instance: mockKoHasher },
     { type: TaskEmitter, instance: mockTaskEmitter },
   ])
   const seriesRepository = ctx.getBean(SeriesRepository)
@@ -178,7 +183,7 @@ describe('LibraryContentLifecycleTest', () => {
       libraryLifecycle.deleteLibrary(it)
     })
     // PORT: les @MockkBean sont réinitialisés après chaque test
-    clearMocks(mockScanner, mockAnalyzer, mockHasher, mockTaskEmitter)
+    clearMocks(mockScanner, mockAnalyzer, mockHasher, mockKoHasher, mockTaskEmitter)
   })
 
   describe('Scan', () => {
@@ -276,7 +281,7 @@ describe('LibraryContentLifecycleTest', () => {
 
       {
         const book = bookRepository.findAll()[0]!
-        bookRepository.update(book.copy({ fileHash: 'hashed' }))
+        bookRepository.update(book.copy({ fileHash: 'hashed', fileHashKoreader: 'kohash' }))
         mediaRepository.update(mediaRepository.findById(book.id).copy({ status: Media.Status.READY }))
       }
 
@@ -296,6 +301,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(book.name).toBe('book1')
       expect(book.lastModifiedDate.equals(book.createdDate)).toBe(false)
       expect(isBlank(book.fileHash)).toBe(true)
+      expect(isBlank(book.fileHashKoreader)).toBe(true)
       const media = mediaRepository.findById(book.id)
       expect(media.status).toBe(Media.Status.OUTDATED)
     })
@@ -313,7 +319,7 @@ describe('LibraryContentLifecycleTest', () => {
 
       {
         const book = bookRepository.findAll()[0]!
-        bookRepository.update(book.copy({ fileHash: 'hashed' }))
+        bookRepository.update(book.copy({ fileHash: 'hashed', fileHashKoreader: 'kohash' }))
         mediaRepository.update(mediaRepository.findById(book.id).copy({ status: Media.Status.READY }))
       }
 
@@ -335,6 +341,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(book.name).toBe('book1')
       expect(book.lastModifiedDate.equals(book.createdDate)).toBe(false)
       expect(book.fileHash).toBe('hashed')
+      expect(book.fileHashKoreader).toBe('kohash')
       const media = mediaRepository.findById(book.id)
       expect(media.status).not.toBe(Media.Status.OUTDATED)
       expect(media.status).toBe(Media.Status.READY)
@@ -435,7 +442,7 @@ describe('LibraryContentLifecycleTest', () => {
     it('given existing book with different last modified date and hash when rescanning then media is marked as outdated and hash is reset', async () => {
       // given
       const library = makeLibrary()
-      libraryRepository.insert(library)
+      libraryRepository.insert(library.copy({ hashKoreader: true }))
 
       const book1 = makeBook('book1')
       every(() => mockScanner.scanRootFolder(any())).returnsMany(scan([makeSeries('series'), [book1]]), scan([makeSeries('series'), [makeBook('book1')]]))
@@ -445,10 +452,12 @@ describe('LibraryContentLifecycleTest', () => {
         new Media({ status: Media.Status.READY, mediaType: 'application/zip', pages: [makeBookPage('1.jpg'), makeBookPage('2.jpg')], bookId: book1.id }),
       )
       every(() => mockHasher.computeHash(any())).returnsMany('abc', 'def')
+      every(() => mockKoHasher.computeHash(any())).returnsMany('koabc', 'kodef')
 
       for (const it of bookRepository.findAll()) {
-        await bookLifecycle.analyzeAndPersist(it)
-        await bookLifecycle.hashAndPersist(it)
+        await bookLifecycle.analyzeAndPersist(nn(bookRepository.findByIdOrNull(it.id)))
+        await bookLifecycle.hashAndPersist(nn(bookRepository.findByIdOrNull(it.id)))
+        await bookLifecycle.hashKoreaderAndPersist(nn(bookRepository.findByIdOrNull(it.id)))
       }
 
       // when
@@ -458,11 +467,13 @@ describe('LibraryContentLifecycleTest', () => {
       verify({ exactly: 2 }, () => mockScanner.scanRootFolder(any()))
       verify({ exactly: 1 }, () => mockAnalyzer.analyze(any(), any()))
       verify({ exactly: 2 }, () => mockHasher.computeHash(any()))
+      verify({ exactly: 1 }, () => mockKoHasher.computeHash(any()))
 
       {
         const book = bookRepository.findAll()[0]!
         expect(book.lastModifiedDate.equals(book.createdDate)).toBe(false)
         expect(book.fileHash).toBe('def')
+        expect(book.fileHashKoreader).toBe('')
 
         const media = mediaRepository.findById(book.id)
         expect(media.status).toBe(Media.Status.OUTDATED)
@@ -599,7 +610,7 @@ describe('LibraryContentLifecycleTest', () => {
       {
         const it = bookRepository.findByIdOrNull(book2.id)
         if (it !== null) {
-          bookRepository.update(it.copy({ fileHash: 'sameHash' }))
+          bookRepository.update(it.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
           mediaRepository.update(mediaRepository.findById(it.id).copy({ status: Media.Status.READY }))
           bookMetadataRepository.update(bookMetadataRepository.findById(it.id).copy({ tags: new Set(['my-tag']) }))
           bookLifecycle.addThumbnailForBook(
@@ -634,7 +645,8 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
 
       {
-        const { id } = allBooks[allBooks.length - 1]!
+        const { id, fileHashKoreader } = allBooks[allBooks.length - 1]!
+        expect(fileHashKoreader, 'Book koreader hash should be kept intact').toBe('kohash')
         expect(mediaRepository.findById(id).status, 'Book media should be kept intact').toBe(Media.Status.READY)
         expect(sorted([...bookMetadataRepository.findById(id).tags])).toEqual(['my-tag'])
         const thumbnail = bookLifecycle.getThumbnail(id)
@@ -657,7 +669,7 @@ describe('LibraryContentLifecycleTest', () => {
       await libraryContentLifecycle.scanRootFolder(library) // creation
 
       bookRepository.findAll().forEach((book) => {
-        bookRepository.update(book.copy({ fileHash: `HASH-${book.name}` }))
+        bookRepository.update(book.copy({ fileHash: `HASH-${book.name}`, fileHashKoreader: 'kohash' }))
         {
           const it = mediaRepository.findById(book.id)
           mediaRepository.update(it.copy({ status: Media.Status.READY }))
@@ -711,6 +723,7 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks).toHaveLength(2)
 
       allBooks.forEach((book) => {
+        expect(book.fileHashKoreader).toBe('kohash')
         expect(mediaRepository.findById(book.id).status).toBe(Media.Status.READY)
       })
     })
@@ -734,7 +747,7 @@ describe('LibraryContentLifecycleTest', () => {
       {
         const it = bookRepository.findByIdOrNull(book.id)
         if (it !== null) {
-          bookRepository.update(it.copy({ fileHash: 'sameHash' }))
+          bookRepository.update(it.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
           mediaRepository.update(mediaRepository.findById(it.id).copy({ status: Media.Status.READY }))
           bookLifecycle.addThumbnailForBook(
             new ThumbnailBook({ thumbnail: new Uint8Array(0), type: ThumbnailBook.Type.GENERATED, bookId: book.id, fileSize: 0, mediaType: '', dimension: new Dimension({ width: 0, height: 0 }) }),
@@ -762,7 +775,8 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks).toHaveLength(2)
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
       {
-        const { id, name } = allBooks[allBooks.length - 1]!
+        const { id, name, fileHashKoreader } = allBooks[allBooks.length - 1]!
+        expect(fileHashKoreader).toBe('kohash')
         expect(name, 'Book name should have changed to match the filename').toBe('book3')
         expect(mediaRepository.findById(id).status, 'Book media should be kept intact').toBe(Media.Status.READY)
         expect(thumbnailBookRepository.findAllByBookIdAndType(id, new Set([ThumbnailBook.Type.SIDECAR]))).toHaveLength(0)
@@ -788,7 +802,7 @@ describe('LibraryContentLifecycleTest', () => {
       {
         const it = bookRepository.findByIdOrNull(book.id)
         if (it !== null) {
-          bookRepository.update(it.copy({ fileHash: 'sameHash' }))
+          bookRepository.update(it.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
           mediaRepository.update(mediaRepository.findById(it.id).copy({ status: Media.Status.READY }))
           bookLifecycle.addThumbnailForBook(
             new ThumbnailBook({ thumbnail: new Uint8Array(0), type: ThumbnailBook.Type.GENERATED, bookId: book.id, fileSize: 0, mediaType: '', dimension: new Dimension({ width: 0, height: 0 }) }),
@@ -816,7 +830,8 @@ describe('LibraryContentLifecycleTest', () => {
       expect(allBooks).toHaveLength(2)
       expect(allBooks.map((it) => it.deletedDate).every((it) => it === null)).toBe(true)
       {
-        const { id, name } = allBooks[allBooks.length - 1]!
+        const { id, name, fileHashKoreader } = allBooks[allBooks.length - 1]!
+        expect(fileHashKoreader).toBe('kohash')
         expect(name, 'Book name should have changed to match the filename').toBe('book3')
         expect(mediaRepository.findById(id).status, 'Book media should be kept intact').toBe(Media.Status.READY)
         expect(thumbnailBookRepository.findAllByBookIdAndType(id, new Set([ThumbnailBook.Type.SIDECAR]))).toHaveLength(0)
@@ -1031,7 +1046,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
 
       bookRepository.findAll().forEach((book) => {
-        bookRepository.update(book.copy({ fileHash: 'sameHash' }))
+        bookRepository.update(book.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
         {
           const it = mediaRepository.findById(book.id)
           mediaRepository.update(it.copy({ status: Media.Status.READY }))
@@ -1059,6 +1074,7 @@ describe('LibraryContentLifecycleTest', () => {
         expect(books).toHaveLength(1)
         {
           const book = books[0]!
+          expect(book.fileHashKoreader).toBe('kohash')
           expect(book.name).toBe('book2')
           expect(bookMetadataRepository.findById(book.id).title).toBe('book2')
           expect(mediaRepository.findById(book.id).status).toBe(Media.Status.READY)
@@ -1087,7 +1103,7 @@ describe('LibraryContentLifecycleTest', () => {
       }
 
       bookRepository.findAll().forEach((book) => {
-        bookRepository.update(book.copy({ fileHash: 'sameHash' }))
+        bookRepository.update(book.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
         {
           const it = mediaRepository.findById(book.id)
           mediaRepository.update(it.copy({ status: Media.Status.READY }))
@@ -1116,6 +1132,7 @@ describe('LibraryContentLifecycleTest', () => {
         {
           const book = books[0]!
           expect(book.name).toBe('book2')
+          expect(book.fileHashKoreader).toBe('kohash')
           expect(bookMetadataRepository.findById(book.id).title).toBe('book2')
           expect(mediaRepository.findById(book.id).status).toBe(Media.Status.READY)
         }
@@ -1145,7 +1162,7 @@ describe('LibraryContentLifecycleTest', () => {
       {
         const it = bookRepository.findByIdOrNull(book2.id)
         if (it !== null) {
-          bookRepository.update(it.copy({ fileHash: 'sameHash' }))
+          bookRepository.update(it.copy({ fileHash: 'sameHash', fileHashKoreader: 'kohash' }))
           mediaRepository.update(mediaRepository.findById(it.id).copy({ status: Media.Status.READY }))
         }
       }
@@ -1172,6 +1189,7 @@ describe('LibraryContentLifecycleTest', () => {
 
         {
           const it = first(books, (it) => it.name === 'book2')
+          expect(it.fileHashKoreader).toBe('kohash')
           expect(mediaRepository.findById(it.id).status).toBe(Media.Status.READY)
         }
       }
@@ -1422,7 +1440,7 @@ describe('LibraryContentLifecycleTest', () => {
       await libraryContentLifecycle.scanRootFolder(library) // creation
 
       bookRepository.findAll().forEach((book) => {
-        bookRepository.update(book.copy({ fileHash: `HASH-${book.name}` }))
+        bookRepository.update(book.copy({ fileHash: `HASH-${book.name}`, fileHashKoreader: 'kohash' }))
         {
           const it = mediaRepository.findById(book.id)
           mediaRepository.update(it.copy({ status: Media.Status.READY }))
@@ -1448,6 +1466,7 @@ describe('LibraryContentLifecycleTest', () => {
         const books = bookRepository.findAllBySeriesId(series2.id)
         expect(books).toHaveLength(2)
         books.forEach((book) => {
+          expect(book.fileHashKoreader).toBe('kohash')
           expect(mediaRepository.findById(book.id).status).toBe(Media.Status.READY)
         })
       }

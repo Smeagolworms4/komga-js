@@ -1,5 +1,6 @@
 // Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/infrastructure/jooq/main/ReferentialDaoOracleTest.kt
 import { FilterBy, FilterByEntity, FilterTags } from '../../../../../src/domain/model/FilterBy.js'
+import { NotableEntity } from '../../../../../src/domain/model/NotableEntity.js'
 import { SearchContext } from '../../../../../src/domain/model/SearchContext.js'
 import { PageRequest, Pageable } from '../../../../../src/port/spring-data.js'
 import { OracleDb } from '../../../db.js'
@@ -261,6 +262,43 @@ func('findAllSharingLabelsByCollection', () => {
 
 func('findSharingLabels', () => {
   generic('AD', (c, s, f, p) => dao.findSharingLabels(c, s, f, p))
+})
+
+const ne = (kind: string, name: string) => new NotableEntity({ kind, name })
+
+func('findNotableEntities', () => {
+  kase('seed notable entities', () => {
+    const data: [string, NotableEntity[]][] = [
+      ['B1', [ne('team', 'Justice League'), ne('location', 'Gotham')]],
+      ['B3', [ne('character', 'Joker'), ne('location', 'Gotham'), ne('team', 'justice league')]],
+      ['B6', [ne('character', 'Naruto'), ne('team', 'Team 7'), ne('location', 'Konoha')]],
+      ['B10', [ne('character', 'Æon Flux'), ne('location', 'Monica')]],
+      ['B8', [ne('character', 'Deleted Guy')]],
+    ]
+    for (const [id, entities] of data) db.bookMetadataDao.update(db.bookMetadataDao.findById(id).copy({ notableEntities: entities }))
+    return dao.findNotableEntities(admin, null, null, null, Pageable.unpaged())
+  })
+  generic('go', (c, s, f, p) => dao.findNotableEntities(c, s, null, f, p))
+  kase('kind', () => dao.findNotableEntities(admin, null, 'location', null, Pageable.unpaged()))
+  kase('kind and search', () => dao.findNotableEntities(admin, 'o', 'character', filterBys[3]![1], Pageable.unpaged()))
+  kase('unknown kind', () => dao.findNotableEntities(admin, null, 'nope', null, PageRequest.of(0, 5)))
+  kase('accent insensitive search', () => dao.findNotableEntities(admin, 'aeon', null, null, Pageable.unpaged()))
+  kase('first page', () => dao.findNotableEntities(admin, null, null, null, PageRequest.of(0, 3)))
+})
+
+func('findNotableEntitiesKinds', () => {
+  generic(null, (c, _s, f, p) => dao.findNotableEntitiesKinds(c, f, p))
+  kase('first page', () => dao.findNotableEntitiesKinds(admin, null, PageRequest.of(0, 1)))
+})
+
+func('findNotableEntitiesNames', () => {
+  generic('a', (c, s, f, p) => dao.findNotableEntitiesNames(c, s, null, f, p))
+  kase('kind', () => dao.findNotableEntitiesNames(admin, null, 'team', null, Pageable.unpaged()))
+  kase('kind paged', () => dao.findNotableEntitiesNames(admin, null, 'location', null, PageRequest.of(0, 2)))
+})
+
+func('toDomain@885', () => {
+  kase('notable entity', () => dao.findNotableEntities(admin, 'Naruto', null, null, Pageable.unpaged()))
 })
 
 func('toDomain@838', () => {

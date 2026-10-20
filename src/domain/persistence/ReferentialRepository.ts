@@ -1,7 +1,9 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/persistence/ReferentialRepository.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/persistence/ReferentialRepository.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { LocalDate } from '@js-joda/core'
+import type { PageResult } from '../../application/query/PageResult.js'
 import type { Author } from '../model/Author.js'
 import type { FilterBy, FilterTags } from '../model/FilterBy.js'
+import type { NotableEntity } from '../model/NotableEntity.js'
 import type { SearchContext } from '../model/SearchContext.js'
 import type { Page, Pageable } from '../../port/spring-data.js'
 
@@ -129,4 +131,10 @@ export abstract class ReferentialRepository {
   abstract findAllSharingLabelsByCollection(collectionId: string, filterOnLibraryIds: Iterable<string> | null): Set<string>
 
   abstract findSharingLabels(context: SearchContext, search: string | null, filterBy: FilterBy | null, pageable: Pageable): Page<string>
+
+  abstract findNotableEntities(context: SearchContext, search: string | null, kind: string | null, filterBy: FilterBy | null, pageable: Pageable): PageResult<NotableEntity>
+
+  abstract findNotableEntitiesKinds(context: SearchContext, filterBy: FilterBy | null, pageable: Pageable): PageResult<string>
+
+  abstract findNotableEntitiesNames(context: SearchContext, search: string | null, kind: string | null, filterBy: FilterBy | null, pageable: Pageable): PageResult<string>
 }
