@@ -15,8 +15,10 @@ import '../../../src/infrastructure/security/UserAgentWebAuthenticationDetailsSo
 import '../../../src/infrastructure/security/LoginListener.js'
 import '../../../src/infrastructure/security/apikey/ApiKeyAuthenticationProvider.js'
 import '../../../src/infrastructure/security/apikey/ApiKeyGenerator.js'
-import '../../../src/infrastructure/security/session/SessionConfiguration.js'
-import '../../../src/infrastructure/security/session/SessionListener.js'
+import '../../../src/infrastructure/session/SessionConfiguration.js'
+import '../../../src/infrastructure/session/CaffeineSessionConfiguration.js'
+import '../../../src/infrastructure/session/JdbcSessionConfiguration.js'
+import '../../../src/infrastructure/session/SessionListener.js'
 import { type IncomingMessage, type Server, type ServerResponse, createServer, request as httpRequest } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { UserRoles } from '../../../src/domain/model/UserRoles.js'
@@ -318,13 +320,6 @@ export function mirrorFilterChains(ctx: ApplicationContext, o: MirrorOptions): S
     })
     it.headers((h) => {
       h.cacheControl((c) => c.disable())
-    })
-    it.sessionManagement((s) => {
-      s.sessionCreationPolicy = SessionCreationPolicy.IF_REQUIRED
-      s.sessionConcurrency((c) => {
-        c.sessionRegistry = theSessionRegistry
-        c.maximumSessions = -1
-      })
     })
     it.addFilterBefore(AnonymousAuthenticationFilter, kosyncAuthenticationFilter())
   })

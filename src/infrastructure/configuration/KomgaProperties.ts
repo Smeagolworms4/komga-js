@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/configuration/KomgaProperties.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/configuration/KomgaProperties.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Duration } from '@js-joda/core'
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -31,9 +31,13 @@ export class KomgaProperties {
 
   oidcEmailVerification: boolean = true
 
+  jdbcSessionEnabled: boolean = false
+
   database = new KomgaProperties.Database()
 
   tasksDb = new KomgaProperties.Database()
+
+  sessionsDb = new KomgaProperties.Database()
 
   cors = new KomgaProperties.Cors()
 
@@ -119,6 +123,10 @@ component(KomgaProperties, {
       'tasksDb.journalMode': { enum: JournalMode },
       'tasksDb.busyTimeout': { duration: 'SECONDS' },
       'tasksDb.pragmas': 'map',
+      'sessionsDb.poolSize': 'int',
+      'sessionsDb.journalMode': { enum: JournalMode },
+      'sessionsDb.busyTimeout': { duration: 'SECONDS' },
+      'sessionsDb.pragmas': 'map',
       'lucene.commitDelay': { duration: 'SECONDS' },
       'kobo.kepubifyPath': 'string',
     },

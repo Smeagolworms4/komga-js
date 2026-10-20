@@ -1,6 +1,7 @@
 // Oracle : komga/src/test/kotlin/org/gotson/komga/oracle/domain/model/BookMetadataOracleTest.kt
 import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { Author } from '../../../../src/domain/model/Author.js'
+import { NotableEntity } from '../../../../src/domain/model/NotableEntity.js'
 import { BookMetadata } from '../../../../src/domain/model/BookMetadata.js'
 import { WebLink } from '../../../../src/domain/model/WebLink.js'
 import { URI } from '../../../../src/port/java-net.js'
@@ -18,6 +19,7 @@ const full = new BookMetadata({
   numberSort: 1.5,
   releaseDate: LocalDate.of(2021, 2, 28),
   authors: [new Author({ name: ' John ', role: 'WRITER' }), new Author({ name: 'Jane', role: 'penciller' })],
+  notableEntities: [new NotableEntity({ kind: ' TEAM ', name: ' X-Men ' }), new NotableEntity({ kind: 'location', name: 'Gotham' })],
   tags: new Set(['TAG', 'tag ', ' ', 'Other']),
   isbn: '9781234567897',
   links: [new WebLink({ label: 'Site', url: new URI('https://example.org/a?b=c') })],
@@ -27,6 +29,7 @@ const full = new BookMetadata({
   numberSortLock: true,
   releaseDateLock: true,
   authorsLock: true,
+  notableEntitiesLock: true,
   tagsLock: true,
   isbnLock: true,
   linksLock: true,

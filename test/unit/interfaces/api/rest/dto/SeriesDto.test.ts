@@ -2,6 +2,7 @@
 import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { AlternateTitleDto } from '../../../../../../src/interfaces/api/rest/dto/AlternateTitleDto.js'
 import { AuthorDto } from '../../../../../../src/interfaces/api/rest/dto/AuthorDto.js'
+import { NotableEntityDto } from '../../../../../../src/interfaces/api/rest/dto/NotableEntityDto.js'
 import { BookMetadataAggregationDto, SeriesDto, SeriesMetadataDto, restrictUrl } from '../../../../../../src/interfaces/api/rest/dto/SeriesDto.js'
 import { WebLinkDto } from '../../../../../../src/interfaces/api/rest/dto/WebLinkDto.js'
 import { oracle } from '../../../../oracle.js'
@@ -55,6 +56,7 @@ const s = new SeriesDto({
     lastModified: d,
   }),
   booksMetadata: new BookMetadataAggregationDto({
+    notableEntities: [new NotableEntityDto({ kind: 'team', name: 'X-Men' })],
     authors: [new AuthorDto({ name: 'a', role: 'writer' })],
     tags: new Set(['t']),
     releaseDate: LocalDate.of(2020, 1, 1),

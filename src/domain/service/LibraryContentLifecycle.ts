@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/LibraryContentLifecycle.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/LibraryContentLifecycle.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDateTime } from '@js-joda/core'
 import { TaskEmitter } from '../../application/tasks/TaskEmitter.js'
 import type { Book } from '../model/Book.js'
@@ -200,6 +200,7 @@ export class LibraryContentLifecycle {
                       fileLastModified: newBook.fileLastModified,
                       fileSize: newBook.fileSize,
                       fileHash: hash ?? '',
+                      fileHashKoreader: '',
                     })
                     this.transactionTemplate.executeWithoutResult(() => {
                       const it = this.mediaRepository.findById(existingBook.id)
@@ -450,40 +451,43 @@ export class LibraryContentLifecycle {
 
         if (match !== null) {
           // restore book
-          logger.info(() => `Match found, restore ${str(match)} into ${str(bookToAdd)}`)
+          logger.info(() => `Match found, restore ${str(match)} into ${str(bookWithHash)}`)
           this.transactionTemplate.executeWithoutResult(() => {
+            // copy koreader hash
+            this.bookRepository.update(bookWithHash.copy({ fileHashKoreader: match.fileHashKoreader }))
+
             // copy media
-            this.mediaRepository.copy(match.id, bookToAdd.id)
+            this.mediaRepository.copy(match.id, bookWithHash.id)
 
             // copy generated and user uploaded thumbnails
             this.thumbnailBookRepository.findAllByBookIdAndType(match.id, new Set([ThumbnailBook.Type.GENERATED, ThumbnailBook.Type.USER_UPLOADED])).forEach((deleted) => {
-              this.thumbnailBookRepository.update(deleted.copy({ bookId: bookToAdd.id }))
+              this.thumbnailBookRepository.update(deleted.copy({ bookId: bookWithHash.id }))
             })
 
             // copy metadata
             {
               const deleted = this.bookMetadataRepository.findById(match.id)
-              const newlyAdded = this.bookMetadataRepository.findById(bookToAdd.id)
+              const newlyAdded = this.bookMetadataRepository.findById(bookWithHash.id)
               this.bookMetadataRepository.update(
                 deleted.copy({
-                  bookId: bookToAdd.id,
+                  bookId: bookWithHash.id,
                   title: deleted.titleLock ? deleted.title : newlyAdded.title,
                 }),
               )
-              if (!deleted.titleLock) this.taskEmitter.refreshBookMetadata(bookToAdd, { capabilities: new Set([BookMetadataPatchCapability.TITLE]) })
+              if (!deleted.titleLock) this.taskEmitter.refreshBookMetadata(bookWithHash, { capabilities: new Set([BookMetadataPatchCapability.TITLE]) })
             }
 
             // copy read progress
             this.readProgressRepository
               .findAllByBookId(match.id)
-              .map((it) => it.copy({ bookId: bookToAdd.id }))
+              .map((it) => it.copy({ bookId: bookWithHash.id }))
               .forEach((it) => this.readProgressRepository.save(it))
 
             // replace deleted book by new book in read lists
             this.readListRepository.findAllContainingBookId(match.id, SearchContext.empty()).forEach((rl) => {
               this.readListRepository.update(
                 rl.copy({
-                  bookIds: toIndexedMap([...rl.bookIds.values()].map((it) => (it === match.id ? bookToAdd.id : it))),
+                  bookIds: toIndexedMap([...rl.bookIds.values()].map((it) => (it === match.id ? bookWithHash.id : it))),
                 }),
               )
             })

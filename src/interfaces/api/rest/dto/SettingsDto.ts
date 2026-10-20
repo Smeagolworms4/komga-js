@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SettingsDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SettingsDto.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { json } from '../../../../port/jackson.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
@@ -16,6 +16,7 @@ type SettingsDtoParams = {
   koboPort?: number | null
   kepubifyPath?: SettingMultiSource<string> | null
   maxUploadFileSizeBytes?: number | null
+  nextUiAsDefault?: boolean | null
 }
 
 export class SettingsDto extends DataClass<SettingsDtoParams> {
@@ -30,6 +31,7 @@ export class SettingsDto extends DataClass<SettingsDtoParams> {
   readonly koboPort: number | null
   readonly kepubifyPath: SettingMultiSource<string> | null
   readonly maxUploadFileSizeBytes: number | null
+  readonly nextUiAsDefault: boolean | null
 
   constructor({
     deleteEmptyCollections = null,
@@ -43,6 +45,7 @@ export class SettingsDto extends DataClass<SettingsDtoParams> {
     koboPort = null,
     kepubifyPath = null,
     maxUploadFileSizeBytes = null,
+    nextUiAsDefault = null,
   }: SettingsDtoParams = {}) {
     super()
     this.deleteEmptyCollections = deleteEmptyCollections
@@ -56,6 +59,7 @@ export class SettingsDto extends DataClass<SettingsDtoParams> {
     this.koboPort = koboPort
     this.kepubifyPath = kepubifyPath
     this.maxUploadFileSizeBytes = maxUploadFileSizeBytes
+    this.nextUiAsDefault = nextUiAsDefault
   }
 }
 
@@ -98,6 +102,7 @@ jsonProperties(SettingsDto, {
   koboPort: { nullable: 'Int' },
   kepubifyPath: { nullable: { class: SettingMultiSource, args: ['String'] } },
   maxUploadFileSizeBytes: { nullable: 'Long' },
+  nextUiAsDefault: { nullable: 'Boolean' },
 })
 jsonProperties(
   SettingMultiSource,

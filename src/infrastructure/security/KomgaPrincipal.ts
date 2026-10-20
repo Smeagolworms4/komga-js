@@ -1,6 +1,7 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/KomgaPrincipal.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/KomgaPrincipal.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { ApiKey } from '../../domain/model/ApiKey.js'
 import type { KomgaUser } from '../../domain/model/KomgaUser.js'
+import { serializable } from '../../port/java-serialization.js'
 import { type GrantedAuthority, SimpleGrantedAuthority, type UserDetails, distinctAuthorities } from '../../port/spring-security.js'
 import { type OAuth2User, type OidcIdToken, type OidcUser, type OidcUserInfo, claimAsBoolean, claimAsString } from '../../port/spring-security-oauth2.js'
 
@@ -87,3 +88,6 @@ export class KomgaPrincipal implements UserDetails, OAuth2User, OidcUser {
     return claimAsBoolean(this.getClaims(), 'email_verified')
   }
 }
+
+// : Serializable (serialVersionUID = -1115127032708270860L) ; @Transient oAuth2User, oidcUser
+serializable(KomgaPrincipal, 'org.gotson.komga.infrastructure.security.KomgaPrincipal', { transient: ['oAuth2User', 'oidcUser'] })

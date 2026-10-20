@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/SeriesSearchHelper.kt@2ab7a5a61a8b8bb12a6edd576fed380b4b613c99
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/SeriesSearchHelper.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { ReadStatus } from '../../domain/model/ReadStatus.js'
 import { SearchCondition } from '../../domain/model/SearchCondition.js'
 import type { SearchContext } from '../../domain/model/SearchContext.js'
@@ -154,6 +154,22 @@ export class SeriesSearchHelper {
         c = field.in(inner(operator.value.name, operator.value.role))
       } else {
         c = field.notIn(inner(operator.value.name, operator.value.role))
+      }
+      return [c, new Set()]
+    } else if (searchCondition instanceof SearchCondition.NotableEntity) {
+      const field = Tables.SERIES.ID
+      const inner = (name: string | null, kind: string | null) => {
+        const q = DSL.select(Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES.SERIES_ID).from(Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES).where(DSL.noCondition())
+        if (name !== null) q.and(unicode1(Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES.NAME).equal(name))
+        if (kind !== null) q.and(unicode1(Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES.KIND).equal(kind))
+        return q
+      }
+      const operator = searchCondition.operator
+      let c: Condition
+      if (operator instanceof SearchOperator.Is) {
+        c = field.in(inner(operator.value.name, operator.value.kind))
+      } else {
+        c = field.notIn(inner(operator.value.name, operator.value.kind))
       }
       return [c, new Set()]
     } else if (searchCondition instanceof SearchCondition.OneShot) return [toConditionBoolean(searchCondition.operator, Tables.SERIES.ONESHOT), new Set()]

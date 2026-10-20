@@ -1,7 +1,8 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/KomgaUser.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/KomgaUser.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDateTime } from '@js-joda/core'
 import { lowerNotBlank } from '../../language/LanguageUtils.js'
-import { DataClass, distinctSet, intersect, lazy, str } from '../../port/kotlin.js'
+import { serializable } from '../../port/java-serialization.js'
+import { DataClass, distinctSet, intersect, str } from '../../port/kotlin.js'
 import { TsidCreator } from '../../port/tsid.js'
 import { Email, NotBlank, constraints } from '../../port/validation.js'
 import { AllowExclude } from './AgeRestriction.js'
@@ -57,7 +58,7 @@ export class KomgaUser extends DataClass<KomgaUserParams> implements Auditable {
   }
 
   get isAdmin(): boolean {
-    return lazy(this, 'isAdmin', () => this.roles.has(UserRoles.ADMIN))
+    return this.roles.has(UserRoles.ADMIN)
   }
 
   /**
@@ -129,3 +130,6 @@ constraints(KomgaUser, {
   email: [Email({ regexp: '.+@.+\\..+' }), NotBlank()],
   password: [NotBlank()],
 })
+
+// : Serializable (serialVersionUID = 4071331945217484635L)
+serializable(KomgaUser, 'org.gotson.komga.domain.model.KomgaUser')

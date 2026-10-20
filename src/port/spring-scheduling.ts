@@ -633,3 +633,120 @@ component(ScheduledAnnotationBeanPostProcessor, {
   inject: [ApplicationContext, TaskScheduler],
   eventListeners: [{ method: 'onApplicationEvent', events: [ContextRefreshedEvent] }],
 })
+
+// ---------------------------------------------------------------------------
+// CronExpression / CronTrigger
+// ---------------------------------------------------------------------------
+
+/**
+ * `org.springframework.scheduling.support.CronExpression` : six champs (secondes, minutes, heures, jour du mois, mois,
+ * jour de la semaine), fuseau horaire local. PORT: sous-ensemble — valeurs numériques, `*`, `?`, listes, intervalles et
+ * pas (`a-b/n`, `*\/n`) ; pas de noms (JAN, MON), ni de `L`, `W`, `#`, ni de macros (@hourly).
+ */
+export class CronExpression {
+  private constructor(
+    private readonly expression: string,
+    private readonly fields: Set<number>[],
+  ) {}
+
+  static parse(expression: string): CronExpression {
+    const parts = expression.trim().split(/\s+/)
+    if (parts.length !== 6) throw new IllegalArgumentException(`Cron expression must consist of 6 fields (found ${parts.length} in "${expression}")`)
+    const ranges: [number, number][] = [
+      [0, 59],
+      [0, 59],
+      [0, 23],
+      [1, 31],
+      [1, 12],
+      [0, 7],
+    ]
+    const fields = parts.map((p, i) => CronExpression.parseField(p, ranges[i]![0], ranges[i]![1], expression))
+    // dimanche : 0 ou 7
+    if (fields[5]!.has(7)) fields[5]!.add(0)
+    return new CronExpression(expression, fields)
+  }
+
+  private static parseField(field: string, min: number, max: number, expression: string): Set<number> {
+    const out = new Set<number>()
+    for (const item of field.split(',')) {
+      const [range, stepText] = item.split('/') as [string, string | undefined]
+      const step = stepText !== undefined ? Number(stepText) : 1
+      let lo: number
+      let hi: number
+      if (range === '*' || range === '?') {
+        lo = min
+        hi = max
+      } else if (range.includes('-')) {
+        const [a, b] = range.split('-')
+        lo = Number(a)
+        hi = Number(b)
+      } else {
+        lo = Number(range)
+        hi = stepText !== undefined ? max : lo
+      }
+      if (!Number.isInteger(lo) || !Number.isInteger(hi) || !Number.isInteger(step) || step < 1 || lo < min || hi > max || lo > hi)
+        throw new IllegalArgumentException(`Invalid cron field "${field}" in "${expression}"`)
+      for (let v = lo; v <= hi; v += step) out.add(v)
+    }
+    return out
+  }
+
+  /** Prochaine date strictement postérieure à `after` (millisecondes), ou null */
+  next(after: number): number | null {
+    const [sec, min, hour, dom, month, dow] = this.fields as [Set<number>, Set<number>, Set<number>, Set<number>, Set<number>, Set<number>]
+    const d = new Date(after)
+    d.setMilliseconds(0)
+    d.setSeconds(d.getSeconds() + 1)
+    const limit = after + 4 * 366 * 86_400_000
+    while (d.getTime() <= limit) {
+      if (!month.has(d.getMonth() + 1)) {
+        d.setMonth(d.getMonth() + 1, 1)
+        d.setHours(0, 0, 0)
+      } else if (!dom.has(d.getDate()) || !dow.has(d.getDay())) {
+        d.setDate(d.getDate() + 1)
+        d.setHours(0, 0, 0)
+      } else if (!hour.has(d.getHours())) {
+        d.setHours(d.getHours() + 1, 0, 0)
+      } else if (!min.has(d.getMinutes())) {
+        d.setMinutes(d.getMinutes() + 1, 0)
+      } else if (!sec.has(d.getSeconds())) {
+        d.setSeconds(d.getSeconds() + 1)
+      } else return d.getTime()
+    }
+    return null
+  }
+
+  toString(): string {
+    return this.expression
+  }
+}
+
+/**
+ * `ScheduledTaskRegistrar.addCronTask` / `ReschedulingRunnable` : la tâche est planifiée sur le `TaskScheduler` à
+ * chaque date de l'expression, la suivante étant calculée à la fin de l'exécution précédente.
+ */
+export function scheduleCron(taskScheduler: TaskScheduler, task: Runnable, expression: CronExpression): ScheduledFuture {
+  let current: ScheduledFuture | null = null
+  let cancelled = false
+  const scheduleNext = (): void => {
+    if (cancelled) return
+    const next = expression.next(Date.now())
+    if (next === null) return
+    current = taskScheduler.schedule(async () => {
+      try {
+        await task()
+      } finally {
+        scheduleNext()
+      }
+    }, Instant.ofEpochMilli(next))
+  }
+  scheduleNext()
+  return {
+    isDone: () => cancelled,
+    isCancelled: () => cancelled,
+    cancel: (mayInterruptIfRunning) => {
+      cancelled = true
+      return current?.cancel(mayInterruptIfRunning) ?? true
+    },
+  }
+}

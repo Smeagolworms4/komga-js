@@ -10,6 +10,8 @@ import '../../../src/infrastructure/web/EtagFilterConfiguration.js'
 import '../../../src/infrastructure/web/BracketParamsFilterConfiguration.js'
 import '../../../src/interfaces/mvc/ResourceNotFoundController.js'
 import '../../../src/interfaces/mvc/IndexController.js'
+import { KomgaSettingsProvider } from '../../../src/infrastructure/configuration/KomgaSettingsProvider.js'
+import { ServerSettingsDao } from '../../../src/infrastructure/jooq/main/ServerSettingsDao.js'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { Agent, request as httpRequest } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -282,7 +284,7 @@ describe('DispatcherServlet (comportements de Spring MVC)', () => {
       properties: { 'server.forward-headers-strategy': 'framework', 'spring.mvc.async.request-timeout': '1h', 'spring.thymeleaf.prefix': `file:${templates}/` },
       env: {},
     })
-    ctx = new ApplicationContext(env).refresh()
+    ctx = new ApplicationContext(env, settingsStubs()).refresh()
     server = await startWebServer(ctx, { port: 0, host: '127.0.0.1' })
     port = server.port
   })
@@ -490,7 +492,7 @@ describe('context path', () => {
 
   beforeAll(async () => {
     const env = new Environment({ properties: { 'server.servlet.context-path': '/komga' }, env: {} })
-    ctx = new ApplicationContext(env).refresh()
+    ctx = new ApplicationContext(env, settingsStubs()).refresh()
     server = await startWebServer(ctx, { port: 0, host: '127.0.0.1' })
   })
 
@@ -553,3 +555,11 @@ describe('Validation messages', () => {
     expect(v.map((it) => `${it.propertyPath}: ${it.message}`)).toEqual(['authors[0].name: must not be blank'])
   })
 })
+
+/** KomgaSettingsProvider (dépendance d'IndexController depuis Komga 1.29) sans base : interface classique par défaut */
+function settingsStubs() {
+  return [
+    { name: 'komgaSettingsProvider', type: KomgaSettingsProvider, instance: { nextUiAsDefault: false } },
+    { name: 'serverSettingsDao', type: ServerSettingsDao, instance: {} },
+  ]
+}

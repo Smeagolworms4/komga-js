@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/openapi/OpenApiConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/openapi/OpenApiConfiguration.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { DataClass } from '../../port/kotlin.js'
 import { Environment, configuration } from '../../port/spring.js'
 import { OperationCustomizer, PreAuthorize, operationCustomizer } from '../../port/springdoc.js'
@@ -70,6 +70,8 @@ Upon successful authentication, a session is created, and can be reused.
 - If you specify a header \`X-Auth-Token\` during authentication, the session ID will be returned via this same header. You can then pass that header again for subsequent requests to reuse the session.
 
 If you need to set the session cookie later on, you can call \`/api/v1/login/set-cookie\` with \`X-Auth-Token\`. The response will contain the \`Set-Cookie\` header.
+
+Sessions are not created when authenticating with an API Key.
 
 ## Remember Me
 

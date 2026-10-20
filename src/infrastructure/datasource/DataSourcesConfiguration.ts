@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/datasource/DataSourcesConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/datasource/DataSourcesConfiguration.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { availableParallelism } from 'node:os'
 import { configuration } from '../../port/spring.js'
 import { type DataSource, HikariDataSource, JournalMode, SQLiteDataSource } from '../../port/sqlite.js'
@@ -45,11 +45,17 @@ export class DataSourcesConfiguration {
     } else return this.tasksDataSourceRW()
   }
 
+  // @ConditionalOnProperty(value = ["komga.jdbc-session-enabled"], havingValue = "true", matchIfMissing = false)
+  // @Bean("sessionsDataSource") @SpringSessionDataSource
+  sessionsDataSource(): DataSource {
+    return this.buildDataSource('SqliteSessionsPool', SQLiteDataSource, this.komgaProperties.sessionsDb)
+  }
+
   private buildDataSource(poolName: string, dataSourceClass: new () => SQLiteDataSource, databaseProps: KomgaProperties.Database): HikariDataSource {
     const extraPragmas =
       databaseProps.pragmas.size === 0
         ? ''
-        : '?' +
+        : (databaseProps.file.includes('?') ? '&' : '?') +
           [...databaseProps.pragmas]
             .map(([key, value]) => `${key}=${value}`)
             .join('&')
@@ -92,5 +98,6 @@ configuration(DataSourcesConfiguration, {
     { method: 'sqliteDataSourceRO', type: HikariDataSource },
     { method: 'tasksDataSourceRW', type: HikariDataSource },
     { method: 'tasksDataSourceRO', type: HikariDataSource },
+    { method: 'sessionsDataSource', type: HikariDataSource, condition: (env) => String(env.getProperty('komga.jdbc-session-enabled') ?? '').toLowerCase() === 'true' },
   ],
 })

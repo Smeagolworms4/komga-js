@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReadListController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReadListController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { Author } from '../../../domain/model/Author.js'
 import type { Book } from '../../../domain/model/Book.js'
 import { BookSearch } from '../../../domain/model/BookSearch.js'
@@ -19,7 +19,7 @@ import { ThumbnailReadListRepository } from '../../../domain/persistence/Thumbna
 import { BookLifecycle } from '../../../domain/service/BookLifecycle.js'
 import { ReadListLifecycle } from '../../../domain/service/ReadListLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
-import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../application/query/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { Authors } from '../../../infrastructure/web/Authors.js'

@@ -1,8 +1,9 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookMetadataUpdateDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookMetadataUpdateDto.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { registerClass } from '../../../../port/jackson.js'
 import type { LocalDate } from '@js-joda/core'
 import { Author } from '../../../../domain/model/Author.js'
 import type { BookMetadata } from '../../../../domain/model/BookMetadata.js'
+import { NotableEntity } from '../../../../domain/model/NotableEntity.js'
 import { WebLink } from '../../../../domain/model/WebLink.js'
 import { NullOrBlankOrISBN } from '../../../../infrastructure/validation/NullOrBlankOrISBN.js'
 import { NullOrNotBlank } from '../../../../infrastructure/validation/NullOrNotBlank.js'
@@ -24,6 +25,8 @@ type BookMetadataUpdateDtoParams = {
   releaseDateLock?: boolean | null
   authors?: AuthorUpdateDto[] | null
   authorsLock?: boolean | null
+  notableEntities?: NotableEntityUpdateDto[] | null
+  notableEntitiesLock?: boolean | null
   tags?: ReadonlySet<string> | null
   tagsLock?: boolean | null
   isbn?: string | null
@@ -92,6 +95,17 @@ export class BookMetadataUpdateDto {
 
   authorsLock: boolean | null = null
 
+  private _notableEntities: NotableEntityUpdateDto[] | null = null
+  get notableEntities(): NotableEntityUpdateDto[] | null {
+    return this._notableEntities
+  }
+  set notableEntities(value: NotableEntityUpdateDto[] | null) {
+    this._notableEntities = value
+    this._isSet.set('notableEntities', true)
+  }
+
+  notableEntitiesLock: boolean | null = null
+
   private _tags: ReadonlySet<string> | null = null
   get tags(): ReadonlySet<string> | null {
     return this._tags
@@ -147,6 +161,23 @@ export class AuthorUpdateDto {
   }
 }
 
+type NotableEntityUpdateDtoParams = {
+  kind?: string | null
+  name?: string | null
+}
+
+// PORT: classe Kotlin sans constructeur principal (voir BookMetadataUpdateDto)
+export class NotableEntityUpdateDto {
+  readonly kind: string | null
+
+  readonly name: string | null
+
+  constructor({ kind = null, name = null }: NotableEntityUpdateDtoParams = {}) {
+    this.kind = kind
+    this.name = name
+  }
+}
+
 type WebLinkUpdateDtoParams = {
   label?: string | null
   url?: string | null
@@ -183,6 +214,12 @@ export function patch(self: BookMetadata, patch: BookMetadataUpdateDto): BookMet
         : []
       : self.authors,
     authorsLock: patch.authorsLock ?? self.authorsLock,
+    notableEntities: patch.isSet('notableEntities')
+      ? patch.notableEntities !== null
+        ? nn(patch.notableEntities).map((it) => new NotableEntity({ kind: it.kind ?? '', name: it.name ?? '' }))
+        : []
+      : self.notableEntities,
+    notableEntitiesLock: patch.notableEntitiesLock ?? self.notableEntitiesLock,
     tags: patch.isSet('tags') ? (patch.tags !== null ? nn(patch.tags) : new Set<string>()) : self.tags,
     tagsLock: patch.tagsLock ?? self.tagsLock,
     // PORT: Char.isDigit() (catégorie Unicode Nd, par unité UTF-16)
@@ -201,12 +238,17 @@ constraints(BookMetadataUpdateDto, {
   title: [NullOrNotBlank()],
   number: [NullOrNotBlank()],
   authors: [Valid()],
+  notableEntities: [Valid()],
   isbn: [NullOrBlankOrISBN()],
   links: [Valid()],
 })
 constraints(AuthorUpdateDto, {
   name: [NotBlank()],
   role: [NotBlank()],
+})
+constraints(NotableEntityUpdateDto, {
+  kind: [NotBlank()],
+  name: [NotBlank()],
 })
 constraints(WebLinkUpdateDto, {
   label: [NotBlank()],
@@ -225,6 +267,8 @@ jsonProperties(BookMetadataUpdateDto, {
   releaseDateLock: { nullable: 'Boolean' },
   authors: { nullable: { list: { class: AuthorUpdateDto } } },
   authorsLock: { nullable: 'Boolean' },
+  notableEntities: { nullable: { list: { class: NotableEntityUpdateDto } } },
+  notableEntitiesLock: { nullable: 'Boolean' },
   tags: { nullable: { set: 'String' } },
   tagsLock: { nullable: 'Boolean' },
   isbn: { nullable: 'String' },
@@ -233,9 +277,11 @@ jsonProperties(BookMetadataUpdateDto, {
   linksLock: { nullable: 'Boolean' },
 })
 jsonProperties(AuthorUpdateDto, { name: { nullable: 'String' }, role: { nullable: 'String' } })
+jsonProperties(NotableEntityUpdateDto, { kind: { nullable: 'String' }, name: { nullable: 'String' } })
 jsonProperties(WebLinkUpdateDto, { label: { nullable: 'String' }, url: { nullable: 'String' } })
 
 // PORT: nom qualifié de la classe Kotlin (messages de Jackson)
 registerClass('org.gotson.komga.interfaces.api.rest.dto.BookMetadataUpdateDto', BookMetadataUpdateDto)
 registerClass('org.gotson.komga.interfaces.api.rest.dto.AuthorUpdateDto', AuthorUpdateDto)
+registerClass('org.gotson.komga.interfaces.api.rest.dto.NotableEntityUpdateDto', NotableEntityUpdateDto)
 registerClass('org.gotson.komga.interfaces.api.rest.dto.WebLinkUpdateDto', WebLinkUpdateDto)

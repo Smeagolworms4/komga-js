@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/TransientBookLifecycleTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/TransientBookLifecycleTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 // PORT: équivalent du scan de composants : modules des beans nécessaires ; SpringBootTest d'abord pour que la migration
 // Flyway soit créée avant KomgaSettingsProvider (qui lit la base dans son constructeur)
 import '../../SpringBootTest.js'
@@ -92,7 +92,7 @@ describe('TransientBookLifecycleTest', () => {
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
     vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
-      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: 15, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
+      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: 15, releaseDate: null, authors: null, notableEntities: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
     vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({
@@ -125,7 +125,7 @@ describe('TransientBookLifecycleTest', () => {
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
     vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
-      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
+      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, notableEntities: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
     vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({
@@ -158,7 +158,7 @@ describe('TransientBookLifecycleTest', () => {
     const book = new TransientBook({ book: makeBook('whatever'), media: new Media() })
 
     vi.spyOn(mockProvider, 'getBookMetadataFromBook').mockResolvedValue(
-      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, isbn: null, links: null, tags: null, readLists: [] }),
+      new BookMetadataPatch({ title: null, summary: null, number: null, numberSort: null, releaseDate: null, authors: null, notableEntities: null, isbn: null, links: null, tags: null, readLists: [] }),
     )
     vi.spyOn(mockProvider, 'getSeriesMetadataFromBook').mockResolvedValue(
       new SeriesMetadataPatch({

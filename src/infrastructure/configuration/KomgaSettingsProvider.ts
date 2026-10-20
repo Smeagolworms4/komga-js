@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/configuration/KomgaSettingsProvider.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/configuration/KomgaSettingsProvider.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { Duration } from '@js-joda/core'
 import { randomInt } from 'node:crypto'
 import { ThumbnailSize } from '../../domain/model/ThumbnailSize.js'
@@ -30,6 +30,7 @@ export class KomgaSettingsProvider {
   private _koboProxy: boolean
   private _koboPort: number | null
   private _kepubifyPath: string | null
+  private _nextUiAsDefault: boolean
 
   constructor(
     private readonly serverSettingsDao: ServerSettingsDao,
@@ -54,6 +55,7 @@ export class KomgaSettingsProvider {
     this._koboPort = this.serverSettingsDao.getSettingByKey<number>(Settings.KOBO_PORT.name, Number)
     const kepubifyPath = this.serverSettingsDao.getSettingByKey<string>(Settings.KEPUBIFY_PATH.name, String)
     this._kepubifyPath = kepubifyPath !== null ? (isBlank(kepubifyPath) ? null : kepubifyPath) : null
+    this._nextUiAsDefault = this.serverSettingsDao.getSettingByKey<boolean>(Settings.NEXTUI_AS_DEFAULT.name, Boolean) ?? false
   }
 
   get deleteEmptyCollections(): boolean {
@@ -168,6 +170,15 @@ export class KomgaSettingsProvider {
     this._kepubifyPath = value
     this.eventPublisher.publishEvent(SettingChangedEvent.KepubifyPath)
   }
+
+  get nextUiAsDefault(): boolean {
+    return this._nextUiAsDefault
+  }
+
+  set nextUiAsDefault(value: boolean) {
+    this.serverSettingsDao.saveSetting(Settings.NEXTUI_AS_DEFAULT.name, value)
+    this._nextUiAsDefault = value
+  }
 }
 
 class Settings extends KEnum {
@@ -182,6 +193,7 @@ class Settings extends KEnum {
   static readonly KOBO_PROXY = new Settings('KOBO_PROXY')
   static readonly KOBO_PORT = new Settings('KOBO_PORT')
   static readonly KEPUBIFY_PATH = new Settings('KEPUBIFY_PATH')
+  static readonly NEXTUI_AS_DEFAULT = new Settings('NEXTUI_AS_DEFAULT')
 
   private constructor(name: string) {
     super(name)

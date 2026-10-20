@@ -3,6 +3,7 @@ import { LocalDateTime } from '@js-joda/core'
 import { MediaExtensionEpub } from '../../../../../src/domain/model/MediaExtension.js'
 import { R2Locator } from '../../../../../src/domain/model/R2Locator.js'
 import { ReadProgress } from '../../../../../src/domain/model/ReadProgress.js'
+import { KoreaderProgressConverter } from '../../../../../src/infrastructure/koreader/KoreaderProgressConverter.js'
 import { KomgaPrincipal } from '../../../../../src/infrastructure/security/KomgaPrincipal.js'
 import { KoreaderSyncController } from '../../../../../src/interfaces/api/kosync/KoreaderSyncController.js'
 import { DocumentProgressDto } from '../../../../../src/interfaces/api/kosync/dto/DocumentProgressDto.js'
@@ -17,7 +18,7 @@ const { func, kase } = oracle('interfaces/api/kosync/KoreaderSyncController')
 const db = new OracleDb()
 const services = new InterfacesServices(db)
 let instance: KoreaderSyncController | null = null
-const controller = () => (instance ??= new KoreaderSyncController(db.bookDao, db.mediaDao, db.readProgressDao, services.bookLifecycle))
+const controller = () => (instance ??= new KoreaderSyncController(db.bookDao, db.mediaDao, db.readProgressDao, services.bookLifecycle, new KoreaderProgressConverter(db.mediaDao)))
 const admin = new KomgaPrincipal(adminUser)
 const limited = new KomgaPrincipal(limitedUser)
 const date = LocalDateTime.of(2020, 1, 2, 3, 4, 5)

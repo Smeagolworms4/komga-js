@@ -1,14 +1,18 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/ReferentialDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/ReferentialDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { LocalDate } from '@js-joda/core'
+import { buildPage } from '../../../application/query/BuildPage.js'
+import { isEmpty } from '../../../application/query/PageableExtension.js'
+import { type PageResult, toPageResult } from '../../../application/query/PageResult.js'
 import { Author } from '../../../domain/model/Author.js'
 import { type FilterBy, FilterByEntity, FilterTags } from '../../../domain/model/FilterBy.js'
+import { NotableEntity } from '../../../domain/model/NotableEntity.js'
 import type { SearchContext } from '../../../domain/model/SearchContext.js'
 import { ReferentialRepository } from '../../../domain/persistence/ReferentialRepository.js'
 import { ContentRestrictionsSearchHelper } from '../ContentRestrictionsSearchHelper.js'
 import { RequiredJoin } from '../RequiredJoin.js'
 import { SplitDslDaoBase } from '../SplitDslDaoBase.js'
-import { buildPage, udfStripAccents, unicode3 } from '../Utils.js'
-import { type BookMetadataAggregationAuthorRecord, type BookMetadataAuthorRecord, Tables } from '../../../port/jooq/generated/main/Tables.js'
+import { udfStripAccents, unicode3 } from '../Utils.js'
+import { type BookMetadataAggregationAuthorRecord, type BookMetadataAuthorRecord, type BookMetadataNotableEntitiesRecord, Tables } from '../../../port/jooq/generated/main/Tables.js'
 import { stripAccents } from '../../../language/LanguageUtils.js'
 import type { Condition, OrderField, SelectFieldOrAsterisk, Table, TableField } from '../../../port/jooq/core.js'
 import { DSL, DSLContext, select } from '../../../port/jooq/dsl.js'
@@ -31,6 +35,7 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
   private readonly rb = Tables.READLIST_BOOK
   private readonly sl = Tables.SERIES_METADATA_SHARING
   private readonly at = Tables.SERIES_AND_BOOK_TAG
+  private readonly ne = Tables.BOOK_METADATA_NOTABLE_ENTITIES
 
   constructor(dslRW: DSLContext, dslRO: DSLContext) {
     super(dslRW, dslRO)
@@ -348,12 +353,18 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
     query.where(this.sd.PUBLISHER.ne(''))
     if (filterOnLibraryIds !== null) query.and(this.s.LIBRARY_ID.in(filterOnLibraryIds))
 
-    const count = this.dslRO.fetchCount(query)
     const sort = unicode3(this.sd.PUBLISHER)
 
-    query.orderBy(sort)
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = query.fetch(this.sd.PUBLISHER)
+    let items: string[]
+    if (isEmpty(pageable)) items = []
+    else {
+      query.orderBy(sort)
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = query.fetch(this.sd.PUBLISHER)
+    }
+
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     const pageSort = Sort.by('name')
     return new PageImpl(
@@ -497,10 +508,16 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
       else if (filterBy.type === FilterByEntity.SERIES) query.and(this.bma.SERIES_ID.in(filterBy.ids))
       else if (filterBy.type === FilterByEntity.READLIST) query.and(this.rb.READLIST_ID.in(filterBy.ids))
     }
-    const count = this.dslRO.fetchCount(query)
-    query.orderBy(sortField)
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = mapNotNull(query.fetchArray(0), (it) => (it !== null ? str(it) : null))
+    let items: string[]
+    if (isEmpty(pageable)) items = []
+    else {
+      query.orderBy(sortField)
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = mapNotNull(query.fetchArray(0), (it) => (it !== null ? str(it) : null))
+    }
+
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
+
     return buildPage(items, pageable, count, Sort.by(Order.desc('year')))
   }
 
@@ -538,6 +555,33 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
     if (filterBy !== null) require(new Set([FilterByEntity.LIBRARY, FilterByEntity.COLLECTION]).has(filterBy.type))
 
     return this.findGeneric(context, search, filterBy, pageable, this.sl, this.sl.LABEL, this.sl.SERIES_ID, null, (it) => (it !== null ? it.label : null), Sort.by('label'))
+  }
+
+  findNotableEntities(context: SearchContext, search: string | null, kind: string | null, filterBy: FilterBy | null, pageable: Pageable): PageResult<NotableEntity> {
+    return toPageResult(
+      this.findGeneric(context, search, filterBy, pageable, this.ne, this.ne.NAME, null, this.ne.BOOK_ID, (it) => (it !== null ? this.toDomainNotableEntity(it) : null), Sort.by('name'), {
+        extraFields: [this.ne.KIND],
+        extraCondition: kind !== null ? this.ne.KIND.eq(kind) : null,
+      }),
+    )
+  }
+
+  findNotableEntitiesKinds(context: SearchContext, filterBy: FilterBy | null, pageable: Pageable): PageResult<string> {
+    return toPageResult(
+      this.findGeneric(context, null, filterBy, pageable, this.ne, null, null, this.ne.BOOK_ID, (it) => (it !== null ? it.kind : null), Sort.by('kind'), {
+        extraFields: [this.ne.KIND],
+        sortField: this.ne.KIND,
+      }),
+    )
+  }
+
+  findNotableEntitiesNames(context: SearchContext, search: string | null, kind: string | null, filterBy: FilterBy | null, pageable: Pageable): PageResult<string> {
+    return toPageResult(
+      this.findGeneric(context, search, filterBy, pageable, this.ne, this.ne.NAME, null, this.ne.BOOK_ID, (it) => (it !== null ? it.name : null), Sort.by('name'), {
+        extraFields: [],
+        extraCondition: kind !== null ? this.ne.KIND.eq(kind) : null,
+      }),
+    )
   }
 
   // PORT: <R : TableRecordImpl<*>, T : TableImpl<R>, O : Any> -> <R, O> (R déduit de la table)
@@ -608,14 +652,25 @@ export class ReferentialDao extends SplitDslDaoBase implements ReferentialReposi
       else if (filterBy.type === FilterByEntity.READLIST) query.and(this.rb.READLIST_ID.in(filterBy.ids))
     }
 
-    const count = this.dslRO.fetchCount(query)
+    let items: O[]
+    if (isEmpty(pageable)) items = []
+    else {
+      if (sortField !== null) query.orderBy(sortField)
+      else if (searchableField !== null) query.orderBy(unicode3(searchableField))
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = mapNotNull(query.fetchInto(table), (it) => mapper(it))
+    }
 
-    if (sortField !== null) query.orderBy(sortField)
-    else if (searchableField !== null) query.orderBy(unicode3(searchableField))
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = mapNotNull(query.fetchInto(table), (it) => mapper(it))
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     return buildPage(items, pageable, count, sort)
+  }
+
+  private toDomainNotableEntity(self: BookMetadataNotableEntitiesRecord): NotableEntity {
+    return new NotableEntity({
+      name: self.name,
+      kind: self.kind,
+    })
   }
 
   // PORT: deux fonctions d'extension toDomain (BookMetadataAuthorRecord, BookMetadataAggregationAuthorRecord) fusionnées

@@ -507,15 +507,14 @@ describe('spring-security differential', () => {
       'ExceptionTranslationFilter',
       'AuthorizationFilter',
     ])
+    // Komga 1.29 : plus de gestion de session sur la chaîne kosync (authentification par clé d'API seulement)
     expect(mirrorFilters[2]).toEqual([
       'SecurityContextHolderFilter',
       'HeaderWriterFilter',
       'CorsFilter',
-      'ConcurrentSessionFilter',
       'RequestCacheAwareFilter',
       'ApiKeyAuthenticationFilter',
       'AnonymousAuthenticationFilter',
-      'SessionManagementFilter',
       'ExceptionTranslationFilter',
       'AuthorizationFilter',
     ])

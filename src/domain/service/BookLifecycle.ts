@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/BookLifecycle.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/BookLifecycle.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { fileReadBytes } from '../../port/java-io.js'
 import { dirname } from 'node:path'
@@ -31,7 +31,7 @@ import { ReadProgressRepository } from '../persistence/ReadProgressRepository.js
 import { ThumbnailBookRepository } from '../persistence/ThumbnailBookRepository.js'
 import { KomgaSettingsProvider } from '../../infrastructure/configuration/KomgaSettingsProvider.js'
 import { Hasher } from '../../infrastructure/hash/Hasher.js'
-import { KoreaderHasher } from '../../infrastructure/hash/KoreaderHasher.js'
+import { KoreaderHasher } from '../../infrastructure/koreader/KoreaderHasher.js'
 import { ImageConverter } from '../../infrastructure/image/ImageConverter.js'
 import { ImageType } from '../../infrastructure/image/ImageType.js'
 import { uriToFilePath, urlToPath } from '../../port/java.js'

@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/ReferentialDaoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/ReferentialDaoTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesMetadataDao.js'
@@ -43,7 +43,9 @@ import '../../../../src/infrastructure/mediacontainer/divina/RarExtractor.js'
 import '../../../../src/infrastructure/kobo/KepubConverter.js'
 import '../../../../src/infrastructure/metadata/barcode/IsbnConfiguration.js'
 import '../../../../src/infrastructure/security/PasswordEncoderConfiguration.js'
-import '../../../../src/infrastructure/security/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/CaffeineSessionConfiguration.js'
+import '../../../../src/infrastructure/session/JdbcSessionConfiguration.js'
 import '../../../../src/infrastructure/transaction/TransactionConfiguration.js'
 import '../../../../src/infrastructure/search/LuceneConfiguration.js'
 import '../../../../src/infrastructure/search/LuceneSyncCommitter.js'
@@ -54,6 +56,7 @@ import { LocalDate } from '@js-joda/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { AgeRestriction, AllowExclude } from '../../../../src/domain/model/AgeRestriction.js'
 import { Author } from '../../../../src/domain/model/Author.js'
+import { NotableEntity } from '../../../../src/domain/model/NotableEntity.js'
 import { ContentRestrictions } from '../../../../src/domain/model/ContentRestrictions.js'
 import { FilterBy, FilterByEntity, FilterTags } from '../../../../src/domain/model/FilterBy.js'
 import { KomgaUser } from '../../../../src/domain/model/KomgaUser.js'
@@ -138,7 +141,7 @@ describe('ReferentialDaoTest', () => {
       seriesLifecycle.addBooks(series1, [book])
       {
         const it = bookMetadataRepository.findById(book.id)
-        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item1', role: 'writer' })], releaseDate: LocalDate.of(2002, 1, 1), tags: new Set(['bt1']) }))
+        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item1', role: 'writer' })], notableEntities: [new NotableEntity({ kind: 'power', name: 'item1' })], releaseDate: LocalDate.of(2002, 1, 1), tags: new Set(['bt1']) }))
       }
       {
         const it = seriesMetadataRepository.findById(series1.id)
@@ -153,7 +156,7 @@ describe('ReferentialDaoTest', () => {
       {
         const it = bookMetadataRepository.findById(book.id)
         bookMetadataRepository.update(
-          it.copy({ authors: [new Author({ name: 'item2', role: 'inker' }), new Author({ name: 'item2', role: 'translator' })], releaseDate: LocalDate.of(2002, 2, 1), tags: new Set(['bt2']) }),
+          it.copy({ authors: [new Author({ name: 'item2', role: 'inker' }), new Author({ name: 'item2', role: 'translator' })], notableEntities: [new NotableEntity({ kind: 'location', name: 'item2' }), new NotableEntity({ kind: 'team', name: 'item2' })], releaseDate: LocalDate.of(2002, 2, 1), tags: new Set(['bt2']) }),
         )
       }
       {
@@ -174,7 +177,7 @@ describe('ReferentialDaoTest', () => {
       seriesLifecycle.addBooks(seriesShared, [book])
       {
         const it = bookMetadataRepository.findById(book.id)
-        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item_shared', role: 'penciller' })], releaseDate: LocalDate.of(2003, 1, 1), tags: new Set(['bt_shared']) }))
+        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item_shared', role: 'penciller' })], notableEntities: [new NotableEntity({ kind: 'object', name: 'item_shared' })], releaseDate: LocalDate.of(2003, 1, 1), tags: new Set(['bt_shared']) }))
       }
       {
         const it = seriesMetadataRepository.findById(seriesShared.id)
@@ -188,7 +191,7 @@ describe('ReferentialDaoTest', () => {
       seriesLifecycle.addBooks(seriesAge10, [book])
       {
         const it = bookMetadataRepository.findById(book.id)
-        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item_10', role: 'cover' })], releaseDate: LocalDate.of(2004, 1, 1), tags: new Set(['bt_10']) }))
+        bookMetadataRepository.update(it.copy({ authors: [new Author({ name: 'item_10', role: 'cover' })], notableEntities: [new NotableEntity({ kind: 'energy', name: 'item_10' })], releaseDate: LocalDate.of(2004, 1, 1), tags: new Set(['bt_10']) }))
       }
       {
         const it = seriesMetadataRepository.findById(seriesAge10.id)
@@ -731,6 +734,144 @@ describe('ReferentialDaoTest', () => {
       const items = referentialDao.findSeriesReleaseYears(context, null, Pageable.unpaged()).content
 
       expect(items).toEqual(['2004'])
+    })
+  })
+  describe('NotableEntity', () => {
+    it('given search when getting notable entities then matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntities(context, 'shared', null, null, Pageable.unpaged()).items
+
+      expect([...items.map((it) => it.name)].sort()).toEqual(['item_shared'].sort())
+    })
+
+    it('given role when getting notable entities then matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntities(context, null, 'power', null, Pageable.unpaged()).items
+
+      expect([...items.map((it) => it.name)].sort()).toEqual(['item1'].sort())
+    })
+
+    it('given filter by library when getting notable entities then only matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntities(context, null, null, new FilterBy({ type: FilterByEntity.LIBRARY, ids: new Set([library2.id]) }), Pageable.unpaged()).items
+
+      expect([...new Set(items.map((it) => it.name))].sort()).toEqual(['item2'].sort())
+    })
+
+    it('given user without restrictions when getting notable entities then all notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntities(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...new Set(items.map((it) => it.name))].sort()).toEqual(['item1', 'item2', 'item_shared', 'item_10'].sort())
+    })
+
+    it('given user with restricted library access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLib1)
+      const items = referentialDao.findNotableEntities(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items.map((it) => it.name)].sort()).toEqual(['item1', 'item_shared', 'item_10'].sort())
+    })
+
+    it('given user with restricted label access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLabelAllow)
+      const items = referentialDao.findNotableEntities(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items.map((it) => it.name)].sort()).toEqual(['item_shared'].sort())
+    })
+
+    it('given user with restricted age access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userAge10)
+      const items = referentialDao.findNotableEntities(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items.map((it) => it.name)].sort()).toEqual(['item_10'].sort())
+    })
+  })
+
+  describe('NotableEntityName', () => {
+    it('given search when getting notable entities then matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesNames(context, 'shared', null, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item_shared'].sort())
+    })
+
+    it('given role when getting notable entities then matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesNames(context, null, 'power', null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item1'].sort())
+    })
+
+    it('given filter by library when getting notable entities then only matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesNames(context, null, null, new FilterBy({ type: FilterByEntity.LIBRARY, ids: new Set([library2.id]) }), Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item2'].sort())
+    })
+
+    it('given user without restrictions when getting notable entities then all notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesNames(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item1', 'item2', 'item_shared', 'item_10'].sort())
+    })
+
+    it('given user with restricted library access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLib1)
+      const items = referentialDao.findNotableEntitiesNames(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item1', 'item_shared', 'item_10'].sort())
+    })
+
+    it('given user with restricted label access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLabelAllow)
+      const items = referentialDao.findNotableEntitiesNames(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item_shared'].sort())
+    })
+
+    it('given user with restricted age access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userAge10)
+      const items = referentialDao.findNotableEntitiesNames(context, null, null, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['item_10'].sort())
+    })
+  })
+
+  describe('NotableEntityKind', () => {
+    it('given filter by library when getting notable entities then only matching notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesKinds(context, new FilterBy({ type: FilterByEntity.LIBRARY, ids: new Set([library2.id]) }), Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['location', 'team'].sort())
+    })
+
+    it('given user without restrictions when getting notable entities then all notable entities are returned', () => {
+      const context = new SearchContext(userAll)
+      const items = referentialDao.findNotableEntitiesKinds(context, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['energy', 'location', 'object', 'power', 'team'].sort())
+    })
+
+    it('given user with restricted library access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLib1)
+      const items = referentialDao.findNotableEntitiesKinds(context, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['energy', 'object', 'power'].sort())
+    })
+
+    it('given user with restricted label access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userLabelAllow)
+      const items = referentialDao.findNotableEntitiesKinds(context, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['object'].sort())
+    })
+
+    it('given user with restricted age access when getting notable entities then only allowed notable entities are returned', () => {
+      const context = new SearchContext(userAge10)
+      const items = referentialDao.findNotableEntitiesKinds(context, null, Pageable.unpaged()).items
+
+      expect([...items].sort()).toEqual(['energy'].sort())
     })
   })
 })

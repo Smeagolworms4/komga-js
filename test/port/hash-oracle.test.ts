@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { Hasher } from '../../src/infrastructure/hash/Hasher.js'
-import { KoreaderHasher } from '../../src/infrastructure/hash/KoreaderHasher.js'
+import { KoreaderHasher } from '../../src/infrastructure/koreader/KoreaderHasher.js'
 import { ByteArrayInputStream } from '../../src/port/java-io.js'
 
 const here = dirname(fileURLToPath(import.meta.url))

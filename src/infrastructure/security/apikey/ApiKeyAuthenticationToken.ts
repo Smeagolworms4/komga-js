@@ -1,4 +1,5 @@
 // @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/security/apikey/ApiKeyAuthenticationToken.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+import { serializable } from '../../../port/java-serialization.js'
 import { type GrantedAuthority, UsernamePasswordAuthenticationToken } from '../../../port/spring-security.js'
 
 /**
@@ -20,3 +21,6 @@ export class ApiKeyAuthenticationToken extends UsernamePasswordAuthenticationTok
     return new ApiKeyAuthenticationToken(principal, credentials, null, true)
   }
 }
+
+// Serializable (hérité de la classe Spring Security)
+serializable(ApiKeyAuthenticationToken, 'org.gotson.komga.infrastructure.security.apikey.ApiKeyAuthenticationToken')

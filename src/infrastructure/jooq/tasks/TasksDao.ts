@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/tasks/TasksDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/tasks/TasksDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { Task } from '../../../application/tasks/Task.js'
 import { TasksRepository } from '../../../application/tasks/TasksRepository.js'
@@ -154,8 +154,8 @@ export class TasksDao extends SplitDslDaoBase implements TasksRepository {
 }
 
 component(TasksDao, {
-  // PORT: @DependsOn("flywaySecondaryMigrationInitializer")
-  dependsOn: ['flywaySecondaryMigrationInitializer'],
+  // PORT: @DependsOn("flywayTasksMigrationInitializer")
+  dependsOn: ['flywayTasksMigrationInitializer'],
   inject: [
     { type: DSLContext, qualifier: 'tasksDslContextRW' },
     { type: DSLContext, qualifier: 'tasksDslContextRO' },

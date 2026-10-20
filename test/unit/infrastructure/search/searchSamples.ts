@@ -102,6 +102,8 @@ export const books: BookDto[] = corpus.books.map(
         releaseDateLock: false,
         authors: authors(it.authors),
         authorsLock: false,
+        notableEntities: [],
+        notableEntitiesLock: false,
         tags: new Set(it.tags),
         tagsLock: false,
         isbn: it.isbn,
@@ -164,6 +166,7 @@ export const series: SeriesDto[] = corpus.series.map(
         lastModified: date,
       }),
       booksMetadata: new BookMetadataAggregationDto({
+        notableEntities: [],
         authors: authors(it.authors),
         tags: new Set(it.booksTags),
         releaseDate: localDate(it.releaseDate),

@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/MetadataApplier.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/service/MetadataApplier.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { BookMetadata } from '../model/BookMetadata.js'
 import { BookMetadataPatch } from '../model/BookMetadataPatch.js'
 import type { SeriesMetadata } from '../model/SeriesMetadata.js'
@@ -24,6 +24,7 @@ export class MetadataApplier {
         numberSort: this.getIfNotLocked(m.numberSort, patch.numberSort, m.numberSortLock),
         releaseDate: this.getIfNotLocked(m.releaseDate, patch.releaseDate, m.releaseDateLock),
         authors: this.getIfNotLocked(m.authors, patch.authors, m.authorsLock),
+        notableEntities: this.getIfNotLocked(m.notableEntities, patch.notableEntities, m.notableEntitiesLock),
         isbn: this.getIfNotLocked(m.isbn, patch.isbn, m.isbnLock),
         links: this.getIfNotLocked(m.links, patch.links, m.linksLock),
         tags: this.getIfNotLocked(m.tags, patch.tags, m.tagsLock),

@@ -4,7 +4,6 @@
 // Ce fichier n'a pas de jumeau Kotlin.
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { EntityNotFoundException } from '../../src/domain/model/Exceptions.js'
 import { BookSearch } from '../../src/domain/model/BookSearch.js'
 import { SeriesSearch } from '../../src/domain/model/SeriesSearch.js'
 import { SeriesDto } from '../../src/interfaces/api/rest/dto/SeriesDto.js'
@@ -43,6 +42,7 @@ import { toJsonValue } from '../../src/port/swagger-models.js'
 import { ConstraintViolationException } from '../../src/port/validation-engine.js'
 import { Email, NotBlank } from '../../src/port/validation.js'
 
+
 const REFERENCE = 'test/port/fixtures/komga-openapi.json'
 const TagNames = OpenApiConfiguration.TagNames
 
@@ -58,7 +58,6 @@ controllerAdvice(TestAdvice, {
   exceptionHandlers: {
     onConstraintValidationException: { exceptions: [ConstraintViolationException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
     onMethodArgumentNotValidException: { exceptions: [MethodArgumentNotValidException], responseStatus: HttpStatus.BAD_REQUEST, returns: { class: ValidationErrorResponse } },
-    handleEntityNotFound: { exceptions: [EntityNotFoundException], responseStatus: HttpStatus.NOT_FOUND, args: [] },
   },
 })
 
@@ -125,7 +124,7 @@ restController(BookController, {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}'], produces: ['application/json'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
       returns: { class: BookDto },
-      openapi: { operation: { summary: 'Get book details', tags: [TagNames.BOOKS] }, throws: [EntityNotFoundException] },
+      openapi: { operation: { summary: 'Get book details', tags: [TagNames.BOOKS] } },
     },
     markBookReadProgress: {
       mapping: { method: 'PATCH', path: ['api/v1/books/{bookId}/read-progress'], produces: ['application/json'] },
@@ -198,7 +197,7 @@ restController(LibraryController, {
 
 function generate(): Record<string, unknown> {
   const env = { activeProfiles: ['generate-openapi'] } as unknown as Environment
-  const config = new OpenApiConfiguration('1.27.1', env)
+  const config = new OpenApiConfiguration('1.29.1', env)
   const generator = new OpenApiGenerator(config.openApi(), [config.roleDescriptionCustomizer()], [new InheritanceFlattenerConfiguration().flattenInheritedSchemasCustomizer()])
   return toJsonValue(generator.generate(null)) as Record<string, unknown>
 }

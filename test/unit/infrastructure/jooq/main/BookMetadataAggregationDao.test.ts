@@ -2,6 +2,7 @@
 import { LocalDate } from '@js-joda/core'
 import { Author } from '../../../../../src/domain/model/Author.js'
 import { BookMetadataAggregation } from '../../../../../src/domain/model/BookMetadataAggregation.js'
+import { NotableEntity } from '../../../../../src/domain/model/NotableEntity.js'
 import { OracleDb } from '../../../db.js'
 import { exceptionType, oracle, stable } from '../../../oracle.js'
 import { library, series, sql } from './seed.js'
@@ -172,4 +173,38 @@ func('delete@137', () => {
 
 func('count', () => {
   kase('after deletions', () => dao.count())
+})
+
+const ne = (kind: string, name: string) => new NotableEntity({ kind, name })
+
+func('insertNotableEntities', () => {
+  kase('insert', () => {
+    dao.insert(new BookMetadataAggregation({ notableEntities: [ne(' TEAM ', 'X-Men '), ne('location', 'Gotham'), ne('team', 'X-Men'), ne('', '')], seriesId: 'S5' }))
+    return stable(dao.findById('S5'))
+  })
+  kase('more than batch size', () => {
+    dao.insert(new BookMetadataAggregation({ notableEntities: range(1, 1100).map((it) => ne(`kind ${it % 3}`, `name ${it}`)), seriesId: 'S6' }))
+    const it = dao.findById('S6').notableEntities
+    return [it.length, it[0]!.toString(), it[it.length - 1]!.toString()]
+  })
+  kase('rows', () => db.rawQuery("select SERIES_ID, KIND, NAME from BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES where SERIES_ID = 'S5' order by rowid"))
+})
+
+func('notableEntities', () => {
+  kase('update replaces', () => {
+    dao.update(dao.findById('S5').copy({ notableEntities: [ne('character', 'Bane')] }))
+    return dao.findById('S5').notableEntities
+  })
+  kase('stored values are not normalized', () => {
+    sql(db, "insert into BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES (KIND, NAME, SERIES_ID) values (' TEAM ', ' Spaced ', 'S5')")
+    return dao.findById('S5').notableEntities.map((it) => [it.kind, it.name])
+  })
+  kase('delete one', () => {
+    dao.delete('S5')
+    return db.rawQuery('select SERIES_ID, count(*) from BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES group by SERIES_ID order by SERIES_ID')
+  })
+  kase('delete several', () => {
+    dao.delete(['S6', 'S2'])
+    return db.rawQuery('select count(*) from BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES')
+  })
 })

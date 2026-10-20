@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import type { SearchCondition } from '../../../domain/model/SearchCondition.js'
 import type { SearchContext } from '../../../domain/model/SearchContext.js'
@@ -133,10 +134,15 @@ export class SeriesDao extends SplitDslDaoBase implements SeriesRepository {
     }
     query.where(conditions)
 
-    const count = this.dslRO.fetchCount(query)
+    let items: Series[]
+    if (isEmpty(pageable)) items = []
+    else {
+      if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
+      items = query.fetchInto(this.s).map((it) => this.toDomain(it))
+    }
 
-    if (pageable.isPaged) query.limit(pageable.pageSize).offset(pageable.offset)
-    const items = query.fetchInto(this.s).map((it) => this.toDomain(it))
+    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
+    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
 
     return new PageImpl(
       items,

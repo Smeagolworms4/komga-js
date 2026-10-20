@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/TempTable.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/TempTable.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { DSL, type DSLContext } from '../../port/jooq/dsl.js'
 import { chunked } from '../../port/kotlin.js'
 import { TsidCreator } from '../../port/tsid.js'
@@ -27,7 +27,7 @@ export class TempTable {
   ) {}
 
   create(): void {
-    this.dslContext.execute(`CREATE TEMPORARY TABLE ${this.name} (STRING varchar NOT NULL);`)
+    this.dslContext.execute(`CREATE TEMPORARY TABLE ${this.name} (STRING varchar NOT NULL PRIMARY KEY );`)
     this.created = true
   }
 
@@ -37,7 +37,10 @@ export class TempTable {
     if (list.length > 0) {
       for (const chunk of chunked(list, batchSize)) {
         const step = this.dslContext.batch(
-          this.dslContext.insertInto(DSL.table(DSL.name(this.name)), DSL.field(DSL.name('STRING'), SQLDataType.VARCHAR)).values(null),
+          this.dslContext
+            .insertInto(DSL.table(DSL.name(this.name)), DSL.field(DSL.name('STRING'), SQLDataType.VARCHAR))
+            .values(null)
+            .onConflictDoNothing(),
         )
         for (const it of chunk) step.bind(it)
         step.execute()
@@ -66,7 +69,7 @@ export class TempTable {
   }
 
   static withTempTable(self: DSLContext, batchSize: number, collection: Iterable<string>): TempTable {
-    const it = new TempTable(self, TempTable.generateName(self))
+    const it = new TempTable(self)
     it.insertTempStrings(batchSize, collection)
     return it
   }

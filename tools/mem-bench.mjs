@@ -33,7 +33,7 @@ const args = [`--server.port=${port}`, `--komga.config-dir=${configDir}`]
 const child = remote
   ? spawn('sh', ['-c', process.env.BENCH_START], { stdio: ['ignore', 'pipe', 'pipe'] })
   : kind === 'java'
-    ? spawn('java', [...extra, '-jar', process.env.BENCH_JAR ?? join(ROOT, '../komga-src/komga/build/libs/komga-1.28.1.jar'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
+    ? spawn('java', [...extra, '-jar', process.env.BENCH_JAR ?? join(ROOT, '../komga-src/komga/build/libs/komga-1.29.1.jar'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] })
     : spawn(join(ROOT, 'bin/komgajs'), args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...Object.fromEntries(extra.map((e) => e.split('='))) } })
 let log = ''
 child.stdout.on('data', (d) => (log += d))

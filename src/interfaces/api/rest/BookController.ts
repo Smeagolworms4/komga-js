@@ -1,11 +1,11 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/BookController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/BookController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDate, ZoneOffset } from '@js-joda/core'
 import { HIGHEST_PRIORITY, HIGH_PRIORITY, LOWEST_PRIORITY } from '../../../application/tasks/Task.js'
 import { TaskEmitter } from '../../../application/tasks/TaskEmitter.js'
 import { BookSearch } from '../../../domain/model/BookSearch.js'
 import { Dimension } from '../../../domain/model/Dimension.js'
 import { DomainEvent } from '../../../domain/model/DomainEvent.js'
-import { EntityNotFoundException, ImageConversionException, MediaNotReadyException } from '../../../domain/model/Exceptions.js'
+import { ImageConversionException, MediaNotReadyException } from '../../../domain/model/Exceptions.js'
 import { MarkSelectedPreference } from '../../../domain/model/MarkSelectedPreference.js'
 import { Media } from '../../../domain/model/Media.js'
 import { MediaExtensionEpub } from '../../../domain/model/MediaExtension.js'
@@ -25,7 +25,7 @@ import { BookLifecycle } from '../../../domain/service/BookLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { PageableAsQueryParam, PageableWithoutSortAsQueryParam } from '../../../infrastructure/openapi/PageableAnnotations.js'
-import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../application/query/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { getMediaTypeOrDefault } from '../../../infrastructure/web/Utils.js'
@@ -161,10 +161,9 @@ export class BookController {
     return this.bookDtoRepository.findAllDuplicates(principal.user.id, pageRequest)
   }
 
-  // @Throws(EntityNotFoundException::class)
   getBookById(principal: KomgaPrincipal, bookId: string): BookDto {
     const it = this.bookDtoRepository.findByIdOrNull(bookId, principal.user.id)
-    if (it === null) throw new EntityNotFoundException()
+    if (it === null) throw new ResponseStatusException(HttpStatus.NOT_FOUND)
     this.contentRestrictionChecker.checkContentRestrictionBook(principal.user, it)
 
     return restrictUrl(it, !principal.user.isAdmin)
@@ -545,7 +544,7 @@ restController(BookController, {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}'] },
       args: [authenticationPrincipal(), pathVariable('bookId')],
       returns: { class: BookDto },
-      openapi: { operation: { summary: 'Get book details', tags: [OpenApiConfiguration.TagNames.BOOKS] }, throws: [EntityNotFoundException] },
+      openapi: { operation: { summary: 'Get book details', tags: [OpenApiConfiguration.TagNames.BOOKS] } },
     },
     getBookSiblingPrevious: {
       mapping: { method: 'GET', path: ['api/v1/books/{bookId}/previous'] },

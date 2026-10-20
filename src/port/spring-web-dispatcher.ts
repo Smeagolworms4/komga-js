@@ -326,6 +326,11 @@ function asErrorResponse<E extends object>(e: E, status: number, detail: string 
   return e
 }
 
+/** `ErrorResponse` (statut, détail, en-têtes) d'une exception levée par le dispatcher, s'il y en a */
+export function errorResponseOf(e: unknown): Readonly<ErrorResponseInfo> | null {
+  return e !== null && typeof e === 'object' ? (errorResponses.get(e) ?? null) : null
+}
+
 /** `org.springframework.web.servlet.NoHandlerFoundException` */
 export class NoHandlerFoundException extends Exception {
   constructor(
@@ -848,6 +853,8 @@ function convertArgument(raw: string | string[] | null, declared: JavaType, ctx:
   const fail = (cause: string) =>
     new MethodArgumentTypeMismatchException(
       `Method parameter '${ctx.name}': Failed to convert value of type '${valueType}' to required type '${javaTypeName(declared, isNullable)}'; ${cause}`,
+      ctx.name,
+      raw,
     )
   if (typeof type === 'object' && ('list' in type || 'set' in type)) {
     const el = 'list' in type ? type.list : type.set
@@ -1070,7 +1077,7 @@ export type DispatcherOptions = {
 
 type ForwardFn = (request: HttpServletRequest, response: HttpServletResponse, path: string) => Promise<void>
 
-type AdviceHandler = { bean: object; method: string; spec: ExceptionHandlerSpec; rest: boolean; exceptions: (abstract new (...a: never[]) => unknown)[] }
+type AdviceHandler = { bean: object; method: string; spec: ExceptionHandlerSpec; rest: boolean; exceptions: (abstract new (...a: never[]) => unknown)[]; basePackages?: string[] }
 
 type ArgContext = {
   request: HttpServletRequest
@@ -1202,7 +1209,7 @@ export class DispatcherServlet {
       } catch {
         continue
       }
-      for (const [method, spec] of Object.entries(a.handlers)) this.adviceHandlers.push({ bean, method, spec, rest: a.rest ?? true, exceptions: spec.exceptions })
+      for (const [method, spec] of Object.entries(a.handlers)) this.adviceHandlers.push({ bean, method, spec, rest: a.rest ?? true, exceptions: spec.exceptions, basePackages: a.basePackages })
     }
     this.mappings = mappings
     return mappings
@@ -2245,7 +2252,12 @@ export class DispatcherServlet {
     if (target === null) {
       // advices dans l'ordre, chacune avec sa propre résolution
       const byBean = new Map<object, AdviceHandler[]>()
-      for (const a of this.adviceHandlers) byBean.set(a.bean, [...(byBean.get(a.bean) ?? []), a])
+      // ControllerAdviceBean.isApplicableToBeanType : une advice limitée à des paquets ne s'applique qu'aux contrôleurs de ces
+      // paquets (jamais sans contrôleur)
+      const controllerName = hm !== null ? (hm.controller.javaName ?? (hm.controllerType as { name: string }).name) : null
+      const applicable = (a: AdviceHandler) =>
+        a.basePackages === undefined || (controllerName !== null && a.basePackages.some((p) => controllerName.startsWith(`${p}.`)))
+      for (const a of this.adviceHandlers) if (applicable(a)) byBean.set(a.bean, [...(byBean.get(a.bean) ?? []), a])
       for (const handlers of byBean.values()) {
         const i = this.findExceptionHandler(ex, handlers)
         if (i !== -1) {

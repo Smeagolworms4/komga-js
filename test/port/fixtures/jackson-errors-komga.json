@@ -4,7 +4,7 @@
   "path": "/api/v1/series/list",
   "body": "{\"condition\":{\"foo\":1}}",
   "status": 400,
-  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (20 candidates match)"
  },
  {
   "method": "POST",
@@ -39,14 +39,14 @@
   "path": "/api/v1/series/list",
   "body": "{\"condition\":{\"allOf\":[{\"x\":1}]}}",
   "status": 400,
-  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (20 candidates match)"
  },
  {
   "method": "POST",
   "path": "/api/v1/books/list",
   "body": "{\"condition\":{\"foo\":1}}",
   "status": 400,
-  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Book]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Book` (16 candidates match)"
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Book]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Book` (17 candidates match)"
  },
  {
   "method": "POST",
@@ -1117,7 +1117,7 @@
   "path": "/api/v1/series/list",
   "body": "{\"condition\":{}}",
   "status": 400,
-  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (19 candidates match)"
+  "message": "JSON parse error: Could not resolve subtype of [simple type, class org.gotson.komga.domain.model.SearchCondition$Series]: Cannot deduce unique subtype of `org.gotson.komga.domain.model.SearchCondition$Series` (20 candidates match)"
  },
  {
   "method": "POST",

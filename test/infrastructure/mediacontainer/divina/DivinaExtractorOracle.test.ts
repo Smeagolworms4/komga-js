@@ -1,4 +1,5 @@
-// ZipExtractor / RarExtractor : résultats relevés sur les vraies classes Komga (jshell, tools/jshell-komga.sh) :
+// ZipExtractor / RarExtractor : résultats relevés sur les vraies classes Komga (jshell, tools/jshell-komga.sh ; rar :
+// fixtures/rar-extractor.oracle.jsh) :
 // getEntries(path, false) (noms, types, tailles, commentaires d'erreur, ordre naturel) puis getEntryStream pour
 // chaque entrée (longueur et CRC32 des octets, ou exception).
 //  - zip : archives de test/port/fixtures/zip (méthodes, chiffrement, noms, ZIP64, archives cassées...) ;

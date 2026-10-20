@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesDtoDaoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/SeriesDtoDaoTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 // PORT: équivalent du scan de composants : modules des beans nécessaires
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
@@ -49,7 +49,9 @@ import '../../../../src/infrastructure/mediacontainer/divina/RarExtractor.js'
 import '../../../../src/infrastructure/kobo/KepubConverter.js'
 import '../../../../src/infrastructure/metadata/barcode/IsbnConfiguration.js'
 import '../../../../src/infrastructure/security/PasswordEncoderConfiguration.js'
-import '../../../../src/infrastructure/security/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/SessionConfiguration.js'
+import '../../../../src/infrastructure/session/CaffeineSessionConfiguration.js'
+import '../../../../src/infrastructure/session/JdbcSessionConfiguration.js'
 import '../../../../src/infrastructure/transaction/TransactionConfiguration.js'
 import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -73,7 +75,7 @@ import { KomgaUserLifecycle } from '../../../../src/domain/service/KomgaUserLife
 import { LibraryLifecycle } from '../../../../src/domain/service/LibraryLifecycle.js'
 import { SeriesLifecycle } from '../../../../src/domain/service/SeriesLifecycle.js'
 import { SeriesMetadataLifecycle } from '../../../../src/domain/service/SeriesMetadataLifecycle.js'
-import { UnpagedSorted } from '../../../../src/infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../../src/application/query/UnpagedSorted.js'
 import { SeriesDtoDao } from '../../../../src/infrastructure/jooq/main/SeriesDtoDao.js'
 import { SearchIndexLifecycle } from '../../../../src/infrastructure/search/SearchIndexLifecycle.js'
 import { sortedBy } from '../../../../src/port/kotlin.js'

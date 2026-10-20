@@ -162,7 +162,16 @@ export function exceptionStatusOf(e: unknown): { status: HttpStatus; reason: str
 /** Paramètre obligatoire absent, conversion impossible, corps illisible… (400) */
 export class ServletRequestBindingException extends Exception {}
 export class MissingServletRequestParameterException extends ServletRequestBindingException {}
-export class MethodArgumentTypeMismatchException extends Exception {}
+export class MethodArgumentTypeMismatchException extends Exception {
+  constructor(
+    message: string,
+    /** ajout facultatif : `getPropertyName()` / `getValue()` (détail du ProblemDetail de ResponseEntityExceptionHandler) */
+    readonly propertyName: string | null = null,
+    readonly value: unknown = null,
+  ) {
+    super(message)
+  }
+}
 export class HttpMessageNotReadableException extends Exception {}
 /** `@Valid` en échec (400) : erreurs par champ */
 export class MethodArgumentNotValidException extends Exception {
@@ -606,16 +615,18 @@ type AdviceRegistration = {
   rest?: boolean
   /** `@Order` */
   order?: number
+  /** `@RestControllerAdvice(basePackages = [...])` : contrôleurs concernés (nom Java, `javaName` de leur ControllerSpec) */
+  basePackages?: string[]
 }
 const advices: AdviceRegistration[] = []
 
 /** `@ControllerAdvice` / `@RestControllerAdvice` avec ses `@ExceptionHandler` */
 export function controllerAdvice<T>(
   cls: abstract new (...a: never[]) => T,
-  spec: ComponentOptions & { exceptionHandlers: NonNullable<ControllerSpec['exceptionHandlers']>; rest?: boolean; order?: number },
+  spec: ComponentOptions & { exceptionHandlers: NonNullable<ControllerSpec['exceptionHandlers']>; rest?: boolean; order?: number; basePackages?: string[] },
 ): void {
   component(cls as never, spec)
-  advices.push({ type: cls as never, handlers: spec.exceptionHandlers, rest: spec.rest ?? true, order: spec.order })
+  advices.push({ type: cls as never, handlers: spec.exceptionHandlers, rest: spec.rest ?? true, order: spec.order, basePackages: spec.basePackages })
 }
 
 export function registeredAdvices(): readonly AdviceRegistration[] {

@@ -1,4 +1,4 @@
-// Généré par tools/gen-jooq.mjs depuis le code jOOQ de Komga (65981e600edb24944ffaae4818ff2716a5fa08dd), catalogue "main". Ne pas modifier.
+// Généré par tools/gen-jooq.mjs depuis le code jOOQ de Komga (a9b59dbee73424d7f2e186b24b0905913f816709), catalogue "main". Ne pas modifier.
 // Équivalent de org.gotson.komga.jooq.main.{Tables, Keys, tables.*, tables.records.*}
 /* eslint-disable */
 import type { LocalDate, LocalDateTime } from '@js-joda/core'
@@ -259,6 +259,7 @@ export class BookMetadata extends Table<BookMetadataRecord> {
   readonly ISBN = this.createField<string>('ISBN', SQLDataType.VARCHAR)
   readonly ISBN_LOCK = this.createField<boolean>('ISBN_LOCK', SQLDataType.BOOLEAN)
   readonly LINKS_LOCK = this.createField<boolean>('LINKS_LOCK', SQLDataType.BOOLEAN)
+  readonly NOTABLE_ENTITIES_LOCK = this.createField<boolean>('NOTABLE_ENTITIES_LOCK', SQLDataType.BOOLEAN)
 
   constructor(alias: string | null = null) {
     super('BOOK_METADATA', alias)
@@ -382,6 +383,12 @@ export class BookMetadataRecord extends TableRecordImpl<BookMetadataRecord> {
   set linksLock(v: boolean) {
     this.values[17] = v
   }
+  get notableEntitiesLock(): boolean {
+    return this.values[18] as boolean
+  }
+  set notableEntitiesLock(v: boolean) {
+    this.values[18] = v
+  }
 }
 registerRecordClass(BookMetadata, BookMetadataRecord as never)
 
@@ -481,6 +488,42 @@ export class BookMetadataAggregationAuthorRecord extends TableRecordImpl<BookMet
   }
 }
 registerRecordClass(BookMetadataAggregationAuthor, BookMetadataAggregationAuthorRecord as never)
+
+export class BookMetadataAggregationNotableEntities extends Table<BookMetadataAggregationNotableEntitiesRecord> {
+  readonly KIND = this.createField<string>('KIND', SQLDataType.VARCHAR)
+  readonly NAME = this.createField<string>('NAME', SQLDataType.VARCHAR)
+  readonly SERIES_ID = this.createField<string>('SERIES_ID', SQLDataType.VARCHAR)
+
+  constructor(alias: string | null = null) {
+    super('BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES', alias)
+  }
+
+  getReferences(): ForeignKey<BookMetadataAggregationNotableEntitiesRecord, unknown>[] {
+    return [Keys.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES__FK_BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES_PK_SERIES] as ForeignKey<BookMetadataAggregationNotableEntitiesRecord, unknown>[]
+  }
+}
+
+export class BookMetadataAggregationNotableEntitiesRecord extends TableRecordImpl<BookMetadataAggregationNotableEntitiesRecord> {
+  get kind(): string {
+    return this.values[0] as string
+  }
+  set kind(v: string) {
+    this.values[0] = v
+  }
+  get name(): string {
+    return this.values[1] as string
+  }
+  set name(v: string) {
+    this.values[1] = v
+  }
+  get seriesId(): string {
+    return this.values[2] as string
+  }
+  set seriesId(v: string) {
+    this.values[2] = v
+  }
+}
+registerRecordClass(BookMetadataAggregationNotableEntities, BookMetadataAggregationNotableEntitiesRecord as never)
 
 export class BookMetadataAggregationTag extends Table<BookMetadataAggregationTagRecord> {
   readonly TAG = this.createField<string>('TAG', SQLDataType.VARCHAR)
@@ -582,6 +625,42 @@ export class BookMetadataLinkRecord extends TableRecordImpl<BookMetadataLinkReco
   }
 }
 registerRecordClass(BookMetadataLink, BookMetadataLinkRecord as never)
+
+export class BookMetadataNotableEntities extends Table<BookMetadataNotableEntitiesRecord> {
+  readonly KIND = this.createField<string>('KIND', SQLDataType.VARCHAR)
+  readonly NAME = this.createField<string>('NAME', SQLDataType.VARCHAR)
+  readonly BOOK_ID = this.createField<string>('BOOK_ID', SQLDataType.VARCHAR)
+
+  constructor(alias: string | null = null) {
+    super('BOOK_METADATA_NOTABLE_ENTITIES', alias)
+  }
+
+  getReferences(): ForeignKey<BookMetadataNotableEntitiesRecord, unknown>[] {
+    return [Keys.BOOK_METADATA_NOTABLE_ENTITIES__FK_BOOK_METADATA_NOTABLE_ENTITIES_PK_BOOK] as ForeignKey<BookMetadataNotableEntitiesRecord, unknown>[]
+  }
+}
+
+export class BookMetadataNotableEntitiesRecord extends TableRecordImpl<BookMetadataNotableEntitiesRecord> {
+  get kind(): string {
+    return this.values[0] as string
+  }
+  set kind(v: string) {
+    this.values[0] = v
+  }
+  get name(): string {
+    return this.values[1] as string
+  }
+  set name(v: string) {
+    this.values[1] = v
+  }
+  get bookId(): string {
+    return this.values[2] as string
+  }
+  set bookId(v: string) {
+    this.values[2] = v
+  }
+}
+registerRecordClass(BookMetadataNotableEntities, BookMetadataNotableEntitiesRecord as never)
 
 export class BookMetadataTag extends Table<BookMetadataTagRecord> {
   readonly TAG = this.createField<string>('TAG', SQLDataType.VARCHAR)
@@ -3346,9 +3425,11 @@ export const Tables = {
   BOOK_METADATA: new BookMetadata(),
   BOOK_METADATA_AGGREGATION: new BookMetadataAggregation(),
   BOOK_METADATA_AGGREGATION_AUTHOR: new BookMetadataAggregationAuthor(),
+  BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES: new BookMetadataAggregationNotableEntities(),
   BOOK_METADATA_AGGREGATION_TAG: new BookMetadataAggregationTag(),
   BOOK_METADATA_AUTHOR: new BookMetadataAuthor(),
   BOOK_METADATA_LINK: new BookMetadataLink(),
+  BOOK_METADATA_NOTABLE_ENTITIES: new BookMetadataNotableEntities(),
   BOOK_METADATA_TAG: new BookMetadataTag(),
   BOOK_PROJECTION: new BookProjection(),
   CLIENT_SETTINGS_GLOBAL: new ClientSettingsGlobal(),
@@ -3402,9 +3483,11 @@ export const BOOK = Tables.BOOK
 export const BOOK_METADATA = Tables.BOOK_METADATA
 export const BOOK_METADATA_AGGREGATION = Tables.BOOK_METADATA_AGGREGATION
 export const BOOK_METADATA_AGGREGATION_AUTHOR = Tables.BOOK_METADATA_AGGREGATION_AUTHOR
+export const BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES = Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES
 export const BOOK_METADATA_AGGREGATION_TAG = Tables.BOOK_METADATA_AGGREGATION_TAG
 export const BOOK_METADATA_AUTHOR = Tables.BOOK_METADATA_AUTHOR
 export const BOOK_METADATA_LINK = Tables.BOOK_METADATA_LINK
+export const BOOK_METADATA_NOTABLE_ENTITIES = Tables.BOOK_METADATA_NOTABLE_ENTITIES
 export const BOOK_METADATA_TAG = Tables.BOOK_METADATA_TAG
 export const BOOK_PROJECTION = Tables.BOOK_PROJECTION
 export const CLIENT_SETTINGS_GLOBAL = Tables.CLIENT_SETTINGS_GLOBAL
@@ -3505,9 +3588,11 @@ const FKS = {
   BOOK_METADATA__FK_BOOK_METADATA_PK_BOOK: new ForeignKey(Tables.BOOK_METADATA, 'fk_BOOK_METADATA_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_AGGREGATION__FK_BOOK_METADATA_AGGREGATION_PK_SERIES: new ForeignKey(Tables.BOOK_METADATA_AGGREGATION, 'fk_BOOK_METADATA_AGGREGATION_pk_SERIES', ["SERIES_ID"], Keys.SERIES__PK_SERIES as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_AGGREGATION_AUTHOR__FK_BOOK_METADATA_AGGREGATION_AUTHOR_PK_SERIES: new ForeignKey(Tables.BOOK_METADATA_AGGREGATION_AUTHOR, 'fk_BOOK_METADATA_AGGREGATION_AUTHOR_pk_SERIES', ["SERIES_ID"], Keys.SERIES__PK_SERIES as UniqueKey<unknown>, ["ID"]),
+  BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES__FK_BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES_PK_SERIES: new ForeignKey(Tables.BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES, 'fk_BOOK_METADATA_AGGREGATION_NOTABLE_ENTITIES_pk_SERIES', ["SERIES_ID"], Keys.SERIES__PK_SERIES as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_AGGREGATION_TAG__FK_BOOK_METADATA_AGGREGATION_TAG_PK_SERIES: new ForeignKey(Tables.BOOK_METADATA_AGGREGATION_TAG, 'fk_BOOK_METADATA_AGGREGATION_TAG_pk_SERIES', ["SERIES_ID"], Keys.SERIES__PK_SERIES as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_AUTHOR__FK_BOOK_METADATA_AUTHOR_PK_BOOK: new ForeignKey(Tables.BOOK_METADATA_AUTHOR, 'fk_BOOK_METADATA_AUTHOR_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_LINK__FK_BOOK_METADATA_LINK_PK_BOOK: new ForeignKey(Tables.BOOK_METADATA_LINK, 'fk_BOOK_METADATA_LINK_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
+  BOOK_METADATA_NOTABLE_ENTITIES__FK_BOOK_METADATA_NOTABLE_ENTITIES_PK_BOOK: new ForeignKey(Tables.BOOK_METADATA_NOTABLE_ENTITIES, 'fk_BOOK_METADATA_NOTABLE_ENTITIES_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
   BOOK_METADATA_TAG__FK_BOOK_METADATA_TAG_PK_BOOK: new ForeignKey(Tables.BOOK_METADATA_TAG, 'fk_BOOK_METADATA_TAG_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
   BOOK_PROJECTION__FK_BOOK_PROJECTION_PK_BOOK: new ForeignKey(Tables.BOOK_PROJECTION, 'fk_BOOK_PROJECTION_pk_BOOK', ["BOOK_ID"], Keys.BOOK__PK_BOOK as UniqueKey<unknown>, ["ID"]),
   CLIENT_SETTINGS_USER__FK_CLIENT_SETTINGS_USER_PK_USER: new ForeignKey(Tables.CLIENT_SETTINGS_USER, 'fk_CLIENT_SETTINGS_USER_pk_USER', ["USER_ID"], Keys.USER__PK_USER as UniqueKey<unknown>, ["ID"]),

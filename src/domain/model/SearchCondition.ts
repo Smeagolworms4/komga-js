@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/SearchCondition.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/domain/model/SearchCondition.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { qualifiedNameOf, registerClass } from '../../port/jackson.js'
 import { json } from '../../port/jackson.js'
 import { DataClass, KEnum } from '../../port/kotlin.js'
@@ -18,19 +18,19 @@ export class SearchCondition {}
 export namespace SearchCondition {
   // @Schema(
   //   name = "SearchConditionBook",
-  //   oneOf = [AnyOfBook::class, AllOfBook::class, LibraryId::class, ReadListId::class, SeriesId::class, Deleted::class, OneShot::class, Title::class, ReleaseDate::class, Tag::class, NumberSort::class, ReadStatus::class, MediaStatus::class, MediaProfile::class, Author::class, Poster::class],
+  //   oneOf = [AnyOfBook::class, AllOfBook::class, LibraryId::class, ReadListId::class, SeriesId::class, Deleted::class, OneShot::class, Title::class, ReleaseDate::class, Tag::class, NumberSort::class, ReadStatus::class, MediaStatus::class, MediaProfile::class, Author::class, NotableEntity::class, Poster::class],
   // )
   // @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
-  export type Book = AnyOfBook | AllOfBook | LibraryId | ReadListId | SeriesId | Deleted | OneShot | Title | ReleaseDate | Tag | NumberSort | ReadStatus | MediaStatus | MediaProfile | Author | Poster
-  export const Book = sealedInterface<Book>('Book', () => [AnyOfBook, AllOfBook, LibraryId, ReadListId, SeriesId, Deleted, OneShot, Title, ReleaseDate, Tag, NumberSort, ReadStatus, MediaStatus, MediaProfile, Author, Poster])
+  export type Book = AnyOfBook | AllOfBook | LibraryId | ReadListId | SeriesId | Deleted | OneShot | Title | ReleaseDate | Tag | NumberSort | ReadStatus | MediaStatus | MediaProfile | Author | NotableEntity | Poster
+  export const Book = sealedInterface<Book>('Book', () => [AnyOfBook, AllOfBook, LibraryId, ReadListId, SeriesId, Deleted, OneShot, Title, ReleaseDate, Tag, NumberSort, ReadStatus, MediaStatus, MediaProfile, Author, NotableEntity, Poster])
 
   // @Schema(
   //   name = "SearchConditionSeries",
-  //   oneOf = [AnyOfSeries::class, AllOfSeries::class, LibraryId::class, CollectionId::class, Deleted::class, Complete::class, OneShot::class, Title::class, TitleSort::class, ReleaseDate::class, Tag::class, SharingLabel::class, Publisher::class, Language::class, Genre::class, AgeRating::class, ReadStatus::class, SeriesStatus::class, Author::class],
+  //   oneOf = [AnyOfSeries::class, AllOfSeries::class, LibraryId::class, CollectionId::class, Deleted::class, Complete::class, OneShot::class, Title::class, TitleSort::class, ReleaseDate::class, Tag::class, SharingLabel::class, Publisher::class, Language::class, Genre::class, AgeRating::class, ReadStatus::class, SeriesStatus::class, Author::class, NotableEntity::class],
   // )
   // @JsonTypeInfo(use = JsonTypeInfo.Id.DEDUCTION)
-  export type Series = AnyOfSeries | AllOfSeries | LibraryId | CollectionId | Deleted | Complete | OneShot | Title | TitleSort | ReleaseDate | Tag | SharingLabel | Publisher | Language | Genre | AgeRating | ReadStatus | SeriesStatus | Author
-  export const Series = sealedInterface<Series>('Series', () => [AnyOfSeries, AllOfSeries, LibraryId, CollectionId, Deleted, Complete, OneShot, Title, TitleSort, ReleaseDate, Tag, SharingLabel, Publisher, Language, Genre, AgeRating, ReadStatus, SeriesStatus, Author])
+  export type Series = AnyOfSeries | AllOfSeries | LibraryId | CollectionId | Deleted | Complete | OneShot | Title | TitleSort | ReleaseDate | Tag | SharingLabel | Publisher | Language | Genre | AgeRating | ReadStatus | SeriesStatus | Author | NotableEntity
+  export const Series = sealedInterface<Series>('Series', () => [AnyOfSeries, AllOfSeries, LibraryId, CollectionId, Deleted, Complete, OneShot, Title, TitleSort, ReleaseDate, Tag, SharingLabel, Publisher, Language, Genre, AgeRating, ReadStatus, SeriesStatus, Author, NotableEntity])
 
   // @Schema(name = "SearchConditionAnyOfBook")
   export class AnyOfBook extends DataClass<{ conditions: Book[] }> {
@@ -324,6 +324,28 @@ export namespace SearchCondition {
     }
   }
 
+  // @Schema(name = "SearchConditionNotableEntity")
+  export class NotableEntity extends DataClass<{ operator: SearchOperator.Equality<NotableEntityMatch> }> {
+    readonly operator: SearchOperator.Equality<NotableEntityMatch>
+
+    constructor({ operator }: { operator: SearchOperator.Equality<NotableEntityMatch> }) {
+      super()
+      this.operator = operator
+    }
+  }
+
+  // @JsonInclude(JsonInclude.Include.NON_NULL)
+  export class NotableEntityMatch extends DataClass<{ name?: string | null; kind?: string | null }> {
+    readonly name: string | null
+    readonly kind: string | null
+
+    constructor({ name = null, kind = null }: { name?: string | null; kind?: string | null } = {}) {
+      super()
+      this.name = name
+      this.kind = kind
+    }
+  }
+
   // @Schema(name = "SearchConditionPoster")
   export class Poster extends DataClass<{ operator: SearchOperator.Equality<PosterMatch> }> {
     readonly operator: SearchOperator.Equality<PosterMatch>
@@ -412,6 +434,10 @@ json(SearchCondition.Author, { rename: { operator: 'author' } })
 jsonProperties(SearchCondition.Author, { operator: { class: SearchOperator.Equality, args: [{ class: SearchCondition.AuthorMatch }] } })
 json(SearchCondition.AuthorMatch, { include: 'NON_NULL' })
 jsonProperties(SearchCondition.AuthorMatch, { name: 'String', role: 'String' })
+json(SearchCondition.NotableEntity, { rename: { operator: 'notableEntity' } })
+jsonProperties(SearchCondition.NotableEntity, { operator: { class: SearchOperator.Equality, args: [{ class: SearchCondition.NotableEntityMatch }] } })
+json(SearchCondition.NotableEntityMatch, { include: 'NON_NULL' })
+jsonProperties(SearchCondition.NotableEntityMatch, { name: 'String', kind: 'String' })
 json(SearchCondition.Poster, { rename: { operator: 'poster' } })
 jsonProperties(SearchCondition.Poster, { operator: { class: SearchOperator.Equality, args: [{ class: SearchCondition.PosterMatch }] } })
 json(SearchCondition.PosterMatch, { include: 'NON_NULL' })
@@ -420,11 +446,11 @@ jsonProperties(SearchCondition.PosterMatch, { type: { enum: SearchCondition.Post
 // @Schema (document OpenAPI : port/swagger-annotations.ts)
 openApiSchema(SearchCondition.Book, {
   name: 'SearchConditionBook',
-  oneOf: [SearchCondition.AnyOfBook, SearchCondition.AllOfBook, SearchCondition.LibraryId, SearchCondition.ReadListId, SearchCondition.SeriesId, SearchCondition.Deleted, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.NumberSort, SearchCondition.ReadStatus, SearchCondition.MediaStatus, SearchCondition.MediaProfile, SearchCondition.Author, SearchCondition.Poster],
+  oneOf: [SearchCondition.AnyOfBook, SearchCondition.AllOfBook, SearchCondition.LibraryId, SearchCondition.ReadListId, SearchCondition.SeriesId, SearchCondition.Deleted, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.NumberSort, SearchCondition.ReadStatus, SearchCondition.MediaStatus, SearchCondition.MediaProfile, SearchCondition.Author, SearchCondition.NotableEntity, SearchCondition.Poster],
 })
 openApiSchema(SearchCondition.Series, {
   name: 'SearchConditionSeries',
-  oneOf: [SearchCondition.AnyOfSeries, SearchCondition.AllOfSeries, SearchCondition.LibraryId, SearchCondition.CollectionId, SearchCondition.Deleted, SearchCondition.Complete, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.TitleSort, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.SharingLabel, SearchCondition.Publisher, SearchCondition.Language, SearchCondition.Genre, SearchCondition.AgeRating, SearchCondition.ReadStatus, SearchCondition.SeriesStatus, SearchCondition.Author],
+  oneOf: [SearchCondition.AnyOfSeries, SearchCondition.AllOfSeries, SearchCondition.LibraryId, SearchCondition.CollectionId, SearchCondition.Deleted, SearchCondition.Complete, SearchCondition.OneShot, SearchCondition.Title, SearchCondition.TitleSort, SearchCondition.ReleaseDate, SearchCondition.Tag, SearchCondition.SharingLabel, SearchCondition.Publisher, SearchCondition.Language, SearchCondition.Genre, SearchCondition.AgeRating, SearchCondition.ReadStatus, SearchCondition.SeriesStatus, SearchCondition.Author, SearchCondition.NotableEntity],
 })
 openApiSchema(SearchCondition.AnyOfBook, { name: 'SearchConditionAnyOfBook' })
 openApiSchema(SearchCondition.AllOfBook, { name: 'SearchConditionAllOfBook' })
@@ -452,6 +478,7 @@ openApiSchema(SearchCondition.MediaStatus, { name: 'SearchConditionMediaStatus' 
 openApiSchema(SearchCondition.SeriesStatus, { name: 'SearchConditionSeriesStatus' })
 openApiSchema(SearchCondition.MediaProfile, { name: 'SearchConditionMediaProfile' })
 openApiSchema(SearchCondition.Author, { name: 'SearchConditionAuthor' })
+openApiSchema(SearchCondition.NotableEntity, { name: 'SearchConditionNotableEntity' })
 openApiSchema(SearchCondition.Poster, { name: 'SearchConditionPoster' })
 
 // Class.forName / noms qualifiés Java (messages d'erreur Jackson)

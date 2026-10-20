@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/UserController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/UserController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { nn } from '../../../port/kotlin.js'
 import { AgeRestriction } from '../../../domain/model/AgeRestriction.js'
 import { ContentRestrictions } from '../../../domain/model/ContentRestrictions.js'
@@ -9,7 +9,7 @@ import { AuthenticationActivityRepository } from '../../../domain/persistence/Au
 import { KomgaUserRepository } from '../../../domain/persistence/KomgaUserRepository.js'
 import { LibraryRepository } from '../../../domain/persistence/LibraryRepository.js'
 import { KomgaUserLifecycle } from '../../../domain/service/KomgaUserLifecycle.js'
-import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../application/query/UnpagedSorted.js'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import type { KomgaPrincipal } from '../../../infrastructure/security/KomgaPrincipal.js'
 import { Environment } from '../../../port/spring.js'

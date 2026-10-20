@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDao.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { Book } from '../../../domain/model/Book.js'
 import type { SearchCondition } from '../../../domain/model/SearchCondition.js'
@@ -124,47 +125,56 @@ export class BookDao extends SplitDslDaoBase implements BookRepository {
   private findAllSearch(searchCondition: SearchCondition.Book | null, searchContext: SearchContext, pageable: Pageable): Page<Book> {
     const bookCondition = new BookSearchHelper(searchContext).toCondition(searchCondition)
 
-    const countQuery: Select = this.dslRO.selectCount().from(this.b)
-    for (const join of bookCondition[1]) {
-      if (join === RequiredJoin.BookMetadata) countQuery.innerJoin(this.d).on(this.b.ID.eq(this.d.BOOK_ID))
-      else if (join === RequiredJoin.SeriesMetadata) countQuery.innerJoin(this.sd).on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
-      else if (join === RequiredJoin.Media) countQuery.innerJoin(this.m).on(this.b.ID.eq(this.m.BOOK_ID))
-      else if (join instanceof RequiredJoin.ReadProgress) countQuery.leftJoin(this.r).on(this.b.ID.eq(this.r.BOOK_ID)).and(this.r.USER_ID.eq(join.userId))
-      else if (join instanceof RequiredJoin.ReadList) {
-        const rlbAlias_ = rlbAlias(join.readListId)
-        countQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
-      }
-      // shouldn't be required for books
-      else if (join === RequiredJoin.BookMetadataAggregation) {
-        // Unit
-      } else if (join instanceof RequiredJoin.Collection) {
-        // Unit
-      }
-    }
-    const count = countQuery.where(bookCondition[0]).fetchOne(0, Number) ?? 0
-
     const orderBy = toOrderBy(pageable.sort, this.sorts)
 
-    const itemsQuery: Select = this.dslRO.select(...this.b.fields()).from(this.b)
-    for (const join of bookCondition[1]) {
-      if (join === RequiredJoin.BookMetadata) itemsQuery.innerJoin(this.d).on(this.b.ID.eq(this.d.BOOK_ID))
-      else if (join === RequiredJoin.SeriesMetadata) itemsQuery.innerJoin(this.sd).on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
-      else if (join === RequiredJoin.Media) itemsQuery.innerJoin(this.m).on(this.b.ID.eq(this.m.BOOK_ID))
-      else if (join instanceof RequiredJoin.ReadProgress) itemsQuery.leftJoin(this.r).on(this.b.ID.eq(this.r.BOOK_ID)).and(this.r.USER_ID.eq(join.userId))
-      else if (join instanceof RequiredJoin.ReadList) {
-        const rlbAlias_ = rlbAlias(join.readListId)
-        itemsQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
+    let items: Book[]
+    if (isEmpty(pageable)) items = []
+    else {
+      const itemsQuery: Select = this.dslRO.select(...this.b.fields()).from(this.b)
+      for (const join of bookCondition[1]) {
+        if (join === RequiredJoin.BookMetadata) itemsQuery.innerJoin(this.d).on(this.b.ID.eq(this.d.BOOK_ID))
+        else if (join === RequiredJoin.SeriesMetadata) itemsQuery.innerJoin(this.sd).on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
+        else if (join === RequiredJoin.Media) itemsQuery.innerJoin(this.m).on(this.b.ID.eq(this.m.BOOK_ID))
+        else if (join instanceof RequiredJoin.ReadProgress) itemsQuery.leftJoin(this.r).on(this.b.ID.eq(this.r.BOOK_ID)).and(this.r.USER_ID.eq(join.userId))
+        else if (join instanceof RequiredJoin.ReadList) {
+          const rlbAlias_ = rlbAlias(join.readListId)
+          itemsQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
+        }
+        // shouldn't be required for books
+        else if (join === RequiredJoin.BookMetadataAggregation) {
+          // Unit
+        } else if (join instanceof RequiredJoin.Collection) {
+          // Unit
+        }
       }
-      // shouldn't be required for books
-      else if (join === RequiredJoin.BookMetadataAggregation) {
-        // Unit
-      } else if (join instanceof RequiredJoin.Collection) {
-        // Unit
-      }
+      itemsQuery.where(bookCondition[0]).orderBy(orderBy)
+      if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
+      items = itemsQuery.fetchInto(this.b).map((it) => this.toDomain(it))
     }
-    itemsQuery.where(bookCondition[0]).orderBy(orderBy)
-    if (pageable.isPaged) itemsQuery.limit(pageable.pageSize).offset(pageable.offset)
-    const items = itemsQuery.fetchInto(this.b).map((it) => this.toDomain(it))
+
+    let count: number
+    if (pageable.isUnpaged) count = items.length
+    else {
+      const countQuery: Select = this.dslRO.selectCount().from(this.b)
+      for (const join of bookCondition[1]) {
+        if (join === RequiredJoin.BookMetadata) countQuery.innerJoin(this.d).on(this.b.ID.eq(this.d.BOOK_ID))
+        else if (join === RequiredJoin.SeriesMetadata) countQuery.innerJoin(this.sd).on(this.b.SERIES_ID.eq(this.sd.SERIES_ID))
+        else if (join === RequiredJoin.Media) countQuery.innerJoin(this.m).on(this.b.ID.eq(this.m.BOOK_ID))
+        else if (join instanceof RequiredJoin.ReadProgress) countQuery.leftJoin(this.r).on(this.b.ID.eq(this.r.BOOK_ID)).and(this.r.USER_ID.eq(join.userId))
+        else if (join instanceof RequiredJoin.ReadList) {
+          const rlbAlias_ = rlbAlias(join.readListId)
+          countQuery.leftJoin(rlbAlias_).on(rlbAlias_.BOOK_ID.eq(this.b.ID).and(rlbAlias_.READLIST_ID.eq(join.readListId)))
+        }
+        // shouldn't be required for books
+        else if (join === RequiredJoin.BookMetadataAggregation) {
+          // Unit
+        } else if (join instanceof RequiredJoin.Collection) {
+          // Unit
+        }
+      }
+      count = countQuery.where(bookCondition[0]).fetchOne(0, Number) ?? 0
+    }
+
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
 
     return new PageImpl(

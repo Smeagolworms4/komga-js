@@ -2,6 +2,7 @@
 import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { Author } from '../../../../../src/domain/model/Author.js'
 import { BookMetadata } from '../../../../../src/domain/model/BookMetadata.js'
+import { NotableEntity } from '../../../../../src/domain/model/NotableEntity.js'
 import { WebLink } from '../../../../../src/domain/model/WebLink.js'
 import { URI } from '../../../../../src/port/java-net.js'
 import { OracleDb } from '../../../db.js'
@@ -260,4 +261,42 @@ func('delete@250', () => {
 
 func('count', () => {
   kase('after deletions', () => dao.count())
+})
+
+const ne = (kind: string, name: string) => new NotableEntity({ kind, name })
+
+func('insertNotableEntities', () => {
+  kase('insert', () => {
+    dao.insert(meta('B2').copy({ notableEntities: [ne(' TEAM ', 'X-Men '), ne('location', 'Gotham'), ne('team', 'X-Men'), ne('character', 'Émile')], notableEntitiesLock: true }))
+    return stable(dao.findById('B2'))
+  })
+  kase('several', () => {
+    dao.insert([meta('B3').copy({ notableEntities: [ne('character', 'Joker')] }), meta('M0001'), meta('M0002').copy({ notableEntities: [ne('team', 'A')] })])
+    return dao.findAllByIds(['B2', 'B3', 'M0001', 'M0002']).map((it) => [it.bookId, it.notableEntities, it.notableEntitiesLock])
+  })
+  kase('rows', () => db.rawQuery('select * from BOOK_METADATA_NOTABLE_ENTITIES order by BOOK_ID, rowid'))
+})
+
+func('notableEntities', () => {
+  kase('update replaces', () => {
+    dao.update(dao.findById('B2').copy({ notableEntities: [ne('character', 'Bane')], notableEntitiesLock: false }))
+    const it = dao.findById('B2')
+    return [it.notableEntities, it.notableEntitiesLock]
+  })
+  kase('update to empty', () => {
+    dao.update(dao.findById('B3').copy({ notableEntities: [] }))
+    return [dao.findById('B3').notableEntities, db.rawQuery('select BOOK_ID, KIND, NAME from BOOK_METADATA_NOTABLE_ENTITIES order by BOOK_ID, rowid')]
+  })
+  kase('stored values are not normalized', () => {
+    sql(db, "insert into BOOK_METADATA_NOTABLE_ENTITIES (KIND, NAME, BOOK_ID) values (' TEAM ', ' Spaced ', 'B2')")
+    return dao.findById('B2').notableEntities.map((it) => [it.kind, it.name])
+  })
+  kase('delete one', () => {
+    dao.delete('B2')
+    return db.rawQuery('select BOOK_ID, KIND, NAME from BOOK_METADATA_NOTABLE_ENTITIES order by BOOK_ID, rowid')
+  })
+  kase('delete several', () => {
+    dao.delete(['M0001', 'M0002', 'B3'])
+    return db.rawQuery('select count(*) from BOOK_METADATA_NOTABLE_ENTITIES')
+  })
 })

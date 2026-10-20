@@ -1,10 +1,11 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SeriesDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/SeriesDto.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { LocalDate, LocalDateTime } from '@js-joda/core'
 import { jsonFormatLocalDate, jsonFormatLocalDateTime } from '../../../../port/jackson-format.js'
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass } from '../../../../port/kotlin.js'
 import { AlternateTitleDto } from './AlternateTitleDto.js'
 import { AuthorDto } from './AuthorDto.js'
+import { NotableEntityDto } from './NotableEntityDto.js'
 import { WebLinkDto } from './WebLinkDto.js'
 
 type SeriesDtoParams = {
@@ -220,6 +221,7 @@ export class SeriesMetadataDto extends DataClass<SeriesMetadataDtoParams> {
 
 type BookMetadataAggregationDtoParams = {
   authors?: AuthorDto[]
+  notableEntities: NotableEntityDto[]
   tags?: ReadonlySet<string>
   releaseDate: LocalDate | null
   summary: string
@@ -230,6 +232,7 @@ type BookMetadataAggregationDtoParams = {
 
 export class BookMetadataAggregationDto extends DataClass<BookMetadataAggregationDtoParams> {
   readonly authors: AuthorDto[]
+  readonly notableEntities: NotableEntityDto[]
   readonly tags: ReadonlySet<string>
   // @JsonFormat(pattern = "yyyy-MM-dd")
   readonly releaseDate: LocalDate | null
@@ -242,6 +245,7 @@ export class BookMetadataAggregationDto extends DataClass<BookMetadataAggregatio
 
   constructor({
     authors = [],
+    notableEntities,
     tags = new Set(),
     releaseDate,
     summary,
@@ -251,6 +255,7 @@ export class BookMetadataAggregationDto extends DataClass<BookMetadataAggregatio
   }: BookMetadataAggregationDtoParams) {
     super()
     this.authors = authors
+    this.notableEntities = notableEntities
     this.tags = tags
     this.releaseDate = releaseDate
     this.summary = summary
@@ -374,6 +379,7 @@ jsonProperties(
   BookMetadataAggregationDto,
   {
     authors: { list: { class: AuthorDto } },
+    notableEntities: { list: { class: NotableEntityDto } },
     tags: { set: 'String' },
     releaseDate: { nullable: jsonFormatLocalDate('yyyy-MM-dd') },
     summary: 'String',
@@ -384,6 +390,7 @@ jsonProperties(
   [],
   {
     required: [
+      'notableEntities',
       'summary',
       'summaryNumber',
       'created',

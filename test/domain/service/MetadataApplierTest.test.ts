@@ -1,9 +1,10 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/MetadataApplierTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/domain/service/MetadataApplierTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LocalDate } from '@js-joda/core'
 import { describe, expect, it } from 'vitest'
 import { Author } from '../../../src/domain/model/Author.js'
 import { BookMetadata } from '../../../src/domain/model/BookMetadata.js'
 import { BookMetadataPatch } from '../../../src/domain/model/BookMetadataPatch.js'
+import { NotableEntity } from '../../../src/domain/model/NotableEntity.js'
 import { SeriesMetadata } from '../../../src/domain/model/SeriesMetadata.js'
 import { SeriesMetadataPatch } from '../../../src/domain/model/SeriesMetadataPatch.js'
 import { WebLink } from '../../../src/domain/model/WebLink.js'
@@ -26,6 +27,7 @@ describe('MetadataApplierTest', () => {
         numberSortLock: true,
         releaseDateLock: true,
         authorsLock: true,
+        notableEntitiesLock: true,
         tagsLock: true,
         isbnLock: true,
         linksLock: true,
@@ -38,6 +40,7 @@ describe('MetadataApplierTest', () => {
         numberSort: 2,
         releaseDate: LocalDate.of(2020, 12, 2),
         authors: [new Author({ name: 'Marcel', role: 'writer' })],
+        notableEntities: [new NotableEntity({ kind: 'location', name: 'Tokyo' })],
         isbn: '9782811632397',
         links: [new WebLink({ label: 'Comixology', url: new URI('https://www.comixology.com/Sandman/digital-comic/727888') })],
         tags: new Set(['tag1', 'tag2']),
@@ -50,6 +53,7 @@ describe('MetadataApplierTest', () => {
       expect(patched.numberSort).toBe(metadata.numberSort)
       expect(patched.summary).toBe('')
       expect(patched.authors).toHaveLength(0)
+      expect(patched.notableEntities).toHaveLength(0)
       expect(patched.releaseDate).toBeNull()
       expect(patched.tags.size).toBe(0)
       expect(patched.isbn).toBe('')
@@ -71,6 +75,7 @@ describe('MetadataApplierTest', () => {
         numberSort: 2,
         releaseDate: LocalDate.of(2020, 12, 2),
         authors: [new Author({ name: 'Marcel', role: 'writer' })],
+        notableEntities: [new NotableEntity({ kind: 'location', name: 'Tokyo' })],
         isbn: '9782811632397',
         links: [new WebLink({ label: 'Comixology', url: new URI('https://www.comixology.com/Sandman/digital-comic/727888') })],
         tags: new Set(['tag1', 'tag2']),
@@ -84,6 +89,8 @@ describe('MetadataApplierTest', () => {
       expect(patched.summary).toBe(patch.summary)
       expect(patched.authors).toHaveLength(1)
       expect(eq(patched.authors, [new Author({ name: 'Marcel', role: 'writer' })])).toBe(true)
+      expect(patched.notableEntities).toHaveLength(1)
+      expect(eq(patched.notableEntities, [new NotableEntity({ kind: 'location', name: 'Tokyo' })])).toBe(true)
       expect(eq(patched.releaseDate, patch.releaseDate)).toBe(true)
       expect(patched.isbn).toBe(patch.isbn)
       expect(patched.links).toHaveLength(1)

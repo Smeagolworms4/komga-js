@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/web/WebMvcConfiguration.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/web/WebMvcConfiguration.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { configuration } from '../../port/spring.js'
 import { CacheControl, type HandlerMethodArgumentResolver } from '../../port/spring-web.js'
 import { type InterceptorRegistry, type ResourceHandlerRegistry, WebContentInterceptor, WebMvcConfigurer } from '../../port/spring-webmvc-config.js'
@@ -23,11 +23,12 @@ export class WebMvcConfiguration extends WebMvcConfigurer {
         '/favicon.ico',
         '/favicon-16x16.png',
         '/favicon-32x32.png',
-        '/mstile-144x144.png',
         '/apple-touch-icon.png',
-        '/apple-touch-icon-180x180.png',
         '/android-chrome-192x192.png',
         '/android-chrome-512x512.png',
+        'maskable_icon.png',
+        'maskable_icon_x192.png',
+        'maskable_icon_x512.png',
         '/manifest.json',
         '/layers.css',
       )

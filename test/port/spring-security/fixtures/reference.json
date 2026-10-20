@@ -528,19 +528,20 @@
         "x-content-type-options": "nosniff",
         "x-xss-protection": "0",
         "x-frame-options": "SAMEORIGIN",
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
+      }
+    },
+    {
+      "status": 401,
+      "headers": {
+        "www-authenticate": "Basic realm=\"Realm\"",
+        "x-content-type-options": "nosniff",
+        "x-xss-protection": "0",
+        "x-frame-options": "SAMEORIGIN",
         "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
         "set-cookie": [
           "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
         ]
-      }
-    },
-    {
-      "status": 200,
-      "headers": {
-        "x-content-type-options": "nosniff",
-        "x-xss-protection": "0",
-        "x-frame-options": "SAMEORIGIN",
-        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
       }
     }
   ],
@@ -605,10 +606,7 @@
         "x-content-type-options": "nosniff",
         "x-xss-protection": "0",
         "x-frame-options": "DENY",
-        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
-        "set-cookie": [
-          "KOMGA-SESSION=<session>; Path=/; HttpOnly; SameSite=Lax"
-        ]
+        "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
       }
     },
     {

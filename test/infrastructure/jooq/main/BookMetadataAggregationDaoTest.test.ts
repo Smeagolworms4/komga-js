@@ -1,4 +1,4 @@
-// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookMetadataAggregationDaoTest.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/test/kotlin/org/gotson/komga/infrastructure/jooq/main/BookMetadataAggregationDaoTest.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import '../../../../src/infrastructure/jooq/main/LibraryDao.js'
 import '../../../../src/infrastructure/jooq/main/SeriesDao.js'
 import '../../../../src/infrastructure/jooq/main/BookMetadataAggregationDao.js'
@@ -6,6 +6,7 @@ import { LocalDate, LocalDateTime } from '@js-joda/core'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { Author } from '../../../../src/domain/model/Author.js'
 import { BookMetadataAggregation } from '../../../../src/domain/model/BookMetadataAggregation.js'
+import { NotableEntity } from '../../../../src/domain/model/NotableEntity.js'
 import { LibraryRepository } from '../../../../src/domain/persistence/LibraryRepository.js'
 import { SeriesRepository } from '../../../../src/domain/persistence/SeriesRepository.js'
 import { BookMetadataAggregationDao } from '../../../../src/infrastructure/jooq/main/BookMetadataAggregationDao.js'
@@ -55,6 +56,7 @@ describe('BookMetadataAggregationDaoTest', () => {
     const now = LocalDateTime.now()
     const metadata = new BookMetadataAggregation({
       authors: [new Author({ name: 'author', role: 'role' })],
+      notableEntities: [new NotableEntity({ kind: 'power', name: 'elasticity' }), new NotableEntity({ kind: 'team', name: 'mutants' })],
       tags: new Set(['tag1', 'tag2']),
       releaseDate: LocalDate.now(),
       summary: 'Summary',
@@ -76,6 +78,11 @@ describe('BookMetadataAggregationDaoTest', () => {
       const it = first(created.authors)
       expect(it.name).toBe(first(metadata.authors).name)
       expect(it.role).toBe(first(metadata.authors).role)
+    }
+    {
+      const it = first(created.notableEntities)
+      expect(it.name).toBe(first(metadata.notableEntities).name)
+      expect(it.kind).toBe(first(metadata.notableEntities).kind)
     }
     expect([...created.tags].sort()).toEqual([...metadata.tags].sort())
   })
@@ -100,6 +107,7 @@ describe('BookMetadataAggregationDaoTest', () => {
     expect(isBlank(created.summary)).toBe(true)
     expect(isBlank(created.summaryNumber)).toBe(true)
     expect(created.authors).toHaveLength(0)
+    expect(created.notableEntities).toHaveLength(0)
   })
 
   it('given existing bookMetadataAggregation when finding by id then metadata is returned', () => {
@@ -140,6 +148,7 @@ describe('BookMetadataAggregationDaoTest', () => {
 
     const metadata = new BookMetadataAggregation({
       authors: [new Author({ name: 'author', role: 'role' })],
+      notableEntities: [new NotableEntity({ kind: 'power', name: 'elasticity' }), new NotableEntity({ kind: 'team', name: 'mutants' })],
       tags: new Set(['tag1', 'tag2']),
       releaseDate: LocalDate.now(),
       summary: 'Summary',
@@ -156,6 +165,7 @@ describe('BookMetadataAggregationDaoTest', () => {
       summary: 'SummaryUpdated',
       summaryNumber: '2',
       authors: [new Author({ name: 'authorUpdated', role: 'roleUpdated' }), new Author({ name: 'author2', role: 'role2' })],
+      notableEntities: [new NotableEntity({ kind: 'powerUpdated', name: 'elasticityUpdated' })],
       tags: new Set(['tag1', 'tag2updated']),
     })
 
@@ -172,6 +182,9 @@ describe('BookMetadataAggregationDaoTest', () => {
     expect(modified.authors).toHaveLength(2)
     expect(modified.authors.map((it) => it.name).sort()).toEqual(updated.authors.map((it) => it.name).sort())
     expect(modified.authors.map((it) => it.role).sort()).toEqual(updated.authors.map((it) => it.role).sort())
+    expect(modified.notableEntities).toHaveLength(1)
+    expect(modified.notableEntities.map((it) => it.name).sort()).toEqual(updated.notableEntities.map((it) => it.name).sort())
+    expect(modified.notableEntities.map((it) => it.kind).sort()).toEqual(updated.notableEntities.map((it) => it.kind).sort())
     expect([...modified.tags].sort()).toEqual([...updated.tags].sort())
   })
 })

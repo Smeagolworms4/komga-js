@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SeriesController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/SeriesController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { ZoneOffset, ZonedDateTime } from '@js-joda/core'
 import { HIGHEST_PRIORITY, HIGH_PRIORITY } from '../../../application/tasks/Task.js'
 import { TaskEmitter } from '../../../application/tasks/TaskEmitter.js'
@@ -7,7 +7,6 @@ import type { Author } from '../../../domain/model/Author.js'
 import { BookSearch } from '../../../domain/model/BookSearch.js'
 import { Dimension } from '../../../domain/model/Dimension.js'
 import { DomainEvent } from '../../../domain/model/DomainEvent.js'
-import { EntityNotFoundException } from '../../../domain/model/Exceptions.js'
 import { MarkSelectedPreference } from '../../../domain/model/MarkSelectedPreference.js'
 import { Media } from '../../../domain/model/Media.js'
 import { MediaType as KomgaMediaType } from '../../../domain/model/MediaType.js'
@@ -28,7 +27,7 @@ import { ThumbnailSeriesRepository } from '../../../domain/persistence/Thumbnail
 import { BookLifecycle } from '../../../domain/service/BookLifecycle.js'
 import { SeriesLifecycle } from '../../../domain/service/SeriesLifecycle.js'
 import { ImageAnalyzer } from '../../../infrastructure/image/ImageAnalyzer.js'
-import { UnpagedSorted } from '../../../infrastructure/jooq/UnpagedSorted.js'
+import { UnpagedSorted } from '../../../application/query/UnpagedSorted.js'
 import { ContentDetector } from '../../../infrastructure/mediacontainer/ContentDetector.js'
 import { AuthorsAsQueryParam } from '../../../infrastructure/openapi/AuthorsAsQueryParam.js'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
@@ -370,14 +369,13 @@ export class SeriesController {
 
   // @Operation(summary = "Get series details", tags = [OpenApiConfiguration.TagNames.SERIES])
   // @GetMapping("v1/series/{seriesId}")
-  // @Throws(EntityNotFoundException::class)
   getSeriesById(principal: KomgaPrincipal, id: string): SeriesDto {
     const it = this.seriesDtoRepository.findByIdOrNull(id, principal.user.id)
     if (it !== null) {
       this.contentRestrictionChecker.checkContentRestrictionSeries(principal.user, it)
       return restrictUrl(it, !principal.user.isAdmin)
     }
-    throw new EntityNotFoundException()
+    throw new ResponseStatusException(HttpStatus.NOT_FOUND)
   }
 
   // @Operation(summary = "Get series' poster image", tags = [OpenApiConfiguration.TagNames.SERIES_POSTER])
@@ -827,7 +825,7 @@ restController(SeriesController, {
       mapping: { method: 'GET', path: ['v1/series/{seriesId}'] },
       args: [authenticationPrincipal(), pathVariable('seriesId')],
       returns: { class: SeriesDto },
-      openapi: { operation: { summary: 'Get series details', tags: [OpenApiConfiguration.TagNames.SERIES] }, throws: [EntityNotFoundException] },
+      openapi: { operation: { summary: 'Get series details', tags: [OpenApiConfiguration.TagNames.SERIES] } },
     },
     getSeriesThumbnail: {
       mapping: { method: 'GET', path: ['v1/series/{seriesId}/thumbnail'], produces: [MediaType.IMAGE_JPEG_VALUE] },

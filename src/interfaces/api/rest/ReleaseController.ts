@@ -1,8 +1,8 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReleaseController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/ReleaseController.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import { LRUCache } from 'lru-cache'
 import { OpenApiConfiguration } from '../../../infrastructure/openapi/OpenApiConfiguration.js'
 import { ObjectMapper } from '../../../port/jackson-mapper.js'
-import { HttpStatus, MediaType, DecodingException, ResponseStatusException, WebClientResponseException, restController } from '../../../port/spring-web.js'
+import { MediaType, DecodingException, WebClientResponseException, restController } from '../../../port/spring-web.js'
 import { GithubReleaseDto } from './dto/GithubReleaseDto.js'
 import { ReleaseDto } from './dto/ReleaseDto.js'
 
@@ -36,20 +36,17 @@ export class ReleaseController {
       releases = await this.fetchGitHubReleases()
       this.cache.set('releases', releases)
     }
-    if (releases !== null) {
-      return releases.map(
-        (ghRel, index) =>
-          new ReleaseDto({
-            version: ghRel.tagName,
-            releaseDate: ghRel.publishedAt,
-            url: ghRel.htmlUrl,
-            latest: index === 0,
-            preRelease: ghRel.prerelease,
-            description: ghRel.body,
-          }),
-      )
-    }
-    throw new ResponseStatusException(HttpStatus.NOT_FOUND)
+    return releases.map(
+      (ghRel, index) =>
+        new ReleaseDto({
+          version: ghRel.tagName,
+          releaseDate: ghRel.publishedAt,
+          url: ghRel.htmlUrl,
+          latest: index === 0,
+          preRelease: ghRel.prerelease,
+          description: ghRel.body,
+        }),
+    )
   }
 
   // PORT: async (WebClient.block())

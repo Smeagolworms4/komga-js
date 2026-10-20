@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookDto.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/rest/dto/BookDto.kt@a9b59dbee73424d7f2e186b24b0905913f816709
 import type { LocalDate, LocalDateTime } from '@js-joda/core'
 import { MediaType } from '../../../../domain/model/MediaType.js'
 import { BinaryByteUnit } from '../../../../port/byteunits.js'
@@ -7,6 +7,7 @@ import { jsonFormatLocalDate, jsonFormatLocalDateTime } from '../../../../port/j
 import { jsonProperties } from '../../../../port/jackson-mapper.js'
 import { DataClass, kFloat, lazy } from '../../../../port/kotlin.js'
 import { AuthorDto } from './AuthorDto.js'
+import { NotableEntityDto } from './NotableEntityDto.js'
 import { WebLinkDto } from './WebLinkDto.js'
 
 type BookDtoParams = {
@@ -144,6 +145,8 @@ type BookMetadataDtoParams = {
   releaseDateLock: boolean
   authors: AuthorDto[]
   authorsLock: boolean
+  notableEntities: NotableEntityDto[]
+  notableEntitiesLock: boolean
   tags: ReadonlySet<string>
   tagsLock: boolean
   isbn: string
@@ -168,6 +171,8 @@ export class BookMetadataDto extends DataClass<BookMetadataDtoParams> {
   readonly releaseDateLock: boolean
   readonly authors: AuthorDto[]
   readonly authorsLock: boolean
+  readonly notableEntities: NotableEntityDto[]
+  readonly notableEntitiesLock: boolean
   readonly tags: ReadonlySet<string>
   readonly tagsLock: boolean
   readonly isbn: string
@@ -192,6 +197,8 @@ export class BookMetadataDto extends DataClass<BookMetadataDtoParams> {
     releaseDateLock,
     authors,
     authorsLock,
+    notableEntities,
+    notableEntitiesLock,
     tags,
     tagsLock,
     isbn,
@@ -214,6 +221,8 @@ export class BookMetadataDto extends DataClass<BookMetadataDtoParams> {
     this.releaseDateLock = releaseDateLock
     this.authors = authors
     this.authorsLock = authorsLock
+    this.notableEntities = notableEntities
+    this.notableEntitiesLock = notableEntitiesLock
     this.tags = tags
     this.tagsLock = tagsLock
     this.isbn = isbn
@@ -307,6 +316,8 @@ jsonProperties(
     releaseDateLock: 'Boolean',
     authors: { list: { class: AuthorDto } },
     authorsLock: 'Boolean',
+    notableEntities: { list: { class: NotableEntityDto } },
+    notableEntitiesLock: 'Boolean',
     tags: { set: 'String' },
     tagsLock: 'Boolean',
     isbn: 'String',
@@ -330,6 +341,8 @@ jsonProperties(
       'releaseDateLock',
       'authors',
       'authorsLock',
+      'notableEntities',
+      'notableEntitiesLock',
       'tags',
       'tagsLock',
       'isbn',

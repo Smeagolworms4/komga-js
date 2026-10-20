@@ -958,7 +958,7 @@ export class ServerProperties {
 }
 
 /**
- * `CaffeineHttpSessionConfiguration` (via @EnableCaffeineHttpSession) + `SpringHttpSessionConfiguration` :
+ * `CaffeineHttpSessionConfiguration` (via @EnableCaffeineHttpSession, voir `enableCaffeineHttpSession`) + `SpringHttpSessionConfiguration` :
  * beans `sessionRepository` et `springSessionRepositoryFilter` (enregistré dans le conteneur à l'ordre
  * SessionRepositoryFilter.DEFAULT_ORDER, comme le fait Spring Boot pour un Filter ordonné).
  */
@@ -995,21 +995,27 @@ export class CaffeineHttpSessionConfiguration {
   }
 }
 
-configuration(CaffeineHttpSessionConfiguration, {
-  beans: [
-    {
-      method: 'sessionRepository',
-      type: CaffeineIndexedSessionRepository,
-      types: [FindByIndexNameSessionRepository, SessionRepository],
-      inject: [ApplicationEventPublisher, { list: SessionRepositoryCustomizer }],
-    },
-    {
-      method: 'springSessionRepositoryFilter',
-      type: FilterRegistrationBean,
-      inject: [CaffeineIndexedSessionRepository, { optional: HttpSessionIdResolver }, { optional: CookieSerializer }],
-    },
-  ],
-})
+/** `@EnableCaffeineHttpSession` sur une configuration (conditionnelle) : configuration de Spring Session Caffeine avec la même condition */
+export function enableCaffeineHttpSession(condition?: (env: ApplicationContext['environment']) => boolean): void {
+  configuration(CaffeineHttpSessionConfiguration, {
+    condition,
+    beans: [
+      {
+        method: 'sessionRepository',
+        type: CaffeineIndexedSessionRepository,
+        types: [FindByIndexNameSessionRepository, SessionRepository],
+        condition,
+        inject: [ApplicationEventPublisher, { list: SessionRepositoryCustomizer }],
+      },
+      {
+        method: 'springSessionRepositoryFilter',
+        type: FilterRegistrationBean,
+        condition,
+        inject: [CaffeineIndexedSessionRepository, { optional: HttpSessionIdResolver }, { optional: CookieSerializer }],
+      },
+    ],
+  })
+}
 
 // ServerProperties (auto-configuration de Spring Boot)
 configuration(
