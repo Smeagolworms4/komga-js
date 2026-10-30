@@ -1,4 +1,4 @@
-// Vérifie que le runner Flyway TS produit exactement le schéma et l'historique du vrai Flyway (Komga 1.29.1).
+// Vérifie que le runner Flyway TS produit exactement le schéma et l'historique du vrai Flyway (Komga 1.29.2).
 // Les bases de référence ont été produites par `./gradlew :komga:flywayMigrateMain :komga:flywayMigrateTasks`.
 import Database from 'better-sqlite3'
 import { describe, expect, it } from 'vitest'

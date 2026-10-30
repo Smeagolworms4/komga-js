@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/koreader/KoreaderHasher.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/koreader/KoreaderHasher.kt@829f75884b013037a0ed74c6d8966c8857b35d9c
 import { createHash } from 'node:crypto'
 import { closeSync, fstatSync } from 'node:fs'
 import { openAsync, preadManyAsync } from '../../port/async-io.js'
@@ -38,11 +38,10 @@ export class KoreaderHasher {
         positions.push(Number(BigInt.asIntN(64, step << BigInt((2 * it) & 63))))
       }
       const reads = await preadManyAsync(file, positions, size)
-      for (const [read, s] of reads) {
+      for (const [read, size] of reads) {
         // PORT: file.seek(pos) + file.read(buffer) -> lecture à la position (0 en fin de fichier au lieu de -1)
-        buffer.set(read.subarray(0, s))
-        // le tampon entier est ajouté, y compris les octets d'une lecture précédente si s < size (comme en Kotlin)
-        if (s > 0) digest.update(buffer)
+        buffer.set(read.subarray(0, size))
+        if (size > 0) digest.update(buffer.subarray(0, size))
       }
     } finally {
       closeSync(file)

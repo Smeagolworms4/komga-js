@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/BookDtoDao.kt@829f75884b013037a0ed74c6d8966c8857b35d9c
+import { buildPage } from '../../../application/query/BuildPage.js'
 import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { BookSearch } from '../../../domain/model/BookSearch.js'
 import { ContentRestrictions } from '../../../domain/model/ContentRestrictions.js'
@@ -211,6 +212,8 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
   ): Page<BookDto> {
     const [query, sortField] = this.bookCommonDao.getBooksOnDeckQuery(userId, restrictions, filterOnLibraryIds, this.onDeckFields)
 
+    const count = pageable.isUnpaged ? null : this.dslRO.fetchCount(query)
+
     let dtos: BookDto[]
     if (isEmpty(pageable)) dtos = []
     else {
@@ -219,14 +222,7 @@ export class BookDtoDao extends SplitDslDaoBase implements BookDtoRepository {
       dtos = this.fetchAndMap(query, this.dslRO)
     }
 
-    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
-    const count = pageable.isUnpaged ? dtos.length : this.dslRO.fetchCount(query)
-
-    return new PageImpl(
-      dtos,
-      pageable.isPaged ? PageRequest.of(pageable.pageNumber, pageable.pageSize, Sort.unsorted()) : PageRequest.of(0, Math.max(count, 20), Sort.unsorted()),
-      count,
-    )
+    return buildPage(dtos, pageable, count ?? dtos.length, Sort.unsorted())
   }
 
   findAllDuplicates(userId: string, pageable: Pageable): Page<BookDto> {

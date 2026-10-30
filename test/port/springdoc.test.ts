@@ -197,7 +197,7 @@ restController(LibraryController, {
 
 function generate(): Record<string, unknown> {
   const env = { activeProfiles: ['generate-openapi'] } as unknown as Environment
-  const config = new OpenApiConfiguration('1.29.1', env)
+  const config = new OpenApiConfiguration('1.29.2', env)
   const generator = new OpenApiGenerator(config.openApi(), [config.roleDescriptionCustomizer()], [new InheritanceFlattenerConfiguration().flattenInheritedSchemasCustomizer()])
   return toJsonValue(generator.generate(null)) as Record<string, unknown>
 }

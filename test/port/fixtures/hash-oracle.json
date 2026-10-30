@@ -46,12 +46,12 @@
   {
    "path": "application-memorydb.yml",
    "xxh3_128": "796218f6374fac92e2b1e693ea4b0910",
-   "koreader": "258c78cee3b68797d8cfabd48f86e738"
+   "koreader": "a9cba6a0ba80bc725cb95637296a3c99"
   },
   {
    "path": "application-test.yml",
    "xxh3_128": "401083d441cd4a58e15c4fe40db83160",
-   "koreader": "2955fb62be93b27866ee2bf0f6456714"
+   "koreader": "39a33af3d8f7c94df86c4589c60eaa3f"
   },
   {
    "path": "archives/7zip-encrypted.7z",
@@ -156,7 +156,7 @@
   {
    "path": "epub/Die Drei 3.opf",
    "xxh3_128": "67cf1c10aa990c409db71b855dd25dd3",
-   "koreader": "fe5c7a4774e904d8f370f02542ef2b58"
+   "koreader": "040fe18e9c99eaa5eb95aa0cd440258d"
   },
   {
    "path": "epub/Panik im Paradies - namespace.opf",
@@ -281,12 +281,12 @@
   {
    "path": "io/mockk/settings.properties",
    "xxh3_128": "304ed35baf5a34d15e56c9dd1d73c576",
-   "koreader": "acef40b7b92522dd147c16f276721f2a"
+   "koreader": "9f1e4a3ee227ed3de8bf12535b29bcd4"
   },
   {
    "path": "junit-platform.properties",
    "xxh3_128": "11811d1fdc2afab8501446da5d740d0a",
-   "koreader": "136b906ec02f240c6bd13eac863e837e"
+   "koreader": "10efc438c021fbcd9421399a80bb7ce9"
   },
   {
    "path": "pdf/komga.pdf",
