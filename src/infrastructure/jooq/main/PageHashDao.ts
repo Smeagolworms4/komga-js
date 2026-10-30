@@ -1,4 +1,5 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/PageHashDao.kt@a9b59dbee73424d7f2e186b24b0905913f816709
+// @port-of komga/src/main/kotlin/org/gotson/komga/infrastructure/jooq/main/PageHashDao.kt@829f75884b013037a0ed74c6d8966c8857b35d9c
+import { buildPage } from '../../../application/query/BuildPage.js'
 import { isEmpty } from '../../../application/query/PageableExtension.js'
 import { LocalDateTime, ZoneId } from '@js-joda/core'
 import { BookPageNumbered } from '../../../domain/model/BookPageNumbered.js'
@@ -12,7 +13,7 @@ import { type PageHashRecord, Tables } from '../../../port/jooq/generated/main/T
 import { toCurrentTimeZone } from '../../../language/LanguageUtils.js'
 import type { Field } from '../../../port/jooq/core.js'
 import { DSL, DSLContext, transactional } from '../../../port/jooq/dsl.js'
-import { type Page, PageImpl, PageRequest, type Pageable, Sort } from '../../../port/spring-data.js'
+import { type Page, type Pageable, Sort } from '../../../port/spring-data.js'
 import { component } from '../../../port/spring.js'
 import { URL } from '../../../port/java-net.js'
 
@@ -67,6 +68,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
 
     const orderBy = toOrderBy(pageable.sort, this.sortsKnown)
 
+    const count = pageable.isUnpaged ? null : this.dslRO.fetchCount(query)
+
     let items: PageHashKnown[]
     if (isEmpty(pageable)) items = []
     else {
@@ -75,15 +78,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       items = query.fetch().map((it) => toDomain(it.into(this.ph), it.get<number>('count')))
     }
 
-    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
-    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
-
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
-    return new PageImpl(
-      items,
-      pageable.isPaged ? PageRequest.of(pageable.pageNumber, pageable.pageSize, pageSort) : PageRequest.of(0, Math.max(count, 20), pageSort),
-      count,
-    )
+    return buildPage(items, pageable, count ?? items.length, pageSort)
   }
 
   findAllUnknown(pageable: Pageable): Page<PageHashUnknown> {
@@ -98,6 +94,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
 
     const orderBy = toOrderBy(pageable.sort, this.sortsUnknown)
 
+    const count = pageable.isUnpaged ? null : this.dslRO.fetchCount(query)
+
     let items: PageHashUnknown[]
     if (isEmpty(pageable)) items = []
     else {
@@ -106,15 +104,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       items = query.fetch((it) => new PageHashUnknown({ hash: it.value1(), size: it.value2(), matchCount: it.value3() }))
     }
 
-    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
-    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
-
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
-    return new PageImpl(
-      items,
-      pageable.isPaged ? PageRequest.of(pageable.pageNumber, pageable.pageSize, pageSort) : PageRequest.of(0, Math.max(count, 20), pageSort),
-      count,
-    )
+    return buildPage(items, pageable, count ?? items.length, pageSort)
   }
 
   findMatchesByHash(pageHash: string, pageable: Pageable): Page<PageHashMatch> {
@@ -126,6 +117,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       .where(this.p.FILE_HASH.eq(pageHash))
 
     const orderBy = toOrderBy(pageable.sort, this.sortsUnknown)
+
+    const count = pageable.isUnpaged ? null : this.dslRO.fetchCount(query)
 
     let items: PageHashMatch[]
     if (isEmpty(pageable)) items = []
@@ -145,15 +138,8 @@ export class PageHashDao extends SplitDslDaoBase implements PageHashRepository {
       )
     }
 
-    // PORT: la requête jOOQ est mutable : le comptage porte sur la requête déjà triée et limitée, comme dans Komga
-    const count = pageable.isUnpaged ? items.length : this.dslRO.fetchCount(query)
-
     const pageSort = orderBy.length > 0 ? pageable.sort : Sort.unsorted()
-    return new PageImpl(
-      items,
-      pageable.isPaged ? PageRequest.of(pageable.pageNumber, pageable.pageSize, pageSort) : PageRequest.of(0, Math.max(count, 20), pageSort),
-      count,
-    )
+    return buildPage(items, pageable, count ?? items.length, pageSort)
   }
 
   findMatchesByKnownHashAction(actions: PageHashKnown.Action[] | null, libraryId: string | null): Map<string, BookPageNumbered[]> {

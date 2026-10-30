@@ -1,4 +1,4 @@
-// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/opds/v1/OpdsController.kt@65981e600edb24944ffaae4818ff2716a5fa08dd
+// @port-of komga/src/main/kotlin/org/gotson/komga/interfaces/api/opds/v1/OpdsController.kt@829f75884b013037a0ed74c6d8966c8857b35d9c
 import { ZoneId, ZonedDateTime } from '@js-joda/core'
 import { BookSearch } from '../../../../domain/model/BookSearch.js'
 import type { Library } from '../../../../domain/model/Library.js'
@@ -369,7 +369,7 @@ export class OpdsController {
   }
 
   getPublishers(principal: KomgaPrincipal, page: Pageable): OpdsFeed {
-    const publishers = this.referentialRepository.findAllPublishers(principal.user.getAuthorizedLibraryIds(null), page)
+    const publishers = this.referentialRepository.findPublishers(new SearchContext(principal.user), null, null, page)
 
     const uriBuilder = this.uriBuilder(ROUTE_PUBLISHERS_ALL)
 

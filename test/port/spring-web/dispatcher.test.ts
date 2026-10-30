@@ -79,6 +79,11 @@ function normalizeHeaders(id: string, r: RawResponse): string[] {
     if (SECURITY_HEADERS_UNMODELED.has(id) && (name === 'Vary' || name.startsWith('X-'))) continue
     if (RANDOM_BOUNDARY.has(id) && (name === 'ETag' || name === 'Content-Length')) value = 'VARIES'
     if (name === 'Date') value = 'DATE'
+    // the error page date ends with the zone abbreviation (CEST in summer, CET in winter): its length is left out
+    if (name === 'Content-Length' && r.body) {
+      const created = /<div id='created'>([^<]*)<\/div>/.exec(Buffer.from(r.body, 'base64').toString('latin1'))?.[1]
+      if (created !== undefined) value = `${Number(value) - created.length} (without date)`
+    }
     if (boundary) value = value.split(boundary).join('BOUNDARY')
     if (name === 'Allow' && ALLOW_ORDER_UNSPECIFIED.has(id)) value = value.split(/,\s*/).sort().join(value.includes(', ') ? ', ' : ',')
     out.push(`${name}: ${value}`)
