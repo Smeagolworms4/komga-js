@@ -32,7 +32,7 @@ WORKDIR /nextui
 RUN npm ci --no-audit --no-fund && npm run build
 
 # --- Outils de compilation, par architecture (voir en tête) ------------------------------------
-FROM smeagolworms4/node-pointer-compression:24-alpine AS build-base-alpine
+FROM smeagolworms4/node-pointer-compression:26-alpine AS build-base-alpine
 # icu-data-full : données ICU complètes, comme sous Debian (le paquet de base d'Alpine ne contient que l'anglais)
 RUN apk add --no-cache build-base python3 icu-dev icu-data-full
 # Modules natifs compilés à l'installation (xxhash-addon n'a pas de binaire musl) : avec les en-têtes de l'image,
@@ -90,7 +90,7 @@ RUN mkdir -p /runtime/usr/bin /runtime/usr/lib && \
     fi
 
 # --- Base de l'image finale, par architecture --------------------------------------------------
-FROM smeagolworms4/node-pointer-compression:24-alpine-slim AS runner-base-alpine
+FROM smeagolworms4/node-pointer-compression:26-alpine-slim AS runner-base-alpine
 
 FROM node:22-bookworm-slim AS runner-base-debian
 RUN apt-get update && \
